@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { AuthService } from "../../services/AuthService";
+import { errorMessage } from "../../api/client";
+import { devLogin, session } from "../../api/http";
 import { useAuth } from "../../context/AuthContext";
 
 export function useLogin() {
-  const { login } = useAuth();
+  const { signInWithToken } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +32,7 @@ export function useLogin() {
 
   const handleLogin = async () => {
     if (isAuthenticating) return;
-    
+
     const newErrors = { email: "", password: "" };
     let isValid = true;
 
@@ -51,28 +52,34 @@ export function useLogin() {
     setErrors(newErrors);
 
     if (isValid) {
-      setIsAuthenticating(true);
-      try {
-        const loggedInUser = await AuthService.login(email.trim(), password);
-        await login(loggedInUser);
-        setAlertConfig({
-          visible: true,
-          title: "¡Hola de nuevo!",
-          message: "Has iniciado sesión correctamente. Estamos preparando tus finanzas.",
-          type: "success",
-          iconName: "log-in-outline",
-        });
-      } catch (error: any) {
-        setAlertConfig({
-          visible: true,
-          title: "Error de autenticación",
-          message: error.message || "Usuario o contraseña incorrectos.",
-          type: "error",
-          iconName: "warning-outline",
-        });
-      } finally {
-        setIsAuthenticating(false);
-      }
+      // El inicio de sesión con correo y Google se conecta con Supabase (tarea 0.11).
+      setAlertConfig({
+        visible: true,
+        title: "Inicio con correo próximamente",
+        message: "Por ahora puedes entrar con el botón «Entrar en modo desarrollo».",
+        type: "info",
+        iconName: "construct-outline",
+      });
+    }
+  };
+
+  /** Acceso de desarrollo: el servidor entrega un token del usuario de desarrollo (solo con AUTH_MODE=dev). */
+  const handleDevLogin = async () => {
+    if (isAuthenticating) return;
+    setIsAuthenticating(true);
+    try {
+      const base = await session.getBaseUrl();
+      await signInWithToken(await devLogin(base), base);
+    } catch (error) {
+      setAlertConfig({
+        visible: true,
+        title: "No se pudo entrar",
+        message: errorMessage(error),
+        type: "error",
+        iconName: "warning-outline",
+      });
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -89,5 +96,6 @@ export function useLogin() {
     alertConfig,
     setAlertConfig,
     handleLogin,
+    handleDevLogin,
   };
 }

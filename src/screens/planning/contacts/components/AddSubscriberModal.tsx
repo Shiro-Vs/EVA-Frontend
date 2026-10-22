@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator } from "react-native";
+import React from "react";
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import EVAModal from "../../../../components/common/EVAModal";
 import EVAAlert from "../../../../components/common/EVAAlert";
@@ -13,10 +13,10 @@ interface AddSubscriberModalProps {
   visible: boolean;
   onClose: () => void;
   contact: Contact | null;
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
-export function AddSubscriberModal({ visible, onClose, contact, onSuccess }: AddSubscriberModalProps) {
+export function AddSubscriberModal({ visible, onClose, contact }: AddSubscriberModalProps) {
   const { colors, fonts } = useAppTheme();
   
   const {
@@ -24,15 +24,10 @@ export function AddSubscriberModal({ visible, onClose, contact, onSuccess }: Add
     loading,
     selectedServiceId,
     setSelectedServiceId,
-    cuota,
-    setCuota,
-    isCourtesy,
-    setIsCourtesy,
-    saving,
     alertConfig,
     setAlertConfig,
     handleSave
-  } = useAddSubscriber(visible, contact, onSuccess);
+  } = useAddSubscriber(visible, contact, onClose);
 
   if (!contact) return null;
 
@@ -45,7 +40,7 @@ export function AddSubscriberModal({ visible, onClose, contact, onSuccess }: Add
         primaryButtonText={
           services.length === 0 
             ? "Entendido" 
-            : (selectedServiceId ? "Asignar Ahora" : undefined)
+            : (selectedServiceId ? "Continuar" : undefined)
         }
         onPrimaryAction={services.length === 0 ? onClose : handleSave}
         secondaryButtonText="Cerrar"
@@ -70,7 +65,7 @@ export function AddSubscriberModal({ visible, onClose, contact, onSuccess }: Add
                 className="text-[11px] text-center mt-2"
                 style={{ color: colors.textSecondary, fontFamily: fonts.family.regular }}
               >
-                Ya participa en todos los servicios creados
+                No hay servicios compartidos con plazas libres
               </Text>
             </View>
           ) : (
@@ -90,13 +85,13 @@ export function AddSubscriberModal({ visible, onClose, contact, onSuccess }: Add
                     borderColor: selectedServiceId === s.id ? colors.primary : "transparent"
                   }}
                 >
-                  <ServiceIcon name={s.icon} color={s.color} size={24} />
+                  <ServiceIcon name={s.icon ?? "receipt"} color={s.color ?? "#3B82F6"} size={24} />
                   <Text 
                     className="text-[10px] text-center mt-2"
                     style={{ color: selectedServiceId === s.id ? colors.primary : colors.textSecondary, fontFamily: fonts.family.bold }}
                     numberOfLines={1}
                   >
-                    {s.nombre}
+                    {s.name}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -104,70 +99,6 @@ export function AddSubscriberModal({ visible, onClose, contact, onSuccess }: Add
           )}
         </View>
 
-        {selectedServiceId && (
-          <View 
-            className="p-5 rounded-[24px] mb-4"
-            style={{ backgroundColor: colors.card }}
-          >
-            <Text 
-              className="text-[10px] uppercase tracking-widest mb-4"
-              style={{ color: colors.textSecondary, fontFamily: fonts.family.semiBold }}
-            >
-              Configurar Cuota
-            </Text>
-
-            <View className="flex-row items-center justify-between mb-4">
-              <Text 
-                className="text-sm"
-                style={{ color: colors.text, fontFamily: fonts.family.medium }}
-              >
-                ¿Es cortesía?
-              </Text>
-              <TouchableOpacity 
-                onPress={() => setIsCourtesy(!isCourtesy)}
-                className="w-12 h-6 rounded-full px-1 justify-center"
-                style={{ backgroundColor: isCourtesy ? colors.primary : colors.border }}
-              >
-                <View 
-                  className="w-4 h-4 rounded-full bg-white" 
-                  style={{ alignSelf: isCourtesy ? 'flex-end' : 'flex-start' }}
-                />
-              </TouchableOpacity>
-            </View>
-
-            {!isCourtesy && (
-              <View 
-                className="flex-row items-center px-4 h-14 rounded-2xl border"
-                style={{ backgroundColor: colors.background, borderColor: `${colors.primary}20` }}
-              >
-                <Text 
-                  className="text-sm mr-2"
-                  style={{ color: colors.textSecondary, fontFamily: fonts.family.bold }}
-                >
-                  S/
-                </Text>
-                <TextInput
-                  placeholder="0.00"
-                  placeholderTextColor={colors.muted}
-                  keyboardType="numeric"
-                  className="flex-1 text-lg"
-                  style={{ color: colors.text, fontFamily: fonts.family.bold }}
-                  value={cuota}
-                  onChangeText={setCuota}
-                />
-              </View>
-            )}
-
-            {saving && (
-              <View 
-                className="absolute inset-0 rounded-[24px] items-center justify-center"
-                style={{ backgroundColor: `${colors.background}90` }}
-              >
-                <ActivityIndicator color={colors.primary} />
-              </View>
-            )}
-          </View>
-        )}
       </EVAModal>
 
       <EVAAlert

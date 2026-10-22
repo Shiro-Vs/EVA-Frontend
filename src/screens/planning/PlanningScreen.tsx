@@ -1,51 +1,38 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import React from "react";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { EVALoading } from "../../components/common/EVALoading";
-
-import { SubscriptionService } from "../../services/SubscriptionService";
-import { LoanService } from "../../services/LoanService";
-import { Subscription } from "../../interfaces/Subscription";
-import { Loan } from "../../interfaces/Loan";
-import { getAdjustedColor } from "../../utils/serviceIcons";
+import { ErrorBox } from "../../components/v1/ui";
+import { api } from "../../api/client";
+import { useAsync } from "../../hooks/useAsync";
+import { useFocusReload } from "../../hooks/useFocusReload";
+import { getAdjustedColor, ServiceIcon } from "../../utils/serviceIcons";
+import { humanDate } from "../../utils/dates";
+import { formatSoles } from "../../utils/money";
 
 export default function PlanningScreen() {
   const { colors, isDark } = useAppTheme();
   const router = useRouter();
 
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const subs = useAsync(() => api.subscriptions(), []);
+  const summary = useAsync(() => api.summary(), []);
+  const reload = React.useCallback(() => { void subs.reload(); void summary.reload(); }, [subs.reload, summary.reload]);
+  useFocusReload(reload);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [subs, ls] = await Promise.all([
-          SubscriptionService.getSubscriptions(),
-          LoanService.getLoans()
-        ]);
-        setSubscriptions(subs);
-        setLoans(ls);
-      } catch (error) {
-        console.error("Error al cargar planificación", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
-  }, []);
-
-  if (isLoading) {
+  if ((subs.loading && !subs.data) || (summary.loading && !summary.data)) {
     return <EVALoading message="Cargando planificación..." />;
   }
-
-  // Calculamos el total mensual sumando las cuotas esperadas en préstamos y el costo actual de las suscripciones
-  const totalSubs = subscriptions.reduce((acc, s) => acc + (s.costo_total_actual || 0), 0);
-  const totalLoans = loans.reduce((acc, l) => acc + (l.monto_total_prestado / l.numero_cuotas_totales), 0);
-  const totalMonthly = totalSubs + totalLoans;
+  if (subs.error || summary.error) {
+    return (
+      <SafeAreaView className="flex-1 px-6 justify-center" style={{ backgroundColor: colors.background }}>
+        <ErrorBox message={(subs.error ?? summary.error)!} onRetry={reload} />
+      </SafeAreaView>
+    );
+  }
+  const subscriptions = subs.data ?? [];
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
@@ -53,47 +40,49 @@ export default function PlanningScreen() {
         {/* Header Section */}
         <View className="mt-6 mb-8">
           <Text className="font-asap-bold text-3xl" style={{ color: colors.text }}>Planificación</Text>
-          <Text className="font-asap text-base" style={{ color: colors.textSecondary }}>Tus compromisos del mes</Text>
+          <Text className="font-asap text-base" style={{ color: colors.textSecondary }}>Tus compromisos del ciclo</Text>
         </View>
 
         {/* Monthly Summary Card - Compact Version */}
-        <View 
+        <View
           className="p-5 rounded-[28px] border mb-8 shadow-sm flex-row items-center justify-between"
           style={{ backgroundColor: colors.card, borderColor: `${colors.text}10` }}
         >
           <View>
             <Text className="font-asap-medium text-[10px] uppercase tracking-wider" style={{ color: colors.textSecondary }}>Total Comprometido</Text>
-            <Text className="font-asap-bold text-2xl mt-0.5" style={{ color: colors.text }}>S/ {totalMonthly.toFixed(2)}</Text>
-            
+            <Text className="font-asap-bold text-2xl mt-0.5" style={{ color: colors.text }}>{formatSoles(summary.data?.subscriptions.currentCycleTotal)}</Text>
+
             <View className="flex-row mt-2">
               <View className="flex-row items-center mr-4">
                 <View className="w-1.5 h-1.5 rounded-full mr-1.5" style={{ backgroundColor: colors.primary }} />
-                <Text className="font-asap text-[10px]" style={{ color: colors.textSecondary }}>Subs: S/ {totalSubs.toFixed(2)}</Text>
+                <Text className="font-asap text-[10px]" style={{ color: colors.textSecondary }}>
+                  {summary.data?.subscriptions.active ?? 0} {(summary.data?.subscriptions.active ?? 0) === 1 ? "servicio" : "servicios"}
+                </Text>
               </View>
               <View className="flex-row items-center">
                 <View className="w-1.5 h-1.5 rounded-full mr-1.5" style={{ backgroundColor: colors.muted }} />
-                <Text className="font-asap text-[10px]" style={{ color: colors.textSecondary }}>Préstamos: S/ {totalLoans.toFixed(2)}</Text>
+                <Text className="font-asap text-[10px]" style={{ color: colors.textSecondary }}>Por cobrar: {formatSoles(summary.data?.receivable.pending)}</Text>
               </View>
             </View>
           </View>
-          
-          <View 
+
+          <View
             className="w-10 h-10 rounded-xl items-center justify-center"
             style={{ backgroundColor: `${colors.primary}15` }}
           >
             <Ionicons name="calendar-outline" size={20} color={colors.primary} />
           </View>
         </View>
-        
+
         {/* Community & Contacts Access */}
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => router.push("/contacts")}
           className="p-4 rounded-3xl border mb-8 flex-row items-center justify-between"
           style={{ backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}15` }}
           activeOpacity={0.7}
         >
           <View className="flex-row items-center">
-            <View 
+            <View
               className="w-10 h-10 rounded-full items-center justify-center mr-4"
               style={{ backgroundColor: `${colors.primary}15` }}
             >
@@ -111,39 +100,53 @@ export default function PlanningScreen() {
         <View className="mb-10">
           <View className="flex-row justify-between items-center mb-6">
             <Text className="font-asap-bold text-xl" style={{ color: colors.text }}>Suscripciones</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
+              onPress={() => router.push("/service/new")}
               className="px-3 py-1.5 rounded-full"
               style={{ backgroundColor: `${colors.primary}15` }}
+              accessibilityRole="button"
             >
               <Text className="font-asap-semibold text-xs" style={{ color: colors.primary }}>+ Añadir</Text>
             </TouchableOpacity>
           </View>
 
+          {subscriptions.length === 0 && (
+            <View className="items-center py-10">
+              <View className="w-16 h-16 rounded-full items-center justify-center mb-4" style={{ backgroundColor: `${colors.muted}15` }}>
+                <Ionicons name="calendar-outline" size={32} color={colors.muted} />
+              </View>
+              <Text className="font-asap-bold text-base" style={{ color: colors.text }}>Crea tu primer servicio</Text>
+              <Text className="font-asap text-xs text-center mt-1" style={{ color: colors.textSecondary }}>
+                Netflix, Spotify… Registra el plan, su calendario y quién participa.
+              </Text>
+            </View>
+          )}
+
           {subscriptions.map((sub) => {
             const adjustedColor = getAdjustedColor(sub.color || colors.primary, isDark);
-            
+
             return (
-              <TouchableOpacity 
+              <TouchableOpacity
                 key={sub.id}
                 onPress={() => router.push(`/service/${sub.id}`)}
                 className="p-4 rounded-3xl border flex-row items-center mb-4"
                 style={{ backgroundColor: `${colors.card}80`, borderColor: `${colors.text}10` }}
                 activeOpacity={0.7}
               >
-                <View 
+                <View
                   className="w-12 h-12 rounded-2xl items-center justify-center"
                   style={{ backgroundColor: `${adjustedColor}15` }}
                 >
-                  <Ionicons name={(sub.icon as any) || 'play'} size={22} color={adjustedColor} />
+                  <ServiceIcon name={sub.icon || "receipt"} size={22} color={adjustedColor} />
                 </View>
-                
+
                 <View className="flex-1 ml-4">
                   <View className="flex-row items-center">
                     <Text className="font-asap-bold text-base" style={{ color: colors.text }}>
-                      {sub.nombre}
+                      {sub.name}
                     </Text>
-                    {sub.es_compartido && (
-                      <View 
+                    {sub.mode === "shared" && (
+                      <View
                         className="ml-2 px-2 py-0.5 rounded-md"
                         style={{ backgroundColor: `${colors.primary}15` }}
                       >
@@ -154,69 +157,19 @@ export default function PlanningScreen() {
                     )}
                   </View>
                   <Text className="font-asap text-xs" style={{ color: colors.textSecondary }}>
-                    Vence el día {sub.dia_cobro}
+                    {sub.currentCycle ? `Se renueva el ${humanDate(sub.currentCycle.endDate)}` : "Sin ciclo en curso"}
+                    {sub.mode === "shared" ? ` · ${sub.occupiedSeats}/${sub.capacity} plazas` : ""}
                   </Text>
                 </View>
-                
+
                 <Text className="font-asap-bold text-base" style={{ color: colors.text }}>
-                  S/ {sub.costo_total_actual.toFixed(2)}
+                  {formatSoles(sub.terms?.announcedPrice)}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </View>
-
-        {/* Loans Section */}
-        <View className="mb-20">
-          <View className="flex-row justify-between items-center mb-6">
-            <Text className="font-asap-bold text-xl" style={{ color: colors.text }}>Préstamos Bancarios</Text>
-            <TouchableOpacity className="px-3 py-1.5 rounded-full" style={{ backgroundColor: `${colors.primary}1A` }}>
-              <Text className="font-asap-semibold text-xs" style={{ color: colors.primary }}>+ Añadir</Text>
-            </TouchableOpacity>
-          </View>
-
-          {loans.map((loan) => {
-            const monthlyPayment = loan.monto_total_prestado / loan.numero_cuotas_totales;
-            const paidQuotes = loan.cronograma ? loan.cronograma.filter(c => c.estado === 'pagado').length : 0;
-            const progress = loan.numero_cuotas_totales > 0 ? (paidQuotes / loan.numero_cuotas_totales) * 100 : 0;
-
-            return (
-              <TouchableOpacity
-                key={loan.id}
-                className="p-6 rounded-3xl border mb-4"
-                style={{ backgroundColor: `${colors.card}66`, borderColor: `${colors.border}1A` }}
-                activeOpacity={0.7}
-              >
-                <View className="flex-row justify-between items-center mb-4">
-                  <View className="flex-row items-center">
-                    <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: `${colors.primary}1A` }}>
-                      <Ionicons name="business" size={20} color={colors.primary} />
-                    </View>
-                    <View className="ml-3">
-                      <Text className="font-asap-bold text-base" style={{ color: colors.text }}>Préstamo {loan.entidad}</Text>
-                      <Text className="font-asap text-xs" style={{ color: colors.textSecondary }}>Cuota {paidQuotes} de {loan.numero_cuotas_totales}</Text>
-                    </View>
-                  </View>
-                  <Text className="font-asap-bold text-lg" style={{ color: colors.text }}>S/ {monthlyPayment.toFixed(2)}</Text>
-                </View>
-
-                {/* Progress Bar */}
-                <View className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: `${colors.border}1A` }}>
-                  <View
-                    className="h-full"
-                    style={{ width: `${progress}%`, backgroundColor: colors.primary }}
-                  />
-                </View>
-                <View className="flex-row justify-between">
-                  <Text className="font-asap text-[10px]" style={{ color: colors.textSecondary }}>Progreso de pago</Text>
-                  <Text className="font-asap-semibold text-[10px]" style={{ color: colors.text }}>
-                    {Math.round(progress)}%
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <View className="h-20" />
       </ScrollView>
     </SafeAreaView>
   );

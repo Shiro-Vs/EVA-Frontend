@@ -13,6 +13,7 @@ import { useContacts } from "../../../logic/contacts/useContacts";
 import EVAAlert from "../../../components/common/EVAAlert";
 import { EVALoading } from "../../../components/common/EVALoading";
 import { useAppTheme } from "../../../hooks/useAppTheme";
+import { cmpMoney } from "../../../utils/money";
 
 // Importaciones de componentes
 import { ContactsHeader } from "./components/ContactsHeader";
@@ -50,6 +51,7 @@ export default function ContactsScreen() {
     setAlertConfig,
     loadContacts,
     handleSaveContact,
+    handleNewContact,
     handleEditContact,
     handleDeleteContact,
     openHistory,
@@ -75,10 +77,7 @@ export default function ContactsScreen() {
           visible={isAddSubModalVisible}
           onClose={() => setIsAddSubModalVisible(false)}
           contact={selectedContact}
-          onSuccess={() => {
-            loadContacts();
-            setHistoryRefreshKey((prev) => prev + 1);
-          }}
+          onSuccess={() => setHistoryRefreshKey((prev) => prev + 1)}
         />
       </View>
     );
@@ -116,10 +115,7 @@ export default function ContactsScreen() {
             totalDeuda={stats.totalDeudaGlobal}
             count={stats.totalCount}
             debtorCount={stats.debtorCount}
-            onAddPress={() => {
-              setContactDraft({ nombre: "", color: colors.primary });
-              setIsModalVisible(true);
-            }}
+            onAddPress={handleNewContact}
             onRemindPress={() => setIsRemindModalVisible(true)}
           />
 
@@ -241,7 +237,7 @@ export default function ContactsScreen() {
       <RemindModal
         visible={isRemindModalVisible}
         onClose={() => setIsRemindModalVisible(false)}
-        debtors={filteredContacts.filter((c) => (c.total_deuda || 0) > 0)}
+        debtors={filteredContacts.filter((c) => cmpMoney(c.deuda ?? "0.00", "0.00") > 0)}
       />
     </SafeAreaView>
   );

@@ -2,9 +2,10 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "../../../../hooks/useAppTheme";
+import { formatSoles } from "../../../../utils/money";
 
 interface ContactsHeaderProps {
-  totalDeuda: number;
+  totalDeuda: string;
   count: number;
   debtorCount: number;
   onAddPress: () => void;
@@ -36,7 +37,7 @@ export function ContactsHeader({
             Total por Cobrar
           </Text>
           <Text className="text-white text-4xl" style={{ fontFamily: fonts.family.bold }}>
-            S/ {totalDeuda.toFixed(2)}
+            {formatSoles(totalDeuda)}
           </Text>
         </View>
         <TouchableOpacity

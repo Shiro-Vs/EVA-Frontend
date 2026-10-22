@@ -34,6 +34,7 @@ export default function LoginScreen() {
     alertConfig,
     setAlertConfig,
     handleLogin,
+    handleDevLogin,
   } = useLogin();
 
   // Ref para saltar al campo de contraseña
@@ -210,6 +211,21 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Acceso de desarrollo (hasta conectar Supabase) */}
+          <TouchableOpacity
+            onPress={handleDevLogin}
+            disabled={isAuthenticating}
+            className="flex-row items-center justify-center rounded-2xl h-14 mt-4"
+            style={{ backgroundColor: `${colors.primary}15`, opacity: isAuthenticating ? 0.7 : 1 }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Ionicons name="construct-outline" size={20} color={colors.primary} />
+            <Text className="text-base ml-3" style={{ fontFamily: fonts.family.bold, color: colors.primary }}>
+              Entrar en modo desarrollo
+            </Text>
+          </TouchableOpacity>
 
           {/* Footer */}
           <View className="mt-4 mb-6 flex-row justify-center">

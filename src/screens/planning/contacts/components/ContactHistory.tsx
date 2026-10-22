@@ -15,6 +15,7 @@ import { EVAAvatar } from "../../../../components/common/EVAAvatar";
 import { Contact } from "../../../../interfaces/Contact";
 import { useContactHistory } from "../../../../logic/contacts/useContactHistory";
 import { ServiceIcon } from "../../../../utils/serviceIcons";
+import { cmpMoney, formatSoles } from "../../../../utils/money";
 
 interface ContactHistoryProps {
   contact: Contact;
@@ -30,7 +31,8 @@ export function ContactHistory({
   refreshTrigger,
 }: ContactHistoryProps) {
   const { colors, fonts } = useAppTheme();
-  const { loading, summary, expandedServices, toggleService } = useContactHistory(contact, refreshTrigger);
+  const { loading, error, summary, expandedServices, toggleService } = useContactHistory(contact, refreshTrigger);
+  const owes = (v: string) => cmpMoney(v, "0.00") > 0;
 
   if (loading) {
     return <EVALoading message="Cargando historial..." />;
@@ -54,7 +56,7 @@ export function ContactHistory({
             className="mt-10 text-center"
             style={{ color: colors.textSecondary, fontFamily: fonts.family.regular }}
           >
-            No se pudo cargar la información.
+            {error ?? "No se pudo cargar la información."}
           </Text>
         </View>
       </SafeAreaView>
@@ -110,15 +112,15 @@ export function ContactHistory({
               </Text>
               <Text 
                 className="text-sm mt-1"
-                style={{ color: summary.totalDebt > 0 ? ((colors as any).expenseStrong || colors.expense) : ((colors as any).incomeStrong || colors.income), fontFamily: fonts.family.bold }}
+                style={{ color: owes(summary.totalDebt) ? ((colors as any).expenseStrong || colors.expense) : ((colors as any).incomeStrong || colors.income), fontFamily: fonts.family.bold }}
               >
-                S/ {(summary.totalDebt || 0).toFixed(2)} • <Text style={{ color: colors.textSecondary, fontFamily: fonts.family.medium }}>{summary.services.length} {summary.services.length === 1 ? 'servicio' : 'servicios'}</Text>
+                {formatSoles(summary.totalDebt)} • <Text style={{ color: colors.textSecondary, fontFamily: fonts.family.medium }}>{summary.services.length} {summary.services.length === 1 ? 'servicio' : 'servicios'}</Text>
               </Text>
               <Text 
                 className="text-xs mt-0.5 mb-1"
                 style={{ color: colors.textSecondary, fontFamily: fonts.family.regular }}
               >
-                Estado: {summary.totalDebt > 0 ? 'Con deudas pendientes' : 'Al día'}
+                Estado: {owes(summary.totalDebt) ? 'Con deudas pendientes' : 'Al día'}
               </Text>
               <View className="flex-row items-center">
                 <Ionicons name="person-outline" size={12} color={colors.textSecondary} />
@@ -187,12 +189,12 @@ export function ContactHistory({
                         >
                           {service.serviceName}
                         </Text>
-                        {service.debt > 0 ? (
+                        {owes(service.debt) ? (
                           <Text 
                             className="text-[10px] uppercase"
                             style={{ color: (colors as any).expenseStrong || colors.expense, fontFamily: fonts.family.semiBold }}
                           >
-                            {service.monthsDelay} {service.monthsDelay === 1 ? 'mes' : 'meses'} de retraso
+                            {service.overdueCount > 0 ? `${service.overdueCount} ${service.overdueCount === 1 ? 'cobro vencido' : 'cobros vencidos'}` : 'Pendiente'}
                           </Text>
                         ) : (
                           <Text 
@@ -208,9 +210,9 @@ export function ContactHistory({
                     <View className="flex-row items-center">
                       <Text 
                         className="text-lg mr-3"
-                        style={{ color: service.debt > 0 ? ((colors as any).expenseStrong || colors.expense) : colors.text, fontFamily: fonts.family.bold }}
+                        style={{ color: owes(service.debt) ? ((colors as any).expenseStrong || colors.expense) : colors.text, fontFamily: fonts.family.bold }}
                       >
-                        S/ {(service.debt || 0).toFixed(2)}
+                        {formatSoles(service.debt)}
                       </Text>
                       <Ionicons 
                         name={isExpanded ? "chevron-up" : "chevron-down"} 
@@ -249,12 +251,12 @@ export function ContactHistory({
                               className="text-xs mr-3"
                               style={{ color: colors.text, fontFamily: fonts.family.semiBold }}
                             >
-                              {pay.cuota === 0 ? "Gratis" : `S/ ${(pay.cuota || 0).toFixed(2)}`}
+                              {pay.free ? "Gratis" : formatSoles(pay.cuota)}
                             </Text>
                             <View 
                               className="px-3 py-1 rounded-full"
                               style={{ 
-                                backgroundColor: pay.cuota === 0 
+                                backgroundColor: pay.free 
                                   ? `${colors.primary}15` 
                                   : (pay.status === 'paid' ? `${colors.income}15` : `${colors.expense}15`)
                               }}
@@ -262,13 +264,13 @@ export function ContactHistory({
                               <Text 
                                 className="text-[8px] uppercase"
                                 style={{ 
-                                  color: pay.cuota === 0 
+                                  color: pay.free 
                                     ? colors.primary 
                                     : (pay.status === 'paid' ? ((colors as any).incomeStrong || colors.income) : ((colors as any).expenseStrong || colors.expense)),
                                   fontFamily: fonts.family.bold
                                 }}
                               >
-                                {pay.cuota === 0 ? 'CORTESÍA' : (pay.status === 'paid' ? 'PAGADO' : 'PENDIENTE')}
+                                {pay.free ? 'SIN COBRO' : (pay.status === 'paid' ? 'PAGADO' : pay.status === 'partial' ? 'PARCIAL' : 'PENDIENTE')}
                               </Text>
                             </View>
                           </View>

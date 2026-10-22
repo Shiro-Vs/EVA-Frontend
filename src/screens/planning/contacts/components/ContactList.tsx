@@ -6,6 +6,7 @@ import { useAppTheme } from "../../../../hooks/useAppTheme";
 import { EVAActionButton } from "../../../../components/common/EVAActionButton";
 import { EVAAvatar } from "../../../../components/common/EVAAvatar";
 import { getAdjustedColor } from "../../../../utils/serviceIcons";
+import { cmpMoney, formatSoles } from "../../../../utils/money";
 
 interface ContactListProps {
   contacts: Contact[];
@@ -21,6 +22,7 @@ export function ContactList({
   onDeletePress,
 }: ContactListProps) {
   const { colors, fonts, isDark } = useAppTheme();
+  const owes = (c: Contact) => cmpMoney(c.deuda ?? "0.00", "0.00") > 0;
 
   if (contacts.length === 0) {
     return (
@@ -78,7 +80,7 @@ export function ContactList({
                 style={{ 
                   backgroundColor: (contact.total_servicios || 0) === 0 
                     ? `${colors.muted}15` 
-                    : (contact.total_deuda && contact.total_deuda > 0 ? `${colors.expense}15` : `${colors.income}15`)
+                    : (owes(contact) ? `${colors.expense}15` : `${colors.income}15`)
                 }}
               >
                 <Text
@@ -86,14 +88,14 @@ export function ContactList({
                   style={{ 
                     color: (contact.total_servicios || 0) === 0 
                       ? colors.textSecondary 
-                      : (contact.total_deuda && contact.total_deuda > 0 ? ((colors as any).expenseStrong || colors.expense) : ((colors as any).incomeStrong || colors.income)),
+                      : (owes(contact) ? ((colors as any).expenseStrong || colors.expense) : ((colors as any).incomeStrong || colors.income)),
                     fontFamily: fonts.family.bold
                   }}
                 >
                   {(contact.total_servicios || 0) === 0 
                     ? "0 servicios" 
-                    : (contact.total_deuda && contact.total_deuda > 0
-                      ? `Debe S/ ${contact.total_deuda.toFixed(2)}`
+                    : (owes(contact)
+                      ? `Debe ${formatSoles(contact.deuda)}`
                       : "Al día")}
                 </Text>
               </View>
@@ -127,7 +129,7 @@ export function ContactList({
             />
             <EVAActionButton
               type="delete"
-              icon="trash-outline"
+              icon="archive-outline"
               size={16}
               onPress={() => onDeletePress(contact)}
             />
