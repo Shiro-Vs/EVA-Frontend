@@ -42,7 +42,11 @@ export interface SeatSummary {
   id: string; label: string; subscriptionId: string; isOwner: boolean; contact: { id: string; name: string } | null;
   startDate: IsoDate; endDate: IsoDate | null; quota: Money; pending: Money; overdue: boolean;
 }
-export interface Seat extends Omit<SeatSummary, "pending" | "overdue"> { charges: Charge[] }
+export interface Seat extends Omit<SeatSummary, "pending" | "overdue"> {
+  charges: Charge[];
+  scheduledQuota: { quota: Money; from: IsoDate } | null;
+  voidedCharges: Array<{ obligationId: string; cycle: { start: IsoDate; end: IsoDate }; gross: Money; reason: string; voidedAt: string }>;
+}
 
 export interface CostSummary {
   cycleId: string; announcedPrice: Money; actualPaid: Money | null; expectedFromOthers: Money; receivedFromOthers: Money;
@@ -92,7 +96,7 @@ export interface ContactCredit {
 export interface Statement {
   contact: { id: string; name: string }; totals: ContactTotals;
   services: Array<{ subscriptionId: string; name: string; seats: Array<{ seatId: string; label: string; quota: Money; pending: Money }>; charges: Charge[] }>;
-  loans: unknown[]; shareText: string; asOf: IsoDate;
+  loans: Loan[]; shareText: string; asOf: IsoDate;
 }
 
 export interface Summary {
@@ -101,4 +105,44 @@ export interface Summary {
   receivable: { pending: Money; overdue: Money; debtors: number; creditFree: Money; creditReserved: Money };
   subscriptions: { active: number; currentCycleTotal: Money };
   recent: Array<{ id: string; operationId: string; kind: "income" | "expense" | "transfer" | "adjustment" | "reversal"; status: string; occurredOn: IsoDate; description: string; account: { id: string; name: string }; amount: Money }>;
+}
+
+// ---- Entrega 2 ----
+/** Vista previa devuelta por la API: la forma exacta depende de la operación (docs 13); `previewToken` autoriza aplicarla. */
+export type Preview = Record<string, any> & { previewToken?: string };
+
+export interface Refund {
+  id: string; receiptId: string; contact: { id: string; name: string }; amount: Money; status: "planned" | "paid" | "cancelled";
+  plannedOn: IsoDate | null; operationId: string | null; reason: string; createdAt: string;
+}
+export interface LoanComponent {
+  obligationId: string; concept: string; periodLabel: string | null; originObligationId: string | null; amount: Money; pending: Money; dueDate: IsoDate | null;
+}
+export interface Loan {
+  id: string; contactId: string; contactName: string; principal: Money; openedOn: IsoDate; origin: string; status: "open" | "closed"; pending: Money;
+  conversion: { trigger: string; reason: string } | null; createdAt: string; components: LoanComponent[];
+}
+export interface Courtesy {
+  id: string; seatId: string; kind: "cycles" | "until_date" | "permanent"; startsOn: IsoDate; untilDate: IsoDate | null; cyclesTotal: number | null; cyclesUsed: number;
+  reason: string; status: "active" | "ended"; createdAt: string; endedAt: string | null;
+}
+export interface CalendarChange {
+  id: string; kind: string; effectiveOn: IsoDate; oldCurrentEnd: IsoDate | null; newCurrentEnd: IsoDate | null; reason: string; createdAt: string;
+}
+export interface TermsVersion {
+  id: string; validFrom: IsoDate; validTo: IsoDate | null; announcedPrice: Money; interval: Interval; anchor: IsoDate; reason: string | null;
+}
+export interface ReceiptDetail {
+  id: string; contactId: string; operationId: string; amount: Money; receivedOn: IsoDate; note: string | null; status: "active" | "reversed"; version: number; createdAt: string;
+  allocations: Array<{ id: string; obligationId: string; amount: Money; origin: string; status: string; releasedReason: string | null }>;
+  reservations: Array<{ id: string; subscriptionId: string; amount: Money; status: string }>;
+  availability: ReceiptAvailability | null;
+}
+export interface ContactReceipt {
+  id: string; operationId: string; amount: Money; receivedOn: IsoDate; note: string | null; status: "active" | "reversed"; version: number; unapplied: Money | null; free: Money | null;
+}
+export interface OperationDetail {
+  id: string; kind: string; occurredOn: IsoDate; description: string; status: "confirmed" | "reversed"; reversalOfId: string | null; reason: string | null; version: number; createdAt: string;
+  entries: Array<{ accountId: string; amount: Money }>;
+  links: { receiptId: string | null; supplierPaymentId: string | null; refundId: string | null };
 }

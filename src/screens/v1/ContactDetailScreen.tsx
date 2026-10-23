@@ -68,6 +68,11 @@ export default function ContactDetailScreen({ contactId }: { contactId: string }
         </>
       )}
 
+      <View style={{ gap: 10 }}>
+        <Button title="Cobros registrados" variant="secondary" icon="receipt-outline" onPress={() => router.push(`/contact/${contactId}/receipts` as never)} />
+        <Button title="Convertir deuda en préstamo" variant="secondary" icon="swap-horizontal-outline" onPress={() => router.push(`/contact/${contactId}/convert` as never)} />
+        <Button title="Préstamos" variant="secondary" icon="cash-outline" onPress={() => router.push({ pathname: "/loans", params: { contactId } })} />
+      </View>
       <Button title={copied ? "Texto listo para pegar" : "Compartir estado de cuenta"} variant="secondary" icon="share-outline" onPress={async () => { await shareText(s.shareText); setCopied(true); setTimeout(() => setCopied(false), 2500); }} />
       <Txt size={12} muted>Prepara un texto discreto para ti: EVA no envía mensajes por su cuenta.</Txt>
     </Screen>

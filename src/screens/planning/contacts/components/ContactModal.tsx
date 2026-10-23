@@ -99,6 +99,20 @@ export function ContactModal({
           placeholder="Teléfono (opcional)"
           keyboardType="phone-pad"
         />
+        <EVAInput
+          icon={<Ionicons name="mail-outline" size={20} color={colors.muted} />}
+          value={contactDraft.email}
+          onChangeText={(text) => setContactDraft((prev) => ({ ...prev, email: text }))}
+          placeholder="Correo (opcional)"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <EVAInput
+          icon={<Ionicons name="document-text-outline" size={20} color={colors.muted} />}
+          value={contactDraft.notas}
+          onChangeText={(text) => setContactDraft((prev) => ({ ...prev, notas: text }))}
+          placeholder="Notas (opcional)"
+        />
       </ScrollView>
     </EVAModal>
   );

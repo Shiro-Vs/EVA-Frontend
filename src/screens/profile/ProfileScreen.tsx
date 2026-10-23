@@ -15,6 +15,7 @@ export default function ProfileScreen() {
   const { colors, fonts } = useAppTheme();
   const { logout, profile, setProfile } = useAuth();
 
+  const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
   const [freeDays, setFreeDays] = useState(String(profile?.defaultFreeDays ?? 0));
   const [limit, setLimit] = useState(profile?.exitDaysLimit == null ? "" : String(profile.exitDaysLimit));
   const [saving, setSaving] = useState(false);
@@ -44,7 +45,8 @@ export default function ProfileScreen() {
     }
     setSaving(true);
     try {
-      setProfile(await api.patchMe({ defaultFreeDays: g, exitDaysLimit: l }, profile.version));
+      if (!displayName.trim()) { setAlert({ visible: true, title: "Dato inválido", message: "El nombre no puede estar vacío.", type: "warning" }); setSaving(false); return; }
+      setProfile(await api.patchMe({ displayName: displayName.trim(), defaultFreeDays: g, exitDaysLimit: l }, profile.version));
       setAlert({ visible: true, title: "¡Guardado!", message: "Rige para los ingresos nuevos; los cargos ya emitidos no cambian.", type: "success" });
     } catch (e) {
       setAlert({ visible: true, title: "No se pudo guardar", message: errorMessage(e), type: "error" });
@@ -73,8 +75,9 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        <Text className="text-[10px] uppercase tracking-widest mb-3 ml-1" style={label}>Ajustes de cobro</Text>
+        <Text className="text-[10px] uppercase tracking-widest mb-3 ml-1" style={label}>Mi perfil y ajustes de cobro</Text>
         <View className="rounded-3xl border p-5 mb-8" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+          <EVAInput label="Nombre" value={displayName} onChangeText={setDisplayName} autoCapitalize="words" />
           <EVAInput label="Días gratis al incorporar (g)" value={freeDays} onChangeText={setFreeDays} keyboardType="number-pad" />
           <Text className="text-xs mb-4 -mt-2 ml-1" style={{ color: colors.textSecondary, fontFamily: fonts.family.regular }}>
             Si a la persona le faltan g días o menos para la renovación, ese tramo inicial es gratis. 0 = nunca.

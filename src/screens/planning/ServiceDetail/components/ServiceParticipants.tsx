@@ -11,10 +11,10 @@ interface ServiceParticipantsProps {
   shared: boolean;
   capacity: number;
   onAddSubscriber: () => void;
-  onOpenContact: (contactId: string) => void;
+  onOpenSeat: (seatId: string) => void;
 }
 
-export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats, shared, capacity, onAddSubscriber, onOpenContact }) => {
+export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats, shared, capacity, onAddSubscriber, onOpenSeat }) => {
   const { colors, fonts } = useAppTheme();
   const others = seats.filter((s) => !s.isOwner);
   const people = new Set(others.map((s) => s.contact?.id)).size;
@@ -45,7 +45,7 @@ export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats,
             <TouchableOpacity
               key={seat.id}
               disabled={seat.isOwner}
-              onPress={() => seat.contact && onOpenContact(seat.contact.id)}
+              onPress={() => onOpenSeat(seat.id)}
               activeOpacity={0.7}
               style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.card, padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: `${colors.text}10` }}
             >

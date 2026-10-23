@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Switch, Text, TouchableOpacity, View } from "react-native";
 import { useDone } from "../../hooks/useDone";
+import { DateField } from "../../components/v1/forms";
+import { isIsoDate } from "../../utils/dates";
 import { api } from "../../api/client";
 import type { AccountType } from "../../api/types";
 import { Button, Card, Field, Notice, Screen, Txt } from "../../components/v1/ui";
@@ -18,6 +20,10 @@ export default function AccountNewScreen() {
   const [name, setName] = useState("");
   const [type, setType] = useState<AccountType>("bank");
   const [amountText, setAmountText] = useState("");
+  const [institution, setInstitution] = useState("");
+  const [openingDate, setOpeningDate] = useState("");
+  const [isDefault, setIsDefault] = useState(false);
+  const [exclude, setExclude] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const isCredit = type === "credit";
@@ -27,7 +33,11 @@ export default function AccountNewScreen() {
     if (amountText.trim() !== "" && amount === null) throw Object.assign(new Error("El importe no es válido. Usa números con hasta 2 decimales."), { code: "VALIDATION" });
     // En una tarjeta de crédito lo que se escribe es la DEUDA; la API la guarda como saldo negativo.
     const signed = amount === null || amount === "0.00" ? undefined : isCredit ? `-${amount}` : amount;
-    return api.createAccount({ name: name.trim(), type, ...(signed ? { openingBalance: { amount: signed } } : {}) }, key);
+    if (openingDate && !isIsoDate(openingDate)) throw Object.assign(new Error("La fecha del saldo debe ser AAAA-MM-DD."), { code: "VALIDATION" });
+    return api.createAccount({
+      name: name.trim(), type, ...(institution.trim() ? { institution: institution.trim() } : {}), ...(isDefault ? { isDefault: true } : {}), ...(exclude ? { excludeFromTotal: true } : {}),
+      ...(signed ? { openingBalance: { amount: signed, ...(openingDate ? { date: openingDate } : {}) } } : {}),
+    }, key);
   });
 
   const save = async () => {
@@ -49,7 +59,11 @@ export default function AccountNewScreen() {
             </TouchableOpacity>
           ))}
         </View>
+        <Field label="Entidad (opcional)" value={institution} onChangeText={(t) => { setInstitution(t); create.resetKey(); }} placeholder="BCP, Interbank, Yape…" autoCapitalize="words" />
         <Field label={isCredit ? "Deuda actual de la tarjeta (S/)" : "Saldo actual (S/)"} value={amountText} onChangeText={(t) => { setAmountText(t); create.resetKey(); }} placeholder="0.00" keyboardType="decimal-pad" />
+        <DateField label="Fecha del saldo" value={openingDate} optional onChange={(t) => { setOpeningDate(t); create.resetKey(); }} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}><Switch value={isDefault} onValueChange={(v) => { setIsDefault(v); create.resetKey(); }} accessibilityLabel="Cuenta predeterminada" /><Txt style={{ flex: 1 }}>Usarla como cuenta predeterminada</Txt></View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><Switch value={exclude} onValueChange={(v) => { setExclude(v); create.resetKey(); }} accessibilityLabel="Excluir del saldo total" /><Txt style={{ flex: 1 }}>Excluir del saldo total</Txt></View>
       </Card>
       <Notice tone="info">El saldo inicial no cuenta como ingreso ni gasto del mes: es solo el punto de partida de esta cuenta.</Notice>
       {(formError || create.error) && <Notice tone="err">{formError ?? create.error}</Notice>}

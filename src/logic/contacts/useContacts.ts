@@ -70,7 +70,7 @@ export const useContacts = () => {
       setAlertConfig({ visible: true, title: "Campo requerido", message: "Por favor, ingresa un nombre para el contacto.", type: "warning" });
       return;
     }
-    const body = { name: contactDraft.nombre.trim(), phone: contactDraft.telefono?.trim() || null, color: contactDraft.color };
+    const body = { name: contactDraft.nombre.trim(), phone: contactDraft.telefono?.trim() || null, email: contactDraft.email?.trim() || null, notes: contactDraft.notas?.trim() || null, color: contactDraft.color };
     try {
       if (editingContact) await api.patchContact(editingContact.id, body, editingContact.version ?? 1);
       else await api.createContact(body);
@@ -92,7 +92,7 @@ export const useContacts = () => {
 
   const handleEditContact = (contact: Contact) => {
     setEditingContact(contact);
-    setContactDraft({ nombre: contact.nombre, color: contact.color, telefono: contact.telefono });
+    setContactDraft({ nombre: contact.nombre, color: contact.color, telefono: contact.telefono, email: contact.email, notas: contact.notas });
     setIsModalVisible(true);
   };
 

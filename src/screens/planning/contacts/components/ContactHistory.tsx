@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { Button } from "../../../../components/v1/ui";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTheme } from "../../../../hooks/useAppTheme";
 import { EVALoading } from "../../../../components/common/EVALoading";
@@ -31,6 +33,7 @@ export function ContactHistory({
   refreshTrigger,
 }: ContactHistoryProps) {
   const { colors, fonts } = useAppTheme();
+  const router = useRouter();
   const { loading, error, summary, expandedServices, toggleService } = useContactHistory(contact, refreshTrigger);
   const owes = (v: string) => cmpMoney(v, "0.00") > 0;
 
@@ -282,6 +285,14 @@ export function ContactHistory({
               );
             })
           )}
+          <View style={{ gap: 10, marginTop: 8 }}>
+            <Button title="Registrar cobro" icon="cash-outline" onPress={() => router.push({ pathname: "/receipt/new", params: { contactId: contact.id } })} />
+            <Button title="Cobros registrados" variant="secondary" icon="receipt-outline" onPress={() => router.push(`/contact/${contact.id}/receipts` as never)} />
+            <Button title="Convertir deuda en préstamo" variant="secondary" icon="swap-horizontal-outline" onPress={() => router.push(`/contact/${contact.id}/convert` as never)} />
+            <Button title="Préstamos" variant="secondary" icon="cash-outline" onPress={() => router.push({ pathname: "/loans", params: { contactId: contact.id } })} />
+            <Button title="Devoluciones" variant="secondary" icon="return-down-back-outline" onPress={() => router.push("/refunds" as never)} />
+            <Button title="Estado de cuenta completo" variant="secondary" icon="document-text-outline" onPress={() => router.push(`/contact/${contact.id}` as never)} />
+          </View>
           <View className="h-20" />
         </ScrollView>
       </View>

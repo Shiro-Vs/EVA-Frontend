@@ -8,6 +8,9 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 const ACTIONS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; text: string; to: string }> = [
   { icon: "cash-outline", title: "Registrar un cobro", text: "Elige a la persona que te pagó", to: "/contacts" },
   { icon: "calendar-outline", title: "Nuevo servicio", text: "Netflix, Spotify… con su calendario", to: "/service/new" },
+  { icon: "swap-vertical-outline", title: "Nuevo movimiento", text: "Ingreso, gasto o transferencia entre tus cuentas", to: "/operation/new" },
+  { icon: "return-down-back-outline", title: "Devoluciones", text: "Dinero que debes devolver a alguien", to: "/refunds" },
+  { icon: "swap-horizontal-outline", title: "Préstamos", text: "Deudas convertidas en préstamo", to: "/loans" },
   { icon: "wallet-outline", title: "Nueva cuenta", text: "Banco, efectivo, billetera o tarjeta", to: "/account/new" },
   { icon: "person-add-outline", title: "Nuevo contacto", text: "Alguien que comparte un servicio", to: "/contacts" },
 ];

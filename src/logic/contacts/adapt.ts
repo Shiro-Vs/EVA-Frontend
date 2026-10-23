@@ -10,6 +10,8 @@ export function toUiContact(c: ApiContact): Contact {
     nombre: c.name,
     color: c.color ?? FALLBACK_CONTACT_COLOR,
     telefono: c.phone ?? undefined,
+    email: c.email ?? undefined,
+    notas: c.notes ?? undefined,
     total_servicios: c.services,
     deuda: c.totals.pending,
     vencido: c.totals.overdue,

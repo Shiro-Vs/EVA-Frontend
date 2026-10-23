@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import ServiceDetailScreen from "../../src/screens/planning/ServiceDetail";
+import ServiceDetailScreen from "../../../src/screens/planning/ServiceDetail";
 
 export default function Service() {
   const { id } = useLocalSearchParams<{ id: string }>();

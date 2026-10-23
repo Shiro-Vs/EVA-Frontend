@@ -1,5 +1,5 @@
 import React from "react";
-import { View, ScrollView, ActivityIndicator } from "react-native";
+import { View, ScrollView, ActivityIndicator, TouchableOpacity, Text } from "react-native";
 import { useAppTheme } from "../../../hooks/useAppTheme";
 import EVAAlert from "../../../components/common/EVAAlert";
 import { ErrorBox } from "../../../components/v1/ui";
@@ -38,6 +38,10 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
         activeTab={s.activeTab}
         onSwitchTab={s.switchTab}
       />
+
+      <TouchableOpacity onPress={() => s.router.push(`/service/${serviceId}/manage` as never)} accessibilityRole="button" style={{ marginHorizontal: 24, marginBottom: 8, alignSelf: "flex-end" }}>
+        <Text style={{ color: colors.primary, fontFamily: "AsapBold", fontSize: 12 }}>Gestionar servicio ›</Text>
+      </TouchableOpacity>
 
       {/* Contenedor de Pestañas */}
       <View style={{ flex: 1 }}>
@@ -82,7 +86,7 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
                 shared={shared}
                 capacity={service.capacity}
                 onAddSubscriber={s.goJoin}
-                onOpenContact={(id) => s.router.push(`/contact/${id}`)}
+                onOpenSeat={(sid) => s.router.push(`/seat/${sid}` as never)}
               />
             </View>
           )}

@@ -25,6 +25,7 @@ export default function JoinSeatScreen() {
   const [label, setLabel] = useState("Cuenta 1");
   const [quota, setQuota] = useState("");
   const [joinDate, setJoinDate] = useState(todayLocalIso());
+  const [threshold, setThreshold] = useState("");
   const [preview, setPreview] = useState<SeatPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
@@ -32,8 +33,10 @@ export default function JoinSeatScreen() {
   const quotaNorm = normalizeMoneyInput(quota);
   const body = useMemo<SeatBody | null>(() => {
     if (!contactId || !label.trim() || !quotaNorm || !isIsoDate(joinDate)) return null;
-    return { contactId, label: label.trim(), quota: quotaNorm, joinDate };
-  }, [contactId, label, quotaNorm, joinDate]);
+    const g = threshold.trim() === "" ? null : Number.parseInt(threshold, 10);
+    if (g !== null && (!Number.isInteger(g) || g < 0)) return null;
+    return { contactId, label: label.trim(), quota: quotaNorm, joinDate, ...(g !== null ? { freeDaysThreshold: g } : {}) };
+  }, [contactId, label, quotaNorm, joinDate, threshold]);
 
   const seq = useRef(0);
   useEffect(() => {
@@ -99,6 +102,7 @@ export default function JoinSeatScreen() {
           <View style={{ flex: 1 }}><Field label="Cuota por ciclo (S/)" value={quota} onChangeText={(t) => { setQuota(t); join.resetKey(); }} placeholder="10.00" keyboardType="decimal-pad" error={quota && !quotaNorm ? "Importe inválido" : undefined} /></View>
           <View style={{ flex: 1 }}><Field label="Ingreso (AAAA-MM-DD)" value={joinDate} onChangeText={(t) => { setJoinDate(t); join.resetKey(); }} error={joinDate && !isIsoDate(joinDate) ? "Fecha inválida" : undefined} /></View>
         </View>
+        <Field label="Días gratis para esta plaza (opcional)" value={threshold} onChangeText={(t) => { setThreshold(t); join.resetKey(); }} placeholder="Usa el de tu perfil" keyboardType="number-pad" error={threshold.trim() !== "" && !(Number.parseInt(threshold, 10) >= 0) ? "Usa un número entero" : undefined} />
       </Card>
 
       {previewError && <Notice tone="err">{previewError}</Notice>}

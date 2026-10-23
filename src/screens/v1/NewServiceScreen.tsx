@@ -8,10 +8,22 @@ import { ServiceStylePicker } from "../../components/v1/ServiceStylePicker";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { getServiceDefaults } from "../../utils/serviceIcons";
 import { useSubmit } from "../../hooks/useAsync";
+import { Choice, OptionalAccountPicker } from "../../components/v1/forms";
 import { addMonthsIso, humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
 import { normalizeMoneyInput } from "../../utils/money";
 
-const FREQ = [{ id: "1", label: "Mensual", count: 1 }, { id: "3", label: "Cada 3 meses", count: 3 }, { id: "12", label: "Anual", count: 12 }];
+type Unit = "day" | "week" | "month" | "year";
+const UNITS: Array<{ id: Unit; label: string }> = [{ id: "day", label: "Días" }, { id: "week", label: "Semanas" }, { id: "month", label: "Meses" }, { id: "year", label: "Años" }];
+
+/** Propone la fecha del siguiente pago (inicio + frecuencia); el proveedor tiene la última palabra y la API la compara. */
+function suggestNext(start: string, unit: Unit, count: number): string {
+  if (!isIsoDate(start)) return "";
+  if (unit === "month") return addMonthsIso(start, count) ?? "";
+  if (unit === "year") return addMonthsIso(start, 12 * count) ?? "";
+  const d = new Date(`${start}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + (unit === "week" ? 7 : 1) * count);
+  return d.toISOString().slice(0, 10);
+}
 
 export default function NewServiceScreen() {
   const { colors } = useAppTheme();
@@ -20,9 +32,12 @@ export default function NewServiceScreen() {
   const [mode, setMode] = useState<"shared" | "personal">("shared");
   const [capacity, setCapacity] = useState("4");
   const [price, setPrice] = useState("");
-  const [months, setMonths] = useState(1);
+  const [unit, setUnit] = useState<Unit>("month");
+  const [count, setCount] = useState("1");
+  const [provider, setProvider] = useState("");
+  const [preferred, setPreferred] = useState<string | null>(null);
   const [start, setStart] = useState(todayLocalIso());
-  const [next, setNext] = useState(addMonthsIso(todayLocalIso(), 1) ?? "");
+  const [next, setNext] = useState(suggestNext(todayLocalIso(), "month", 1));
   const [nextTouched, setNextTouched] = useState(false);
   const [occupied, setOccupied] = useState(4);
   const [confirmMismatch, setConfirmMismatch] = useState(false);
@@ -32,6 +47,7 @@ export default function NewServiceScreen() {
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   const cap = Math.max(1, Number.parseInt(capacity, 10) || 1);
+  const cnt = Math.max(1, Number.parseInt(count, 10) || 1);
   const priceNorm = normalizeMoneyInput(price);
 
   // Sugiere ícono y color según el nombre (Netflix, Spotify…) mientras no se elijan a mano.
@@ -41,13 +57,13 @@ export default function NewServiceScreen() {
 
   // Propone la fecha del siguiente pago (inicio + frecuencia) mientras el usuario no la edite a mano.
   useEffect(() => {
-    if (!nextTouched && isIsoDate(start)) setNext(addMonthsIso(start, months) ?? "");
-  }, [start, months, nextTouched]);
+    if (!nextTouched && isIsoDate(start)) setNext(suggestNext(start, unit, cnt));
+  }, [start, unit, cnt, nextTouched]);
 
   const body = useMemo<SubscriptionBody | null>(() => {
     if (!name.trim() || !priceNorm || !isIsoDate(start) || !isIsoDate(next)) return null;
-    return { name: name.trim(), mode, capacity: mode === "personal" ? 1 : cap, announcedPrice: priceNorm, interval: { unit: "month", count: months }, startDate: start, nextPaymentDate: next };
-  }, [name, mode, cap, priceNorm, months, start, next]);
+    return { name: name.trim(), mode, capacity: mode === "personal" ? 1 : cap, announcedPrice: priceNorm, interval: { unit, count: cnt }, startDate: start, nextPaymentDate: next, ...(provider.trim() ? { provider: provider.trim() } : {}), ...(preferred ? { preferredAccountId: preferred } : {}) };
+  }, [name, mode, cap, priceNorm, unit, cnt, start, next, provider, preferred]);
 
   // Vista previa en vivo (con espera breve para no consultar en cada tecla).
   const seq = useRef(0);
@@ -86,6 +102,8 @@ export default function NewServiceScreen() {
         <Field label="Nombre" value={name} onChangeText={(t) => { setName(t); create.resetKey(); }} placeholder="Netflix" autoCapitalize="words" />
         <ServiceStylePicker icon={style.icon} color={style.color} onChange={(v) => { setStyle(v); setStyleTouched(true); }} />
         <View style={{ height: 16 }} />
+        <Field label="Proveedor (opcional)" value={provider} onChangeText={setProvider} placeholder="Netflix Inc." autoCapitalize="words" />
+        <OptionalAccountPicker label="Cuenta con la que sueles pagarlo (opcional)" value={preferred} onChange={setPreferred} />
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
           <Chipbtn on={mode === "shared"} label="Compartido" onPress={() => setMode("shared")} />
           <Chipbtn on={mode === "personal"} label="Personal" onPress={() => setMode("personal")} />
@@ -94,10 +112,8 @@ export default function NewServiceScreen() {
           {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas (contándote)" value={capacity} onChangeText={setCapacity} keyboardType="number-pad" /></View>}
           <View style={{ flex: 1 }}><Field label="Precio anunciado (S/)" value={price} onChangeText={setPrice} placeholder="45.00" keyboardType="decimal-pad" error={price && !priceNorm ? "Importe inválido" : undefined} /></View>
         </View>
-        <Txt size={12} muted style={{ marginBottom: 6 }}>FRECUENCIA</Txt>
-        <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-          {FREQ.map((f) => <Chipbtn key={f.id} on={months === f.count} label={f.label} onPress={() => setMonths(f.count)} />)}
-        </View>
+        <Choice label="Frecuencia de cobro del proveedor" value={unit} onChange={setUnit} options={UNITS} />
+        <Field label="Cada cuántas unidades" value={count} onChangeText={setCount} keyboardType="number-pad" />
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}><Field label="Inicio (AAAA-MM-DD)" value={start} onChangeText={setStart} placeholder="2026-10-07" error={start && !isIsoDate(start) ? "Fecha inválida" : undefined} /></View>
           <View style={{ flex: 1 }}><Field label="Siguiente pago" value={next} onChangeText={(t) => { setNext(t); setNextTouched(true); }} placeholder="2026-11-07" error={next && !isIsoDate(next) ? "Fecha inválida" : undefined} /></View>

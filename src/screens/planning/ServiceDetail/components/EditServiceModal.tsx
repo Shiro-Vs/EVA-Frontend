@@ -5,6 +5,7 @@ import type { Subscription } from "../../../../api/types";
 import EVAModal from "../../../../components/common/EVAModal";
 import { EVAInput } from "../../../../components/common/EVAInput";
 import { ServiceStylePicker } from "../../../../components/v1/ServiceStylePicker";
+import { OptionalAccountPicker } from "../../../../components/v1/forms";
 import { useAppTheme } from "../../../../hooks/useAppTheme";
 
 interface EditServiceModalProps {
@@ -23,15 +24,17 @@ export default function EditServiceModal({ visible, onClose, service, onSuccess 
   const [name, setName] = useState(service.name);
   const [style, setStyle] = useState({ icon: service.icon || "receipt", color: service.color || colors.primary });
   const [error, setError] = useState<string | null>(null);
+  const [provider, setProvider] = useState(service.provider ?? "");
+  const [preferred, setPreferred] = useState<string | null>(service.preferredAccountId);
 
   useEffect(() => {
-    if (visible) { setName(service.name); setStyle({ icon: service.icon || "receipt", color: service.color || colors.primary }); setError(null); }
+    if (visible) { setProvider(service.provider ?? ""); setPreferred(service.preferredAccountId); setName(service.name); setStyle({ icon: service.icon || "receipt", color: service.color || colors.primary }); setError(null); }
   }, [visible, service, colors.primary]);
 
   const save = async () => {
     if (!name.trim()) { setError("El nombre es obligatorio."); return; }
     try {
-      await api.patchSubscription(service.id, { name: name.trim(), icon: style.icon, color: style.color }, service.version);
+      await api.patchSubscription(service.id, { name: name.trim(), provider: provider.trim() || null, preferredAccountId: preferred, icon: style.icon, color: style.color }, service.version);
       onSuccess();
       onClose();
     } catch (e) {
@@ -42,6 +45,8 @@ export default function EditServiceModal({ visible, onClose, service, onSuccess 
   return (
     <EVAModal visible={visible} title="Editar Servicio" onClose={onClose} primaryButtonText="Guardar" onPrimaryAction={save}>
       <EVAInput label="Nombre" value={name} onChangeText={setName} autoCapitalize="words" error={error && !name.trim() ? error : undefined} />
+      <EVAInput label="Proveedor" value={provider} onChangeText={setProvider} autoCapitalize="words" />
+      <OptionalAccountPicker label="Cuenta con la que sueles pagarlo" value={preferred} onChange={setPreferred} />
       <ServiceStylePicker icon={style.icon} color={style.color} onChange={setStyle} />
       {error && name.trim() ? <Text style={{ color: colors.expenseStrong, fontFamily: fonts.family.regular, fontSize: 12, marginTop: 12 }}>{error}</Text> : null}
       <View style={{ height: 8 }} />
