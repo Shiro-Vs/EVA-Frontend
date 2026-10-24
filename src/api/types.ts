@@ -188,3 +188,61 @@ export interface Reconciliation { id: string; asOf: IsoDate; registeredBefore: M
 export interface LedgerCharge {
   id: string; concept: "principal" | "interest" | "late_fee"; installmentNo: number | null; periodNo: number | null; dueDate: IsoDate | null; amount: Money; paid: Money; pending: Money; status: string; overdue: boolean;
 }
+
+// ---- Entrega 4: captura, análisis y préstamos bancarios ----
+export interface InboxAddress { address: string; createdAt: string }
+export interface CaptureDoc {
+  id: string; origin: "email" | "photo" | "pdf" | "text"; sender: string | null; subject: string | null; mime: string; filename: string | null; sizeBytes: number; hasFile: boolean;
+  receivedAt: string; status: "received" | "proposed" | "failed" | "discarded" | "no_transaction" | "loan_document"; error: { code: string; detail: string | null } | null; attempts: number; version: number;
+}
+export interface Proposal {
+  id: string; documentId: string; status: "pending" | "accepted" | "linked" | "discarded"; direction: "income" | "expense" | "transfer"; amount: Money | null; currency: string;
+  occurredOn: IsoDate | null; occurredTime: string | null; counterparty: string | null; channel: string | null; operationRef: string | null; concept: string | null; suggestedCategory: string | null;
+  items: Array<{ concept: string; amount: Money | null }>; accountId: string | null; toAccountId: string | null; categoryId: string | null; contactId: string | null; description: string | null;
+  missing: string[]; warnings: string[]; confidence: number | null; canAccept: boolean; duplicates: Array<{ type: "operation" | "proposal"; id: string; reason: string }>;
+  operationId: string | null; source: { origin: string; sender: string | null; subject: string | null }; version: number; createdAt: string;
+}
+export interface CaptureDocDetail extends CaptureDoc {
+  duplicate?: boolean; proposals: Proposal[];
+  runs: Array<{ status: string; provider: string; model: string; tokensIn: number; tokensOut: number; errorCode: string | null; at: string }>;
+}
+export interface SenderRule { id: string; sender: string; accountId: string | null; categoryId: string | null; contactId: string | null; status: string; createdAt: string }
+export interface CaptureUsage { today: { used: number; limit: number }; month: { tasks: number; tokensIn: number; tokensOut: number; costEstimate: string }; provider: { name: string; model: string } }
+export interface AcceptPreview { valid: boolean; missing: string[]; effects: Array<{ accountId: string; before: Money; after: Money }>; duplicates: Proposal["duplicates"]; proposal: Proposal; previewToken: string }
+
+export interface AnalysisScope { from: IsoDate; to: IsoDate; accountIds?: string[]; categoryIds?: string[]; subscriptionIds?: string[] }
+export interface AnalysisCoverage { movements: number; uncategorizedExpenses: number; period: { from: IsoDate; to: IsoDate; days: number }; filters: { accounts: string[]; categories: string[]; services: string[] }; notes: string[] }
+export interface AnalysisResult {
+  id: string | null; saved: boolean; question?: string; answer: string; scope: AnalysisScope; coverage: AnalysisCoverage; generatedAt: string; provider: string; model: string; disclaimer: string;
+}
+export interface AnalysisContext { context: Record<string, any>; coverage: AnalysisCoverage }
+export interface ChatSession { id: string; title: string; scope: AnalysisScope; saveHistory: boolean; createdAt: string; updatedAt: string }
+export interface ChatDetail extends ChatSession { messages: Array<{ id: string; role: "user" | "assistant"; content: string; createdAt: string }> }
+export interface ChatReply extends AnalysisResult { chatId: string; savedHistory: boolean }
+
+export type LoanFactKey = "principal" | "tea" | "tcea" | "term_months" | "installments_count" | "disbursed_on" | "first_due_date" | "monthly_payment" | "outstanding_balance" | "loan_number";
+export interface BankInstallment {
+  id: string; number: number; dueDate: IsoDate; principal: Money | null; interest: Money | null; insurance: Money | null; fees: Money | null; total: Money; paidAmount: Money; remaining: Money;
+  paidOn: IsoDate | null; late: boolean; state: "paid" | "partial" | "partial_overdue" | "overdue" | "upcoming"; origin: "document" | "user"; documentId: string | null;
+}
+export interface BankLoanListItem { id: string; name: string; entity: string | null; status: "active" | "closed"; nextDue: { number: number; dueDate: IsoDate; remaining: Money } | null; remainingScheduled: Money; overdue: number; pending: LoanFactKey[] }
+export interface BankLoan {
+  id: string; name: string; entity: string | null; accountId: string | null; note: string | null; status: "active" | "closed"; version: number; createdAt: string;
+  facts: Array<{ key: LoanFactKey; value: string; asOf: IsoDate | null; origin: "document" | "user"; documentId: string | null; confirmedAt: string }>;
+  pending: LoanFactKey[]; installments: BankInstallment[]; nextDue: BankLoanListItem["nextDue"];
+  totals: { scheduled: Money; paid: Money; remainingScheduled: Money; overdue: number };
+  payments: Array<{ id: string; installmentId: string | null; operationId: string; amount: Money; paidOn: IsoDate; principal: Money | null; interest: Money | null; insurance: Money | null; fees: Money | null; note: string | null; status: "active" | "reversed" }>;
+  documents: Array<{ id: string; kind: "summary" | "schedule" | "statement"; documentId: string | null; summary: { facts: Array<{ key: string; change: string }>; installments: Array<{ number: number; change: string }>; warnings: string[] }; confirmedAt: string }>;
+  warnings: Array<{ code: string; message: string; installmentNo?: number }>;
+}
+export type ChangeKind = "new" | "changed" | "same" | "locked" | "removed";
+export interface BankChangePreview {
+  kind: "summary" | "schedule" | "statement"; documentId: string | null; hasChanges: boolean; requiresAcknowledge: boolean; previewToken: string;
+  facts: Array<{ key: LoanFactKey; current: string | null; incoming: string; asOf: IsoDate | null; origin: "document" | "user"; change: ChangeKind }>;
+  installments: Array<{ number: number; current: BankInstallment | null; incoming: { dueDate: IsoDate; principal: Money | null; interest: Money | null; insurance: Money | null; fees: Money | null; total: Money } | null; origin: "document" | "user"; change: ChangeKind }>;
+  warnings: Array<{ code: string; message: string; installmentNo?: number }>;
+}
+export interface BankPaymentPreview {
+  amount: Money; paidOn: IsoDate; account: { id: string; before: Money; after: Money };
+  installment: { number: number; dueDate: IsoDate; total: Money; paidBefore: Money; paidAfter: Money; settles: boolean; late: boolean } | null; unallocated: Money; note: string; previewToken: string;
+}

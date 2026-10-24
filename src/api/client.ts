@@ -169,7 +169,60 @@ export const api = {
 
   previewReceipt: (body: ReceiptBody) => post<T.ReceiptPreview>("/receipts/preview", body),
   createReceipt: (body: ReceiptBody & { previewToken: string }, key: string) => post<T.ReceiptCreated>("/receipts", body, key),
+
+  // ---- Entrega 4 ----
+  inboxAddress: () => get<T.InboxAddress>("/capture/inbox-address"),
+  rotateInboxAddress: () => post<T.InboxAddress>("/capture/inbox-address/rotate"),
+  revokeInboxAddress: () => post<{ revoked: boolean }>("/capture/inbox-address/revoke"),
+  uploadDocument: (body: CaptureUploadBody) => post<T.CaptureDocDetail>("/capture/documents", body),
+  documents: async (status?: string) => (await get<{ items: T.CaptureDoc[] }>("/capture/documents", { status })).items,
+  document: (id: string) => get<T.CaptureDocDetail>(`/capture/documents/${id}`),
+  retryDocument: (id: string) => post<T.CaptureDocDetail>(`/capture/documents/${id}/retry`),
+  discardDocument: (id: string) => post<T.CaptureDocDetail>(`/capture/documents/${id}/discard`),
+  deleteDocumentFile: (id: string) => post<T.CaptureDocDetail>(`/capture/documents/${id}/delete-file`),
+  purgeOriginals: (olderThanDays?: number) => post<{ deleted: number }>("/capture/retention/purge", olderThanDays ? { olderThanDays } : {}),
+  proposals: async (status = "pending") => (await get<{ items: T.Proposal[] }>("/capture/proposals", { status })).items,
+  proposal: (id: string) => get<T.Proposal>(`/capture/proposals/${id}`),
+  patchProposal: (id: string, body: ProposalPatchBody, version: number) => patch<T.Proposal>(`/capture/proposals/${id}`, body, version),
+  previewProposal: (id: string) => post<T.AcceptPreview>(`/capture/proposals/${id}/preview`),
+  acceptProposal: (id: string, body: { previewToken: string; acknowledgeDuplicates?: boolean; acceptReserveShortfall?: boolean }, key: string) => post<{ alreadyAccepted: boolean; proposal: T.Proposal; operation: { id: string } }>(`/capture/proposals/${id}/accept`, body, key),
+  linkProposal: (id: string, operationId: string) => post<T.Proposal>(`/capture/proposals/${id}/link`, { operationId }),
+  discardProposal: (id: string) => post<T.Proposal>(`/capture/proposals/${id}/discard`),
+  undoProposal: (id: string, reason: string) => post<T.Proposal>(`/capture/proposals/${id}/undo`, { reason }),
+  acceptBatch: (items: Array<{ id: string; previewToken: string; acknowledgeDuplicates?: boolean }>) =>
+    post<{ accepted: Array<{ id: string; operationId: string }>; failed: Array<{ id: string; code: string; message: string }>; summary: { accepted: number; failed: number } }>("/capture/proposals/accept-batch", { items }),
+  senderRules: async () => (await get<{ items: T.SenderRule[] }>("/capture/sender-rules")).items,
+  createSenderRule: (body: { sender: string; accountId?: string | null; categoryId?: string | null; contactId?: string | null }) => post<T.SenderRule>("/capture/sender-rules", body),
+  archiveSenderRule: (id: string) => post<{ id: string }>(`/capture/sender-rules/${id}/archive`),
+  captureUsage: () => get<T.CaptureUsage>("/capture/usage"),
+
+  analysisContext: (scope: T.AnalysisScope) => post<T.AnalysisContext>("/analysis/context", { scope }),
+  analyze: (body: { scope: T.AnalysisScope; question: string; save?: boolean }) => post<T.AnalysisResult>("/analysis", body),
+  analyses: async () => (await get<{ items: T.AnalysisResult[] }>("/analysis")).items,
+  analysis: (id: string) => get<T.AnalysisResult>(`/analysis/${id}`),
+  deleteAnalysis: (id: string) => post<{ id: string }>(`/analysis/${id}/delete`),
+  createChat: (body: { title?: string; scope: T.AnalysisScope; saveHistory?: boolean }) => post<T.ChatSession>("/analysis/chats", body),
+  chats: async () => (await get<{ items: T.ChatSession[] }>("/analysis/chats")).items,
+  chat: (id: string) => get<T.ChatDetail>(`/analysis/chats/${id}`),
+  sendChat: (id: string, body: { text: string; history?: Array<{ role: "user" | "assistant"; content: string }> }) => post<T.ChatReply>(`/analysis/chats/${id}/messages`, body),
+  deleteChat: (id: string) => post<{ id: string }>(`/analysis/chats/${id}/delete`),
+
+  bankLoans: async (status?: string) => (await get<{ items: T.BankLoanListItem[] }>("/bank-loans", { status })).items,
+  bankLoan: (id: string) => get<T.BankLoan>(`/bank-loans/${id}`),
+  createBankLoan: (body: { name: string; entity?: string | null; accountId?: string | null; note?: string | null }) => post<T.BankLoan>("/bank-loans", body),
+  patchBankLoan: (id: string, body: { name?: string; entity?: string | null; accountId?: string | null; note?: string | null; status?: "active" | "closed" }, version: number) => patch<T.BankLoan>(`/bank-loans/${id}`, body, version),
+  previewBankChange: (id: string, body: BankChangeBody) => post<T.BankChangePreview>(`/bank-loans/${id}/changes/preview`, body),
+  applyBankChange: (id: string, body: BankChangeBody & { previewToken: string; acknowledgeWarnings?: boolean }, key: string) => post<T.BankLoan>(`/bank-loans/${id}/changes`, body, key),
+  previewBankPayment: (id: string, body: BankPaymentBody) => post<T.BankPaymentPreview>(`/bank-loans/${id}/payments/preview`, body),
+  payBankLoan: (id: string, body: BankPaymentBody & { previewToken: string; acceptReserveShortfall?: boolean }, key: string) => post<{ paymentId: string; loan: T.BankLoan }>(`/bank-loans/${id}/payments`, body, key),
+  reverseBankPayment: (paymentId: string, reason: string, key: string) => post<T.BankLoan>(`/bank-loans/payments/${paymentId}/reverse`, { reason }, key),
 };
+
+export interface CaptureUploadBody { origin: "photo" | "pdf" | "text"; mime?: string; filename?: string; contentBase64?: string; text?: string; subject?: string; sender?: string }
+export interface ProposalPatchBody { direction?: "income" | "expense" | "transfer"; amount?: string | null; occurredOn?: string | null; occurredTime?: string | null; accountId?: string | null; toAccountId?: string | null; categoryId?: string | null; contactId?: string | null; description?: string | null }
+export interface BankInstallmentIn { number: number; dueDate: string; principal?: string | null; interest?: string | null; insurance?: string | null; fees?: string | null; total: string }
+export interface BankChangeBody { documentId?: string; kind?: "summary" | "schedule" | "statement"; facts?: Array<{ key: T.LoanFactKey; value: string; asOf?: string | null }>; installments?: BankInstallmentIn[] }
+export interface BankPaymentBody { accountId: string; amount: string; paidOn?: string; installmentNumber?: number; note?: string; documentId?: string; principal?: string | null; interest?: string | null; insurance?: string | null; fees?: string | null }
 
 export interface RuleBody { name: string; priority?: number; accountId?: string | null; direction?: "income" | "expense" | null; amountMin?: string | null; amountMax?: string | null; textContains?: string | null; action: "assign" | "suggest"; categoryId: string }
 export interface StatementBody { cutoffDate: string; dueDate: string; periodTotal: string; minimumPayment: string; totalBalance?: string | null; note?: string | null }
@@ -303,6 +356,35 @@ export const ERROR_TEXT: Record<string, string> = {
   OPERATION_MISMATCH: "Ese movimiento no corresponde al tipo de la ocurrencia.",
   OPERATION_ALREADY_LINKED: "Ese movimiento ya cumple otra ocurrencia.",
   RECURRING_DATES: "La fecha final no puede ser anterior al inicio.",
+  PROPOSAL_INCOMPLETE: "Faltan datos para aceptar: completa lo que se marca como faltante.",
+  PROPOSAL_NOT_PENDING: "Esta propuesta ya fue resuelta.",
+  DUPLICATE_SUSPECTED: "Parece repetir un movimiento ya registrado o propuesto: confirma que es otra operación o vincúlala al existente.",
+  AI_LIMIT_REACHED: "Se alcanzó el tope diario de tareas de IA; vuelve a intentar mañana.",
+  EXTRACTOR_UNAVAILABLE: "No hay un modelo de IA configurado: registra a mano o reintenta más tarde.",
+  EXTRACTOR_RATE_LIMIT: "La IA alcanzó su límite por ahora; reintenta en unos minutos.",
+  EXTRACTOR_NETWORK: "No se pudo contactar con la IA; reintenta.",
+  EXTRACTOR_ERROR: "La IA no pudo procesar el documento; reintenta o registra a mano.",
+  EXTRACTION_INVALID: "La IA no devolvió un resultado válido; reintenta o registra a mano.",
+  ANALYST_UNAVAILABLE: "No hay un modelo de IA configurado para el análisis.",
+  ANALYST_RATE_LIMIT: "La IA alcanzó su límite por ahora; reintenta en unos minutos.",
+  ANALYST_NETWORK: "No se pudo contactar con la IA; reintenta.",
+  ANALYST_ERROR: "La IA no pudo responder; reintenta.",
+  ANALYST_EMPTY: "La IA no devolvió respuesta; reintenta.",
+  UNSUPPORTED_MIME: "Formato no admitido: usa una imagen (JPG, PNG, WEBP, HEIC), un PDF o texto.",
+  FILE_TOO_LARGE: "El archivo es demasiado grande.",
+  EMPTY_DOCUMENT: "No hay contenido que analizar.",
+  DOCUMENT_NOT_FAILED: "Solo se reintenta un documento fallido.",
+  DOCUMENT_HAS_PENDING: "El documento tiene propuestas pendientes: resuélvelas antes de eliminar el archivo.",
+  FILE_NOT_AVAILABLE: "El archivo original ya no está disponible.",
+  SENDER_RULE_EXISTS: "Ya hay una regla para ese remitente.",
+  PERIOD_TOO_LONG: "El periodo no puede superar 400 días.",
+  NO_LOAN_DATA: "El documento no trae datos de un préstamo.",
+  DOCUMENT_KIND_MISMATCH: "El tipo de documento elegido no coincide con lo que se leyó de él.",
+  SCHEDULE_WARNINGS: "El documento tiene datos incoherentes: revísalos o confirma que quieres guardarlo así.",
+  INVALID_FACT: "Uno de los valores del préstamo no es válido.",
+  INSTALLMENT_PAID: "Esa cuota ya está pagada.",
+  BREAKDOWN_EXCEEDS_PAYMENT: "El desglose supera el importe pagado.",
+  LOAN_CLOSED: "El préstamo está cerrado.",
   IDEMPOTENCY_KEY_REUSED: "Esta acción ya se envió con otros datos.",
 };
 
