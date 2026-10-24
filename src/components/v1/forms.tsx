@@ -230,3 +230,15 @@ export function FlowResult({ flow, hide }: { flow: ReturnType<typeof usePreviewF
     </>
   );
 }
+
+/** Categorías activas (categoría → subcategoría) para elegir una. Con `allowNone` se puede dejar sin categoría. */
+export function CategoryPicker({ label = "Categoría", value, onChange, allowNone = true }: { label?: string; value: string | null; onChange: (id: string | null) => void; allowNone?: boolean }) {
+  const cats = useAsync(() => api.categories("active"), []);
+  if (cats.loading && !cats.data) return <Loading />;
+  if (cats.error) return <Notice tone="err">{cats.error}</Notice>;
+  const opts = (cats.data ?? []).flatMap((c) => [{ id: c.id, label: c.name }, ...(c.children ?? []).map((k) => ({ id: k.id, label: `${c.name} › ${k.name}` }))]);
+  return (
+    <Choice label={label} value={value ?? "__none__"} onChange={(v) => onChange(v === "__none__" ? null : v)}
+      options={[...(allowNone ? [{ id: "__none__", label: "Sin categoría" }] : []), ...opts]} />
+  );
+}

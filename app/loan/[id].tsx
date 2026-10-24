@@ -1,5 +1,5 @@
-import { LoanScreen } from "../../src/screens/e2/contact";
+import { LoanRouter } from "../../src/screens/e3/loans";
 
-export default function LoanRoute() {
-  return <LoanScreen />;
+export default function LoanRouterRoute() {
+  return <LoanRouter />;
 }

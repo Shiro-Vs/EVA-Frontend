@@ -3,7 +3,8 @@ import { Switch, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { Account } from "../../api/types";
-import { AccountPicker, Choice, DateField, FlowResult, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
+import { ApiError } from "../../api/http";
+import { AccountPicker, CategoryPicker, Choice, DateField, FlowResult, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Button, Card, Chip, ErrorBox, Field, Heading, KV, Loading, Money, Notice, Screen, Txt } from "../../components/v1/ui";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
@@ -137,14 +138,41 @@ export function OperationNewScreen() {
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
   const [contactId, setContactId] = useState<string | null>(null);
-  const create = useSubmit(async (key: string) => api.createOperation({
-    kind, accountId: from!, ...(kind === "transfer" ? { toAccountId: to! } : {}), amount: normalizeMoneyInput(amount)!,
-    ...(date ? { date } : {}), ...(description.trim() ? { description: description.trim() } : {}), ...(contactId && kind !== "transfer" ? { contactId } : {}),
-  }, key));
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<{ eaten: string; goals: Array<{ goalId: string; name: string; reserved: string }> } | null>(null);
+  const [deduct, setDeduct] = useState<Record<string, string>>({});
+  const [shortfall, setShortfall] = useState(false);
+  const [impactId, setImpactId] = useState("");
+  const [impact, setImpact] = useState<Array<Record<string, any>> | null>(null);
+  const create = useSubmit(async (key: string) => {
+    const deductions = Object.entries(deduct).map(([goalId, v]) => ({ goalId, amount: normalizeMoneyInput(v) })).filter((d): d is { goalId: string; amount: string } => !!d.amount && d.amount !== "0.00");
+    try {
+      return await api.createOperation({
+        kind, accountId: from!, ...(kind === "transfer" ? { toAccountId: to! } : {}), amount: normalizeMoneyInput(amount)!,
+        ...(date ? { date } : {}), ...(description.trim() ? { description: description.trim() } : {}), ...(contactId && kind !== "transfer" ? { contactId } : {}),
+        ...(categoryId && kind !== "transfer" ? { categoryId } : {}),
+        ...(deductions.length > 0 ? { goalDeductions: deductions } : {}), ...(shortfall ? { acceptReserveShortfall: true } : {}),
+      }, key);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "GOAL_RESERVE_CONFLICT") setConflict(e.details as never);
+      throw e;
+    }
+  });
   const ready = !!from && !!normalizeMoneyInput(amount) && (date === "" || isIsoDate(date)) && (kind !== "transfer" || (!!to && to !== from));
-  const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); create.resetKey(); };
+  const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); setConflict(null); create.resetKey(); };
+  if (impact) {
+    return (
+      <Screen title="Movimiento registrado">
+        <Heading>Presupuestos afectados</Heading>
+        {impact.map((b, i) => (
+          <Card key={i} outlined><Txt bold>{b.name ?? "Presupuesto"}</Txt><Txt size={12} muted>{b.exceeded ? `Superado por ${formatSoles(b.overBy)}` : `Queda ${formatSoles(b.remaining)}`}{b.percent != null ? ` · ${b.percent}%` : ""}</Txt></Card>
+        ))}
+        <Button title="Continuar" onPress={() => done(`/operation/${impactId}`)} />
+      </Screen>
+    );
+  }
   return (
-    <Screen title="Nuevo movimiento" footer={<Button title="Registrar" busy={create.busy} disabled={!ready} onPress={async () => { const r = await create.submit(); if (r) done(`/operation/${r.id}`); }} />}>
+    <Screen title="Nuevo movimiento" footer={<Button title="Registrar" busy={create.busy} disabled={!ready} onPress={async () => { const r = await create.submit(); if (r) { if (r.budgetImpact && r.budgetImpact.length > 0) { setImpactId(r.id); setImpact(r.budgetImpact); } else done(`/operation/${r.id}`); } }} />}>
       <Card>
         <Choice label="Tipo" value={kind} onChange={touch(setKind)} options={[{ id: "expense", label: "Gasto" }, { id: "income", label: "Ingreso" }, { id: "transfer", label: "Transferencia" }]} />
         <AccountPicker label={kind === "transfer" ? "Sale de" : kind === "income" ? "Entra a" : "Se paga con"} value={from} onChange={touch(setFrom)} />
@@ -152,12 +180,23 @@ export function OperationNewScreen() {
         <MoneyField label="Importe" value={amount} onChange={touch(setAmount)} />
         <DateField label="Fecha (hoy si la dejas vacía)" value={date} optional onChange={touch(setDate)} />
         <Field label="Descripción (opcional)" value={description} onChangeText={touch(setDescription)} autoCapitalize="sentences" maxLength={200} />
+        {kind !== "transfer" && <CategoryPicker value={categoryId} onChange={touch(setCategoryId)} />}
         {kind !== "transfer" && (contacts.data ?? []).length > 0 && (
           <Choice label="Persona (opcional)" value={contactId} onChange={(v) => touch(setContactId)(v === contactId ? null : v)}
             options={(contacts.data ?? []).filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }))} />
         )}
       </Card>
       <Notice tone="info">Un ingreso o gasto sueltos no son cobros de servicios: para cobrar a alguien usa «Registrar cobro» desde su ficha. Toca de nuevo a la persona para quitarla.</Notice>
+      {conflict && (
+        <Card>
+          <Txt bold>Este gasto usa {formatSoles(conflict.eaten)} reservados para metas</Txt>
+          <Txt size={12} muted>Elige de qué metas se descuenta (debe cubrir {formatSoles(conflict.eaten)}) o acepta que las metas queden con faltante.</Txt>
+          {conflict.goals.map((g) => (
+            <MoneyField key={g.goalId} label={`${g.name} · reservado ${formatSoles(g.reserved)}`} value={deduct[g.goalId] ?? ""} optional onChange={(v) => { setDeduct((d) => ({ ...d, [g.goalId]: v })); create.resetKey(); }} />
+          ))}
+          <Choice label="O" value={shortfall ? "short" : "pick"} onChange={(v) => { setShortfall(v === "short"); create.resetKey(); }} options={[{ id: "pick", label: "Descontar de las metas elegidas" }, { id: "short", label: "Aceptar el faltante en las metas" }]} />
+        </Card>
+      )}
       {create.error && <Notice tone="err">{create.error}</Notice>}
     </Screen>
   );

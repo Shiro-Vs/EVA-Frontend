@@ -10,6 +10,7 @@ const ACTIONS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; text
   { icon: "calendar-outline", title: "Nuevo servicio", text: "Netflix, Spotify… con su calendario", to: "/service/new" },
   { icon: "swap-vertical-outline", title: "Nuevo movimiento", text: "Ingreso, gasto o transferencia entre tus cuentas", to: "/operation/new" },
   { icon: "return-down-back-outline", title: "Devoluciones", text: "Dinero que debes devolver a alguien", to: "/refunds" },
+  { icon: "pie-chart-outline", title: "Finanzas", text: "Categorías, presupuestos, metas y recurrentes", to: "/finance" },
   { icon: "swap-horizontal-outline", title: "Préstamos", text: "Deudas convertidas en préstamo", to: "/loans" },
   { icon: "wallet-outline", title: "Nueva cuenta", text: "Banco, efectivo, billetera o tarjeta", to: "/account/new" },
   { icon: "person-add-outline", title: "Nuevo contacto", text: "Alguien que comparte un servicio", to: "/contacts" },

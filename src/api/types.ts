@@ -146,3 +146,45 @@ export interface OperationDetail {
   entries: Array<{ accountId: string; amount: Money }>;
   links: { receiptId: string | null; supplierPaymentId: string | null; refundId: string | null };
 }
+
+// ---- Entrega 3 ----
+export interface Category { id: string; parentId: string | null; name: string; icon: string | null; color: string | null; status: "active" | "archived"; version: number; children?: Category[] }
+export interface Rule {
+  id: string; name: string; priority: number; status: string; accountId: string | null; direction: "income" | "expense" | null; amountMin: Money | null; amountMax: Money | null;
+  textContains: string | null; action: "assign" | "suggest"; category: { id: string; name: string }; version: number;
+}
+export interface OperationItem {
+  id: string; kind: string; concept: string; occurredOn: IsoDate; description: string; status: string; category: { id: string; name: string } | null; contactId: string | null;
+  accountId: string | null; toAccountId: string | null; amount: Money; links: { receipt: boolean; refund: boolean; supplierPayment: boolean };
+}
+export interface CreditDetails { creditLine: Money | null; cutoffDay: number; dueDay: number; version: number }
+export interface CardStatement {
+  id: string; accountId: string; cutoffDate: IsoDate; dueDate: IsoDate; periodTotal: Money; minimumPayment: Money; totalBalance: Money | null; note: string | null;
+  status: "unpaid" | "partial" | "paid" | "void"; paid: Money; remaining: Money; minimumCovered: boolean; overdue: boolean; payments: Array<{ id: string; operationId: string; occurredOn: IsoDate; amount: Money }>;
+}
+export interface InstallmentPlan { id: string; description: string; principal: Money; installments: number; status: string; upcomingTotal: Money; schedule: Array<{ number: number; dueDate: IsoDate; amount: Money }> }
+export interface BudgetStatus {
+  period: { start: IsoDate; end: IsoDate; kind: string }; limit: Money; carry: Money; available: Money; spent: Money; remaining: Money; overBy: Money; percent: number | null;
+  thresholdsReached: number[]; level: number | null; exceeded: boolean; breakdown: { gross: Money; collectionsOffset: Money };
+}
+export interface Budget {
+  id: string; name: string; category: { id: string; name: string } | null; includeSubcategories: boolean; period: "weekly" | "monthly" | "yearly"; thresholds: number[];
+  rollover: boolean; rolloverCap: Money | null; sharedView: string; status: string; version: number; current: BudgetStatus;
+  items?: Array<{ operationId: string; date: IsoDate; description: string; amount: Money; sharedService: boolean }>; shared?: Array<Record<string, string>>;
+}
+export interface Goal {
+  id: string; name: string; targetAmount: Money; targetDate: IsoDate | null; status: string; version: number; saved: Money; remaining: Money; percent: number; achieved: boolean;
+  daysLeft: number | null; accounts: Array<{ accountId: string; name: string; reserved: Money; accountBalance: Money; overReserved: boolean }>;
+  contributions?: Array<{ id: string; accountName: string; amount: Money; kind: string; at: string }>;
+}
+export interface GoalOverview { accounts: Array<{ accountId: string; name: string; total: Money; reserved: Money; free: Money; overReserved: boolean }>; totals: { total: Money; reserved: Money; free: Money } }
+export interface RecurringTemplate {
+  id: string; name: string; kind: "income" | "expense"; account: { id: string; name: string }; amount: Money; categoryId: string | null; description: string; interval: Interval;
+  startDate: IsoDate; endDate: IsoDate | null; status: string; nextDue: IsoDate | null; version: number; pendingCount?: number;
+  occurrences?: Array<{ id: string; dueDate: IsoDate; amount: Money; status: string; operationId: string | null; operationReversed: boolean }>;
+}
+export interface Occurrence { id: string; templateId: string; templateName: string; kind: string; dueDate: IsoDate; amount: Money; status: string; operationId: string | null }
+export interface Reconciliation { id: string; asOf: IsoDate; registeredBefore: Money; realBalance: Money; difference: Money; balanceAfter: Money; adjusted: boolean; reason: string | null }
+export interface LedgerCharge {
+  id: string; concept: "principal" | "interest" | "late_fee"; installmentNo: number | null; periodNo: number | null; dueDate: IsoDate | null; amount: Money; paid: Money; pending: Money; status: string; overdue: boolean;
+}

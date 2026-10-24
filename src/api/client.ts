@@ -22,7 +22,7 @@ export const api = {
   createAccount: (body: { name: string; type: T.AccountType; institution?: string; color?: string; icon?: string; excludeFromTotal?: boolean; openingBalance?: { amount: string; date?: string }; isDefault?: boolean }, key: string) => post<T.Account>("/accounts", body, key),
   accountEntries: (id: string, cursor?: string) => get<{ items: T.AccountEntry[]; nextCursor: string | null }>(`/accounts/${id}/entries`, { cursor }),
 
-  createOperation: (body: { kind: "income" | "expense" | "transfer"; accountId: string; toAccountId?: string; amount: string; date?: string; description?: string; contactId?: string | null }, key: string) => post<T.OperationDetail>("/operations", body, key),
+  createOperation: (body: { kind: "income" | "expense" | "transfer"; accountId: string; toAccountId?: string; amount: string; date?: string; description?: string; contactId?: string | null; categoryId?: string | null; goalDeductions?: Array<{ goalId: string; amount: string }>; acceptReserveShortfall?: boolean }, key: string) => post<T.OperationDetail & { classification?: Record<string, unknown> | null; budgetImpact?: Array<Record<string, unknown>> }>("/operations", body, key),
   operation: (id: string) => get<T.OperationDetail>(`/operations/${id}`),
   patchOperation: (id: string, body: { description?: string; contactId?: string | null; categoryId?: string | null }, version: number) => patch<T.OperationDetail>(`/operations/${id}`, body, version),
   reverseOperation: (id: string, body: { reason: string; date?: string }, key: string) => post<T.OperationDetail>(`/operations/${id}/reverse`, body, key),
@@ -39,6 +39,81 @@ export const api = {
   contactReceipts: async (id: string) => (await get<{ items: T.ContactReceipt[] }>(`/contacts/${id}/receipts`)).items,
   previewDebtConversion: (contactId: string, obligationIds: string[]) => post<T.Preview>(`/contacts/${contactId}/debt-conversion/preview`, { obligationIds }),
   convertDebt: (contactId: string, body: { obligationIds: string[]; reason: string; previewToken: string }, key: string) => post<T.Loan>(`/contacts/${contactId}/debt-conversion`, body, key),
+
+  // ---- Entrega 3 ----
+  categories: async (status?: string) => (await get<{ items: T.Category[] }>("/categories", { status })).items,
+  createCategory: (body: { name: string; parentId?: string | null; icon?: string | null; color?: string | null }) => post<T.Category>("/categories", body),
+  patchCategory: (id: string, body: { name?: string; icon?: string | null; color?: string | null }, version: number) => patch<T.Category>(`/categories/${id}`, body, version),
+  archiveCategory: (id: string) => post<T.Category>(`/categories/${id}/archive`),
+  restoreCategory: (id: string) => post<T.Category>(`/categories/${id}/restore`),
+  rules: async (status?: string) => (await get<{ items: T.Rule[] }>("/classification-rules", { status })).items,
+  createRule: (body: RuleBody) => post<T.Rule>("/classification-rules", body),
+  archiveRule: (id: string) => post<T.Rule>(`/classification-rules/${id}/archive`),
+  restoreRule: (id: string) => post<T.Rule>(`/classification-rules/${id}/restore`),
+  suggestCategory: (body: { accountId: string; direction: "income" | "expense"; amount: string; text?: string }) => post<T.Preview>("/classification/suggest", body),
+  previewClassify: (body: { from?: string; to?: string }) => post<T.Preview>("/classification/apply/preview", body),
+  applyClassify: (body: { from?: string; to?: string; previewToken: string }, key: string) => post<{ classified: number }>("/classification/apply", body, key),
+  operations: async (q: Record<string, string | number | undefined>) => get<{ items: T.OperationItem[]; nextCursor: string | null }>("/operations", q),
+
+  creditDetails: (accountId: string) => get<T.CreditDetails | { configured: false }>(`/accounts/${accountId}/credit-details`),
+  setCreditDetails: (accountId: string, body: { creditLine?: string | null; cutoffDay: number; dueDay: number }) => post<T.CreditDetails>(`/accounts/${accountId}/credit-details`, body),
+  statements: async (accountId: string) => (await get<{ items: T.CardStatement[] }>(`/accounts/${accountId}/statements`)).items,
+  createStatement: (accountId: string, body: StatementBody, key: string) => post<T.CardStatement>(`/accounts/${accountId}/statements`, body, key),
+  cardStatement: (id: string) => get<T.CardStatement>(`/card-statements/${id}`),
+  voidStatement: (id: string, reason: string) => post<T.CardStatement>(`/card-statements/${id}/void`, { reason }),
+  linkCardPayment: (statementId: string, operationId: string, key: string) => post<T.CardStatement>(`/card-statements/${statementId}/payments`, { operationId }, key),
+  unlinkCardPayment: (paymentId: string) => post<T.CardStatement>(`/card-statement-payments/${paymentId}/remove`),
+  installmentPurchase: (accountId: string, body: InstallmentBody, key: string) => post<T.InstallmentPlan>(`/accounts/${accountId}/installment-purchases`, body, key),
+  installmentPlans: async (accountId: string) => (await get<{ items: T.InstallmentPlan[] }>(`/accounts/${accountId}/installment-plans`)).items,
+  cancelInstallmentPlan: (id: string) => post<T.InstallmentPlan>(`/installment-plans/${id}/cancel`),
+  cardAdvisor: (date?: string) => get<T.Preview>("/cards/advisor", { date }),
+
+  previewLoan: (body: LoanBody) => post<T.Preview>("/loans/preview", body),
+  createLoan: (body: LoanBody & { previewToken: string }, key: string) => post<T.Preview>("/loans", body, key),
+  previewLoanPayment: (id: string, body: LoanPaymentBody) => post<T.Preview>(`/loans/${id}/payments/preview`, body),
+  payLoan: (id: string, body: LoanPaymentBody & { previewToken: string }, key: string) => post<T.Preview>(`/loans/${id}/payments`, body, key),
+  reverseLoanPayment: (paymentId: string, reason: string, key: string) => post<T.Preview>(`/loan-payments/${paymentId}/reverse`, { reason }, key),
+  previewPayoff: (id: string, body: { accountId: string; paidOn?: string }) => post<T.Preview>(`/loans/${id}/payoff/preview`, body),
+  payoffLoan: (id: string, body: { accountId: string; paidOn?: string; previewToken: string }, key: string) => post<T.Preview>(`/loans/${id}/payoff`, body, key),
+  previewLateFees: (id: string, body: LateFeeBody) => post<T.Preview>(`/loans/${id}/late-fees/preview`, body),
+  applyLateFees: (id: string, body: LateFeeBody & { previewToken: string }, key: string) => post<T.Preview>(`/loans/${id}/late-fees`, body, key),
+  previewCapitalize: (id: string) => post<T.Preview>(`/loans/${id}/capitalize/preview`),
+  capitalizeLoan: (id: string, previewToken: string, key: string) => post<T.Preview>(`/loans/${id}/capitalize`, { previewToken }, key),
+  cancelLoan: (id: string, reason: string, key: string) => post<T.Preview>(`/loans/${id}/cancel`, { reason }, key),
+
+  budgets: async (date?: string, status?: string) => (await get<{ items: T.Budget[] }>("/budgets", { date, status })).items,
+  budget: (id: string, date?: string) => get<T.Budget>(`/budgets/${id}`, { date }),
+  budgetHistory: async (id: string, count = 6) => (await get<{ items: T.BudgetStatus[] }>(`/budgets/${id}/history`, { count })).items,
+  createBudget: (body: BudgetBody) => post<T.Budget>("/budgets", body),
+  patchBudget: (id: string, body: Partial<Omit<BudgetBody, "categoryId" | "period" | "startsOn">>, version: number) => patch<T.Budget>(`/budgets/${id}`, body, version),
+  archiveBudget: (id: string) => post<T.Budget>(`/budgets/${id}/archive`),
+  restoreBudget: (id: string) => post<T.Budget>(`/budgets/${id}/restore`),
+
+  goals: async (status?: string) => (await get<{ items: T.Goal[] }>("/goals", { status })).items,
+  goalsOverview: () => get<T.GoalOverview>("/goals/overview"),
+  goal: (id: string) => get<T.Goal>(`/goals/${id}`),
+  createGoal: (body: GoalBody) => post<T.Goal>("/goals", body),
+  patchGoal: (id: string, body: Partial<GoalBody>, version: number) => patch<T.Goal>(`/goals/${id}`, body, version),
+  archiveGoal: (id: string) => post<T.Goal>(`/goals/${id}/archive`),
+  restoreGoal: (id: string) => post<T.Goal>(`/goals/${id}/restore`),
+  reserveGoal: (id: string, body: { accountId: string; amount: string; note?: string }, key: string) => post<T.Goal>(`/goals/${id}/reserve`, body, key),
+  releaseGoal: (id: string, body: { accountId: string; amount: string; note?: string }, key: string) => post<T.Goal>(`/goals/${id}/release`, body, key),
+  linkGoalTransfer: (id: string, operationId: string, key: string) => post<T.Goal>(`/goals/${id}/link-transfer`, { operationId }, key),
+
+  recurringTemplates: async (status?: string) => (await get<{ items: T.RecurringTemplate[] }>("/recurring/templates", { status })).items,
+  recurringTemplate: (id: string) => get<T.RecurringTemplate>(`/recurring/templates/${id}`),
+  createRecurring: (body: RecurringBody) => post<T.RecurringTemplate>("/recurring/templates", body),
+  patchRecurring: (id: string, body: Partial<Omit<RecurringBody, "kind">>, version: number) => patch<T.RecurringTemplate>(`/recurring/templates/${id}`, body, version),
+  setRecurringStatus: (id: string, action: "pause" | "resume" | "archive") => post<T.RecurringTemplate>(`/recurring/templates/${id}/${action}`),
+  recurringPending: (within = 7) => get<{ due: T.Occurrence[]; upcoming: Array<{ templateId: string; name: string; kind: string; dueDate: string; amount: string }> }>("/recurring/pending", { within }),
+  confirmOccurrence: (id: string, body: OccurrenceConfirmBody, key: string) => post<{ occurrence: T.Occurrence; operation: T.OperationDetail }>(`/recurring/occurrences/${id}/confirm`, body, key),
+  skipOccurrence: (id: string, note?: string) => post<T.Occurrence>(`/recurring/occurrences/${id}/skip`, { note }),
+  linkOccurrence: (id: string, operationId: string) => post<T.Preview>(`/recurring/occurrences/${id}/link`, { operationId }),
+  reopenOccurrence: (id: string) => post<T.Occurrence>(`/recurring/occurrences/${id}/reopen`),
+
+  previewReconcile: (accountId: string, body: { realBalance: string; asOf?: string }) => post<T.Preview>(`/accounts/${accountId}/reconciliation/preview`, body),
+  reconcile: (accountId: string, body: { realBalance: string; asOf?: string; reason?: string; previewToken: string }, key: string) => post<T.Reconciliation>(`/accounts/${accountId}/reconciliation`, body, key),
+  reconciliations: async (accountId: string) => (await get<{ items: T.Reconciliation[] }>(`/accounts/${accountId}/reconciliations`)).items,
 
   loans: async (contactId?: string) => (await get<{ items: T.Loan[] }>("/loans", { contactId })).items,
   loan: (id: string) => get<T.Loan>(`/loans/${id}`),
@@ -95,6 +170,28 @@ export const api = {
   previewReceipt: (body: ReceiptBody) => post<T.ReceiptPreview>("/receipts/preview", body),
   createReceipt: (body: ReceiptBody & { previewToken: string }, key: string) => post<T.ReceiptCreated>("/receipts", body, key),
 };
+
+export interface RuleBody { name: string; priority?: number; accountId?: string | null; direction?: "income" | "expense" | null; amountMin?: string | null; amountMax?: string | null; textContains?: string | null; action: "assign" | "suggest"; categoryId: string }
+export interface StatementBody { cutoffDate: string; dueDate: string; periodTotal: string; minimumPayment: string; totalBalance?: string | null; note?: string | null }
+export interface InstallmentBody { amount: string; installments: number; firstDueDate: string; description?: string; categoryId?: string | null; date?: string }
+export interface LoanBody {
+  direction: "lent" | "borrowed"; contactId?: string | null; counterpartyName?: string | null; principal: string; openedOn?: string; accountId?: string | null;
+  interest: { mode: "none" | "fixed" | "percent"; amount?: string | null; ratePercent?: string | null; base?: "original" | "pending" };
+  repayment: { kind: "installments" | "final_date" | "open"; installments?: number; firstDueDate?: string; finalDate?: string };
+  paymentOrder?: "capital_first" | "interest_first"; earlyPayoff?: "keep" | "accrued"; note?: string | null;
+}
+export interface LoanPaymentBody { amount: string; accountId: string; paidOn?: string; allocations?: Array<{ chargeId: string; amount: string }>; onRemainder?: "keep" }
+export interface LateFeeBody { mode: "fixed" | "percent"; amount?: string | null; ratePercent?: string | null }
+export interface BudgetBody {
+  name: string; categoryId?: string | null; includeSubcategories?: boolean; period: "weekly" | "monthly" | "yearly"; limit: string; thresholds?: number[];
+  rollover?: boolean; rolloverCap?: string | null; sharedView?: "origin_cycle" | "receipt_date"; startsOn?: string;
+}
+export interface GoalBody { name: string; targetAmount: string; targetDate?: string | null; note?: string | null }
+export interface RecurringBody {
+  name: string; kind: "income" | "expense"; accountId: string; amount: string; categoryId?: string | null; contactId?: string | null; description?: string;
+  interval: T.Interval; startDate: string; endDate?: string | null;
+}
+export interface OccurrenceConfirmBody { amount?: string; accountId?: string; date?: string; description?: string; categoryId?: string | null; goalDeductions?: Array<{ goalId: string; amount: string }>; acceptReserveShortfall?: boolean }
 
 export interface QuotaChangeBody { newQuota: string; effectiveFrom: string; mode: "per_renewal" | "lump"; reason: string }
 export interface CourtesyBody { kind: "cycles" | "until_date" | "permanent"; cycles?: number; untilDate?: string; reason: string; debtHandling?: "keep" | "convert" }
@@ -173,6 +270,39 @@ export const ERROR_TEXT: Record<string, string> = {
   OPERATION_NOT_EDITABLE: "Un movimiento revertido no se puede editar.",
   NO_CHANGES: "No hay cambios: los datos son iguales a los actuales.",
   SUBSCRIPTION_ARCHIVED: "El servicio está archivado.",
+  GOAL_RESERVE_CONFLICT: "Este gasto usa dinero reservado para una meta: elige de qué meta se descuenta o acepta el faltante.",
+  GOAL_DEDUCTION_INSUFFICIENT: "Lo descontado de las metas no cubre el dinero reservado que usa este gasto.",
+  GOAL_DEDUCTION_EXCEEDS: "Una meta no tiene tanto reservado en esa cuenta.",
+  INSUFFICIENT_FREE_BALANCE: "La cuenta no tiene tanto dinero libre para reservar.",
+  RELEASE_EXCEEDS_RESERVED: "No hay tanto reservado en esa cuenta para esta meta.",
+  GOAL_ACCOUNT_TYPE: "Una tarjeta de crédito no tiene dinero propio que reservar.",
+  GOAL_DATE_PAST: "La fecha de la meta debe ser posterior a hoy.",
+  TRANSFER_ALREADY_LINKED: "Esa transferencia ya está vinculada a una meta.",
+  NOT_A_TRANSFER: "Solo una transferencia confirmada se puede vincular.",
+  CATEGORY_ARCHIVED: "La categoría está archivada.",
+  CATEGORY_NAME_EXISTS: "Ya existe una categoría con ese nombre en este nivel.",
+  CATEGORY_DEPTH_EXCEEDED: "Solo hay dos niveles: categoría y subcategoría.",
+  RULE_WITHOUT_CONDITION: "La regla necesita al menos una condición.",
+  RULE_AMOUNT_RANGE: "El importe mínimo no puede superar al máximo.",
+  BUDGET_EXISTS: "Ya tienes un presupuesto activo para esa categoría y ese período.",
+  ROLLOVER_REQUIRED: "El tope de arrastre solo aplica si el presupuesto arrastra el saldo.",
+  STATEMENT_EXISTS: "Ya registraste el estado de cuenta de ese corte.",
+  STATEMENT_DATES: "La fecha de pago no puede ser anterior al corte.",
+  NOT_CREDIT_ACCOUNT: "Esa cuenta no es una tarjeta de crédito.",
+  NOT_A_CARD_PAYMENT: "Solo una transferencia confirmada hacia esta tarjeta cuenta como su pago.",
+  PAYMENT_ALREADY_LINKED: "Ese pago ya está vinculado a un estado de cuenta.",
+  INTEREST_REQUIRED: "Indica el interés o la mora que quieres aplicar.",
+  REPAYMENT_REQUIRED: "Indica cómo se devuelve el préstamo.",
+  REPAYMENT_DATES: "Las fechas de devolución deben ser posteriores al inicio.",
+  PAYMENT_REMAINDER: "Sobra dinero: aplícalo a más cargos o conserva el sobrante como saldo a favor.",
+  LOAN_HAS_PAYMENTS: "El préstamo ya tiene pagos: revierte primero esos pagos.",
+  LOAN_NOT_OPEN: "El préstamo no está abierto.",
+  NOTHING_TO_CAPITALIZE: "No hay interés vencido y sin pagar para capitalizar.",
+  OCCURRENCE_DECIDED: "Esta ocurrencia ya se decidió.",
+  OCCURRENCE_NOT_REOPENABLE: "Solo se reabre una ocurrencia omitida o cuyo movimiento fue revertido.",
+  OPERATION_MISMATCH: "Ese movimiento no corresponde al tipo de la ocurrencia.",
+  OPERATION_ALREADY_LINKED: "Ese movimiento ya cumple otra ocurrencia.",
+  RECURRING_DATES: "La fecha final no puede ser anterior al inicio.",
   IDEMPOTENCY_KEY_REUSED: "Esta acción ya se envió con otros datos.",
 };
 

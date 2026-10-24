@@ -30,6 +30,10 @@ export default function AccountDetailScreen({ accountId }: { accountId: string }
         <View style={{ flex: 1 }}><Button title="Nuevo movimiento" icon="add" onPress={() => router.push("/operation/new" as never)} /></View>
         <View style={{ flex: 1 }}><Button title="Editar cuenta" variant="secondary" icon="create-outline" onPress={() => router.push(`/account/${accountId}/edit` as never)} /></View>
       </View>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {acc.data.type === "credit" && <View style={{ flex: 1 }}><Button title="Tarjeta" variant="secondary" icon="card-outline" onPress={() => router.push(`/account/${accountId}/card` as never)} /></View>}
+        <View style={{ flex: 1 }}><Button title="Conciliar saldo" variant="secondary" icon="git-compare-outline" onPress={() => router.push(`/account/${accountId}/reconcile` as never)} /></View>
+      </View>
       <Heading>Movimientos</Heading>
       {entries.loading && !entries.data ? <Loading /> : (entries.data?.items ?? []).length === 0 ? (
         <Empty icon="receipt-outline" title="Sin movimientos" text="Aquí verás cada ingreso, gasto y transferencia de esta cuenta." />

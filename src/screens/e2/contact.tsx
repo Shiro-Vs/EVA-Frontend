@@ -80,9 +80,9 @@ export function LoansScreen() {
   const loans = useAsync(() => api.loans(contactId), [contactId]);
   useFocusReload(loans.reload);
   return (
-    <Screen title="Préstamos">
+    <Screen title="Préstamos" footer={<Button title="Nuevo préstamo" icon="add" onPress={() => router.push("/loans/new" as never)} />}>
       {loans.loading && !loans.data ? <Loading /> : loans.error ? <ErrorBox message={loans.error} onRetry={loans.reload} /> : (loans.data ?? []).length === 0 ? (
-        <Empty icon="swap-horizontal-outline" title="Sin préstamos" text="Un préstamo nace al convertir una deuda de servicio (por ejemplo, al dar de baja a alguien que debe)." />
+        <Empty icon="swap-horizontal-outline" title="Sin préstamos" text="Registra uno nuevo, o conviértelo desde una deuda de servicio (por ejemplo, al dar de baja a alguien que debe)." />
       ) : (loans.data ?? []).map((l) => (
         <RowLink key={l.id} onPress={() => router.push(`/loan/${l.id}` as never)}>
           <View style={{ flex: 1 }}>
