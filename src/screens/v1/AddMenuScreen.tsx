@@ -12,6 +12,8 @@ const ACTIONS: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; text
   { icon: "return-down-back-outline", title: "Devoluciones", text: "Dinero que debes devolver a alguien", to: "/refunds" },
   { icon: "pie-chart-outline", title: "Finanzas", text: "Categorías, presupuestos, metas y recurrentes", to: "/finance" },
   { icon: "scan-outline", title: "Bandeja de captura", text: "Sube un comprobante o revisa lo que llegó por correo", to: "/capture" },
+  { icon: "bar-chart-outline", title: "Resumen mensual", text: "Flujo de dinero, resultado, versiones y PDF", to: "/reports" },
+  { icon: "settings-outline", title: "Ajustes y respaldos", text: "Panel, avisos, bloqueo y copias de seguridad", to: "/settings" },
   { icon: "swap-horizontal-outline", title: "Préstamos", text: "Deudas convertidas en préstamo", to: "/loans" },
   { icon: "wallet-outline", title: "Nueva cuenta", text: "Banco, efectivo, billetera o tarjeta", to: "/account/new" },
   { icon: "person-add-outline", title: "Nuevo contacto", text: "Alguien que comparte un servicio", to: "/contacts" },

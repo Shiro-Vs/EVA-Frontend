@@ -1,8 +1,9 @@
-import { request } from "./http";
+import { request, requestBytes } from "./http";
 import type * as T from "./types";
 
 const get = async <R,>(path: string, query?: Record<string, string | number | undefined>) => (await request<R>("GET", path, { query })).data;
 const post = async <R,>(path: string, body?: unknown, idempotencyKey?: string) => (await request<R>("POST", path, { body: body ?? {}, idempotencyKey })).data;
+const put = async <R,>(path: string, body: unknown) => (await request<R>("PUT", path, { body })).data;
 const patch = async <R,>(path: string, body: unknown, version: number) => (await request<R>("PATCH", path, { body, version })).data;
 
 /**
@@ -216,6 +217,27 @@ export const api = {
   previewBankPayment: (id: string, body: BankPaymentBody) => post<T.BankPaymentPreview>(`/bank-loans/${id}/payments/preview`, body),
   payBankLoan: (id: string, body: BankPaymentBody & { previewToken: string; acceptReserveShortfall?: boolean }, key: string) => post<{ paymentId: string; loan: T.BankLoan }>(`/bank-loans/${id}/payments`, body, key),
   reverseBankPayment: (paymentId: string, reason: string, key: string) => post<T.BankLoan>(`/bank-loans/payments/${paymentId}/reverse`, { reason }, key),
+
+  // ---- Entrega 5 ----
+  monthly: (p: { month: string; accountIds?: string[]; detail?: boolean }) => get<T.MonthlyLive>("/reports/monthly", { month: p.month, accountIds: p.accountIds?.length ? p.accountIds.join(",") : undefined, detail: p.detail ? "1" : undefined }),
+  saveMonthly: (body: { month: string; accountIds?: string[]; detail?: boolean }) => post<T.MonthlySnapshot>("/reports/monthly/snapshots", body),
+  snapshots: async (month?: string) => (await get<{ items: Array<T.SavedVersion & { period: string }> }>("/reports/monthly/snapshots", { month })).items,
+  snapshot: (id: string) => get<T.MonthlySnapshot>(`/reports/snapshots/${id}`),
+  monthlyPdf: (p: { month: string; accountIds?: string[]; detail?: boolean }) => requestBytes("/reports/monthly/pdf", { month: p.month, accountIds: p.accountIds?.length ? p.accountIds.join(",") : undefined, detail: p.detail ? "1" : undefined }),
+  snapshotPdf: (id: string) => requestBytes(`/reports/snapshots/${id}/pdf`),
+
+  preferences: () => get<T.Preferences>("/preferences"),
+  savePreferences: (patch: Partial<T.Preferences>) => put<T.Preferences>("/preferences", patch),
+  dashboard: () => get<T.Dashboard>("/dashboard"),
+  reminders: (days?: number) => get<T.Reminders>("/reminders", { days }),
+
+  backups: async () => (await get<{ items: T.BackupMeta[] }>("/backups")).items,
+  createBackup: (note?: string) => post<T.BackupMeta>("/backups", note ? { note } : {}),
+  deleteBackup: (id: string) => post<{ id: string; deleted: boolean; note: string }>(`/backups/${id}/delete`),
+  downloadBackup: (id: string) => requestBytes(`/backups/${id}/download`),
+  importBackup: (contentBase64: string) => post<T.BackupMeta>("/backups/import", { contentBase64 }),
+  previewRestore: (id: string, mode: "replace" | "merge") => post<T.RestorePreview>(`/backups/${id}/restore/preview`, { mode }),
+  restoreBackup: (id: string, body: { mode: "replace" | "merge"; previewToken: string }, key: string) => post<T.RestoreResult>(`/backups/${id}/restore`, body, key),
 };
 
 export interface CaptureUploadBody { origin: "photo" | "pdf" | "text"; mime?: string; filename?: string; contentBase64?: string; text?: string; subject?: string; sender?: string }
@@ -385,6 +407,13 @@ export const ERROR_TEXT: Record<string, string> = {
   INSTALLMENT_PAID: "Esa cuota ya está pagada.",
   BREAKDOWN_EXCEEDS_PAYMENT: "El desglose supera el importe pagado.",
   LOAN_CLOSED: "El préstamo está cerrado.",
+  BACKUP_CORRUPT: "El archivo del respaldo está dañado o no es un respaldo de EVA.",
+  BACKUP_KEY_REQUIRED: "El respaldo está cifrado y este servidor no tiene la clave.",
+  BACKUP_OTHER_OWNER: "Este respaldo pertenece a otro usuario.",
+  BACKUP_NEWER_SCHEMA: "El respaldo viene de una versión más nueva del servidor: actualízalo antes de restaurar.",
+  BACKUP_NEWER_FORMAT: "El respaldo se generó con una versión más nueva de EVA.",
+  RESTORE_FAILED: "No se pudo restaurar: los datos del respaldo no son coherentes con este servidor. No se cambió nada.",
+  RESTORE_MISMATCH: "Tras restaurar, los saldos no coincidían con los del respaldo: no se cambió nada.",
   IDEMPOTENCY_KEY_REUSED: "Esta acción ya se envió con otros datos.",
 };
 

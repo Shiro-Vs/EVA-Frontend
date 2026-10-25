@@ -162,7 +162,7 @@ export function FinanceMenuScreen() {
   const items: Array<[string, string, string]> = [
     ["Categorías", "Categorías y subcategorías", "/categories"], ["Reglas de clasificación", "Asignan o sugieren categorías", "/rules"], ["Movimientos sin categoría", "Clasifica lo pendiente", "/classify"],
     ["Presupuestos", "Límites por categoría o generales", "/budgets"], ["Metas de ahorro", "Reserva dinero para un objetivo", "/goals"], ["Recurrentes", "Sueldo, alquiler y otros", "/recurring"],
-    ["Bandeja de captura", "Comprobantes por revisar", "/capture"], ["Análisis con IA", "Preguntas y chat sobre tus datos", "/analysis"], ["Préstamos bancarios", "Con cronograma y documentos", "/bank-loans"],
+    ["Resumen mensual", "Flujo, resultado, versiones y PDF", "/reports"], ["Panel", "Tus tarjetas elegidas", "/panel"], ["Bandeja de captura", "Comprobantes por revisar", "/capture"], ["Análisis con IA", "Preguntas y chat sobre tus datos", "/analysis"], ["Préstamos bancarios", "Con cronograma y documentos", "/bank-loans"],
     ["Préstamos", "Recibidos y otorgados", "/loans"], ["Nuevo préstamo", "Con interés, cuotas o sin fecha", "/loans/new"], ["Devoluciones", "Dinero por devolver", "/refunds"],
   ];
   return (

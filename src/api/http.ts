@@ -70,7 +70,7 @@ export interface ApiResponse<T> {
   replayed: boolean;
 }
 
-export async function request<T>(method: "GET" | "POST" | "PATCH", path: string, opts: RequestOptions = {}): Promise<ApiResponse<T>> {
+export async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH", path: string, opts: RequestOptions = {}): Promise<ApiResponse<T>> {
   const base = await session.getBaseUrl();
   const token = await session.getToken();
   const qs = opts.query
@@ -104,6 +104,23 @@ export async function request<T>(method: "GET" | "POST" | "PATCH", path: string,
     version: etag ? Number(etag.replace(/"/g, "")) || undefined : undefined,
     replayed: res.headers.get("idempotency-replayed") === "true",
   };
+}
+
+/** Descarga un archivo (PDF, respaldo) con la sesión actual. */
+export async function requestBytes(path: string, query?: Record<string, string | number | undefined>): Promise<{ bytes: Uint8Array; filename: string | null }> {
+  const base = await session.getBaseUrl();
+  const token = await session.getToken();
+  const qs = query ? "?" + Object.entries(query).filter(([, v]) => v !== undefined).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&") : "";
+  let res: Response;
+  try { res = await fetch(`${base}${path}${qs}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }); } catch { throw new ApiError(0, "NETWORK_ERROR", "No se pudo conectar con el servidor"); }
+  if (!res.ok) {
+    let e: { code?: string; message?: string } | undefined;
+    try { e = ((await res.json()) as { error?: { code?: string; message?: string } }).error; } catch { e = undefined; }
+    if (res.status === 401) onUnauthorized?.();
+    throw new ApiError(res.status, e?.code ?? "UNKNOWN_ERROR", e?.message ?? `Error ${res.status}`);
+  }
+  const cd = res.headers.get("content-disposition") ?? "";
+  return { bytes: new Uint8Array(await res.arrayBuffer()), filename: /filename="([^"]+)"/.exec(cd)?.[1] ?? null };
 }
 
 /** Acceso de desarrollo: pide al backend (solo con AUTH_MODE=dev) un token del usuario de desarrollo. */

@@ -246,3 +246,46 @@ export interface BankPaymentPreview {
   amount: Money; paidOn: IsoDate; account: { id: string; before: Money; after: Money };
   installment: { number: number; dueDate: IsoDate; total: Money; paidBefore: Money; paidAfter: Money; settles: boolean; late: boolean } | null; unallocated: Money; note: string; previewToken: string;
 }
+
+// ---- Entrega 5: resumen mensual, panel, avisos y respaldos ----
+export interface MonthlyData {
+  period: { month: string; from: IsoDate; to: IsoDate }; filters: { accountIds: string[]; accounts: string[]; detail: boolean };
+  accounts: Array<{ id: string; name: string; type: string; opening: Money; closing: Money; change: Money }>;
+  flow: { label: string; note: string; opening: Money; lines: Array<{ type: string; label: string; in: Money; out: Money; net: Money; movements: number }>; totalIn: Money; totalOut: Money; net: Money; closing: Money; reconciles: boolean };
+  results: {
+    label: string; note: string; income: { total: Money; byCategory: Array<{ name: string; total: Money; count: number; percent: number }> };
+    consumption: { total: Money; byCategory: Array<{ name: string; total: Money; count: number; percent: number }> }; financialIncome: Money;
+    financialCosts: { total: Money; loanInterest: Money; loanLateFees: Money; bankInterest: Money; bankInsurance: Money; bankFees: Money };
+    sharedServices: { paidToSuppliers: Money; collected: Money; refunds: Money; netCost: Money }; net: Money;
+  };
+  other: { label: string; transfers: { in: Money; out: Money }; cardPayments: Money; loans: { capitalIn: Money; capitalOut: Money }; adjustments: Money; reversals: { reversed: number; reversalEntries: number } };
+  counts: { movements: number }; notes: string[];
+  operations?: Array<{ date: IsoDate; time: string | null; account: string; type: string; kind: string; status: string; description: string; category: string | null; amount: Money }>; operationsTruncated?: boolean;
+}
+export interface SavedVersion { id: string; version: number; generatedAt: string; rulesVersion: string }
+export interface MonthlyLive extends MonthlyData { live: true; generatedAt: string; rulesVersion: string; savedVersions: SavedVersion[]; differsFromLatestSaved: boolean | null }
+export interface MonthlySnapshot { id: string; period: string; version: number; params: { month: string; accountIds: string[]; detail: boolean }; rulesVersion: string; generatedAt: string; data: MonthlyData; unchanged?: boolean; previousVersion?: number | null }
+
+export type CardId = "accounts_balance" | "credit_debt" | "period_flow" | "budgets" | "goals" | "renewals" | "pending_collections" | "loans" | "capture_pending" | "upcoming_payments";
+export type LeadKind = { enabled: boolean; leadDays: number[] };
+export interface Preferences {
+  dashboard: { cards: Array<{ id: CardId; enabled: boolean }> };
+  notifications: { enabled: boolean; discreet: boolean; time: string; quiet: { from: string; to: string } | null; repeatOverdue: boolean; kinds: { renewal: LeadKind; collection: LeadKind; recurring: LeadKind; loan: LeadKind; budget: { enabled: boolean }; capture: { enabled: boolean } } };
+  capture: { reviewMode: "individual" | "batch"; duplicates: "separate" | "grouped" };
+  security: { lockAfterSeconds: number };
+  backup: { frequency: "off" | "weekly" | "monthly"; keep: 1 | 2 };
+}
+export interface DashboardCard { id: CardId; title: string; data: any }
+export interface Dashboard { asOf: IsoDate; cards: DashboardCard[]; available: Array<{ id: CardId; title: string; enabled: boolean }> }
+export interface Reminder { id: string; kind: string; dueDate: IsoDate | null; overdue: boolean; title: string; detail: string | null; route: string; count: number; fireAt: string[] }
+export interface Reminders { enabled: boolean; discreet?: boolean; time?: string; items: Reminder[] }
+
+export interface BackupMeta {
+  id: string; kind: "manual" | "auto" | "recovery" | "imported"; createdAt: string; formatVersion: number; schemaVersion: string; sizeBytes: number; hash: string; encrypted: boolean; note: string | null;
+  tables: Record<string, number>; totalRows: number; balances: Record<string, Money>;
+}
+export interface RestorePreview {
+  backup: BackupMeta; mode: "replace" | "merge"; valid: boolean; warnings: string[]; recoveryCopy: boolean; previewToken: string; expectedBalances: Record<string, Money>; currentBalances: Record<string, Money>;
+  report: Array<{ table: string; inBackup: number; current: number; willAdd: number; alreadyThere: number; willRemove: number }>;
+}
+export interface RestoreResult { restored: boolean; mode: "replace" | "merge"; backupId: string; recoveryBackupId: string; inserted: Record<string, number>; balancesMatch: boolean | null; note: string }
