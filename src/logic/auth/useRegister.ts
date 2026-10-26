@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Keyboard } from "react-native";
-import { AuthService } from "../../services/AuthService";
+import { supabaseConfigured } from "../../api/supabaseAuth";
+import { useAuth } from "../../context/AuthContext";
 
 export function useRegister() {
+  const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -90,16 +92,16 @@ export function useRegister() {
     setErrors(newErrors);
 
     if (isValid) {
+      if (!supabaseConfigured()) {
+        setAlertConfig({ visible: true, title: "Registro próximamente", message: "Esta versión de prueba todavía no está conectada al servicio de cuentas. Vuelve atrás y entra con «Entrar en modo desarrollo».", type: "info", iconName: "construct-outline" });
+        return;
+      }
       setIsAuthenticating(true);
       try {
-        await AuthService.register(email.trim(), password, name.trim());
-        setAlertConfig({
-          visible: true,
-          title: "¡Bienvenido!",
-          message: "Tu cuenta ha sido creada con éxito. Ya puedes comenzar a gestionar tus finanzas.",
-          type: "success",
-          iconName: "person-add-outline",
-        });
+        const r = await signUp(email, password, name);
+        setAlertConfig(r.needsConfirmation
+          ? { visible: true, title: "Revisa tu correo", message: "Te enviamos un enlace para confirmar tu cuenta. Ábrelo y luego inicia sesión.", type: "success", iconName: "mail-unread-outline" }
+          : { visible: true, title: "¡Bienvenido!", message: "Tu cuenta ha sido creada con éxito. Ya puedes comenzar a gestionar tus finanzas.", type: "success", iconName: "person-add-outline" });
       } catch (error: any) {
         setAlertConfig({
           visible: true,

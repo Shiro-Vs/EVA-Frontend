@@ -19,10 +19,33 @@ export class ApiError extends Error {
 const DEFAULT_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/v1";
 
 let tokenCache: string | null | undefined;
+let refreshCache: string | null | undefined;
+let refresher: (() => Promise<string | null>) | undefined;
+let refreshing: Promise<string | null> | null = null;
+
+/** Identificador de la persona dentro de un JWT (sin verificarlo: solo para saber si cambió de usuario). */
+function subOf(token: string | null | undefined): string | null {
+  if (!token) return null;
+  try {
+    const b64 = token.split(".")[1]!.replace(/-/g, "+").replace(/_/g, "/");
+    return (JSON.parse(globalThis.atob(b64)) as { sub?: string }).sub ?? null;
+  } catch { return null; }
+}
 let urlCache: string | undefined;
 let onUnauthorized: (() => void) | undefined;
 
 export const session = {
+  /** La app registra cómo renovar el token ante un 401 (devuelve el token nuevo o null si ya no se puede). */
+  setRefresher(fn: (() => Promise<string | null>) | undefined) { refresher = fn; },
+  async getRefreshToken() {
+    if (refreshCache === undefined) refreshCache = await storage.get(KEYS.refresh);
+    return refreshCache;
+  },
+  async setRefreshToken(token: string | null) {
+    refreshCache = token;
+    if (token) await storage.set(KEYS.refresh, token);
+    else await storage.remove(KEYS.refresh);
+  },
   /** La app registra aquí qué hacer ante un 401 (cerrar sesión). */
   onUnauthorized(fn: () => void) { onUnauthorized = fn; },
   async getToken() {
@@ -32,10 +55,12 @@ export const session = {
   async setToken(token: string | null) {
     // La caché es de UNA sesión: al cerrar sesión o entrar otro usuario se borra (RN-OF04).
     const previous = tokenCache === undefined ? await storage.get(KEYS.token) : tokenCache;
-    if (previous !== token) { await cacheClear(); connectivity.setOnline(); }
+    // Renovar el token de la MISMA persona no borra la caché; cambiar de persona o cerrar sesión, sí.
+    const sameUser = previous && token && (subOf(previous) !== null && subOf(token) !== null ? subOf(previous) === subOf(token) : previous === token);
+    if (!sameUser && previous !== token) { await cacheClear(); connectivity.setOnline(); }
     tokenCache = token;
     if (token) await storage.set(KEYS.token, token);
-    else await storage.remove(KEYS.token);
+    else { await storage.remove(KEYS.token); await session.setRefreshToken(null); }
   },
   async getBaseUrl() {
     if (urlCache === undefined) urlCache = (await storage.get(KEYS.apiUrl)) || DEFAULT_URL;
@@ -46,7 +71,7 @@ export const session = {
     await storage.set(KEYS.apiUrl, urlCache);
   },
   /** Solo para pruebas. */
-  _reset() { tokenCache = undefined; urlCache = undefined; onUnauthorized = undefined; },
+  _reset() { tokenCache = undefined; refreshCache = undefined; urlCache = undefined; onUnauthorized = undefined; refresher = undefined; refreshing = null; },
 };
 
 /** UUID v4 para claves de idempotencia. Basta con que no se repita entre acciones del usuario. */
@@ -77,7 +102,13 @@ export interface ApiResponse<T> {
   replayed: boolean;
 }
 
-export async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH", path: string, opts: RequestOptions = {}): Promise<ApiResponse<T>> {
+async function refreshOnce(): Promise<string | null> {
+  if (!refresher) return null;
+  refreshing ??= refresher().catch(() => null).finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+export async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH", path: string, opts: RequestOptions = {}, retried = false): Promise<ApiResponse<T>> {
   const base = await session.getBaseUrl();
   const token = await session.getToken();
   const qs = opts.query
@@ -110,7 +141,11 @@ export async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH", path:
 
   if (!res.ok) {
     const e = (json as { error?: { code?: string; message?: string; details?: unknown; requestId?: string } } | null)?.error;
-    if (res.status === 401) onUnauthorized?.();
+    if (res.status === 401) {
+      // Un token vencido se renueva una vez y se reintenta (la misma clave de idempotencia evita duplicar); si no se puede, se cierra la sesión.
+      if (!retried && (await refreshOnce())) return request<T>(method, path, opts, true);
+      onUnauthorized?.();
+    }
     throw new ApiError(res.status, e?.code ?? "UNKNOWN_ERROR", e?.message ?? `Error ${res.status}`, e?.details, e?.requestId);
   }
   const etag = res.headers.get("etag");

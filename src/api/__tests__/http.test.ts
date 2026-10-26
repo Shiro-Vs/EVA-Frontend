@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { _cacheReset } from "../cache";
+import { _cacheReset, cacheRead, cacheWrite } from "../cache";
 import { ApiError, devLogin, newKey, request, session } from "../http";
 
 jest.mock("@react-native-async-storage/async-storage", () => require("@react-native-async-storage/async-storage/jest/async-storage-mock"));
@@ -90,6 +90,58 @@ describe("request", () => {
   it("una respuesta sin cuerpo y no válida no rompe", async () => {
     fetchMock.mockResolvedValue(reply(500, undefined));
     await expect(request("GET", "/me")).rejects.toMatchObject({ status: 500, code: "UNKNOWN_ERROR" });
+  });
+});
+
+describe("renovación del token ante un 401", () => {
+  it("renueva una vez, reintenta con el token nuevo y la MISMA clave de idempotencia", async () => {
+    const refresher = jest.fn(async () => { await session.setToken("tok-nuevo"); return "tok-nuevo"; });
+    session.setRefresher(refresher);
+    fetchMock
+      .mockResolvedValueOnce(reply(401, { error: { code: "UNAUTHENTICATED", message: "x", requestId: "r" } }))
+      .mockResolvedValueOnce(reply(201, { id: "op" }));
+    const r = await request<{ id: string }>("POST", "/operations", { body: { a: 1 }, idempotencyKey: "clave-12345678" });
+    expect(r.data).toEqual({ id: "op" });
+    expect(refresher).toHaveBeenCalledTimes(1);
+    const sent = fetchMock.mock.calls.map((c) => (c as [string, FetchInit])[1].headers);
+    expect(sent[0].Authorization).toBe("Bearer tok123");
+    expect(sent[1].Authorization).toBe("Bearer tok-nuevo");
+    expect(sent[1]["Idempotency-Key"]).toBe("clave-12345678");
+  });
+
+  it("si no se puede renovar cierra la sesión; varias llamadas a la vez renuevan una sola vez", async () => {
+    const cb = jest.fn();
+    session.onUnauthorized(cb);
+    session.setRefresher(async () => null);
+    fetchMock.mockResolvedValue(reply(401, { error: { code: "UNAUTHENTICATED", message: "x", requestId: "r" } }));
+    await expect(request("GET", "/me")).rejects.toMatchObject({ status: 401 });
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    let calls = 0;
+    session.setRefresher(async () => { calls++; await new Promise((r) => setTimeout(r, 10)); await session.setToken("tok-2"); return "tok-2"; });
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(async (_u: string, init: FetchInit) => (init.headers.Authorization === "Bearer tok-2" ? reply(200, {}) : reply(401, { error: { code: "UNAUTHENTICATED", message: "x", requestId: "r" } })));
+    await Promise.all([request("GET", "/a"), request("GET", "/b"), request("GET", "/c")]);
+    expect(calls).toBe(1);
+  });
+
+  it("no renueva más de una vez por petición (evita bucles)", async () => {
+    const refresher = jest.fn(async () => "otro");
+    session.setRefresher(refresher);
+    fetchMock.mockResolvedValue(reply(401, { error: { code: "UNAUTHENTICATED", message: "x", requestId: "r" } }));
+    await expect(request("GET", "/me")).rejects.toMatchObject({ status: 401 });
+    expect(refresher).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("al renovar el token de la misma persona no se borra la caché; al cambiar de persona, sí", async () => {
+    const jwt = (sub: string) => `h.${globalThis.btoa(JSON.stringify({ sub })).replace(/=+$/, "")}.s`;
+    await session.setToken(jwt("u1"));
+    await cacheWrite("/me", { at: "2026-10-25T00:00:00.000Z", data: 1 });
+    await session.setToken(jwt("u1") + "x");
+    expect(await cacheRead("/me")).not.toBeNull();
+    await session.setToken(jwt("u2"));
+    expect(await cacheRead("/me")).toBeNull();
   });
 });
 

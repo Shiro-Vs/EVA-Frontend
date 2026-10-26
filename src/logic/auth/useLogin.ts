@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { errorMessage } from "../../api/client";
 import { devLogin, session } from "../../api/http";
+import { supabaseConfigured } from "../../api/supabaseAuth";
 import { useAuth } from "../../context/AuthContext";
 
 export function useLogin() {
-  const { signInWithToken } = useAuth();
+  const { signInWithToken, signInWithPassword, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -51,15 +52,35 @@ export function useLogin() {
 
     setErrors(newErrors);
 
-    if (isValid) {
-      // El inicio de sesión con correo y Google se conecta con Supabase (tarea 0.11).
-      setAlertConfig({
-        visible: true,
-        title: "Inicio con correo próximamente",
-        message: "Por ahora puedes entrar con el botón «Entrar en modo desarrollo».",
-        type: "info",
-        iconName: "construct-outline",
-      });
+    if (!isValid) return;
+    if (!supabaseConfigured()) {
+      setAlertConfig({ visible: true, title: "Inicio con correo próximamente", message: "Esta versión de prueba todavía no está conectada al servicio de cuentas. Entra con el botón «Entrar en modo desarrollo».", type: "info", iconName: "construct-outline" });
+      return;
+    }
+    setIsAuthenticating(true);
+    try {
+      await signInWithPassword(email, password);
+    } catch (error) {
+      setAlertConfig({ visible: true, title: "No se pudo entrar", message: (error as Error).message, type: "error", iconName: "warning-outline" });
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  /** Entrar con Google (solo en la app del teléfono y con el servicio de cuentas configurado). */
+  const handleGoogleLogin = async () => {
+    if (isAuthenticating) return;
+    if (!supabaseConfigured()) {
+      setAlertConfig({ visible: true, title: "Google próximamente", message: "Todavía no está conectado el servicio de cuentas. Entra con «Entrar en modo desarrollo».", type: "info", iconName: "construct-outline" });
+      return;
+    }
+    setIsAuthenticating(true);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      setAlertConfig({ visible: true, title: "No se pudo entrar con Google", message: (error as Error).message, type: "error", iconName: "warning-outline" });
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -96,6 +117,7 @@ export function useLogin() {
     alertConfig,
     setAlertConfig,
     handleLogin,
+    handleGoogleLogin,
     handleDevLogin,
   };
 }

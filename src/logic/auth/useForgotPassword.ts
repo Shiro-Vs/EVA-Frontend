@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { recoverPassword, supabaseConfigured } from "../../api/supabaseAuth";
 
 export function useForgotPassword() {
   const [email, setEmail] = useState("");
@@ -17,7 +18,7 @@ export function useForgotPassword() {
     return regex.test(text);
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (!email.trim()) {
       setError("El correo es obligatorio");
       return;
@@ -27,7 +28,17 @@ export function useForgotPassword() {
       return;
     }
 
-    // Simulación de envío exitoso
+    if (!supabaseConfigured()) {
+      setAlertConfig({ visible: true, title: "Recuperación próximamente", message: "Todavía no está conectado el servicio de cuentas en esta versión de prueba.", type: "info", iconName: "construct-outline" });
+      return;
+    }
+    try {
+      await recoverPassword(email, "eva://auth-callback");
+    } catch (e) {
+      setAlertConfig({ visible: true, title: "No se pudo enviar", message: (e as Error).message, type: "error", iconName: "warning-outline" });
+      return;
+    }
+    // Siempre se informa lo mismo: no se revela si el correo tiene cuenta.
     setAlertConfig({
       visible: true,
       title: "Enlace Enviado",

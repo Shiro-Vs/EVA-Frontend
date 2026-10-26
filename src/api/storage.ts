@@ -20,4 +20,4 @@ export const storage = {
   },
 };
 
-export const KEYS = { token: "eva.token", apiUrl: "eva.api_url" } as const;
+export const KEYS = { token: "eva.token", refresh: "eva.refresh", apiUrl: "eva.api_url" } as const;

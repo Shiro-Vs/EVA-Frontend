@@ -34,6 +34,7 @@ export default function LoginScreen() {
     alertConfig,
     setAlertConfig,
     handleLogin,
+    handleGoogleLogin,
     handleDevLogin,
   } = useLogin();
 
@@ -200,6 +201,9 @@ export default function LoginScreen() {
               className="flex-row items-center justify-center rounded-2xl h-16"
               style={{ backgroundColor: colors.card }}
               activeOpacity={0.7}
+              onPress={handleGoogleLogin}
+              disabled={isAuthenticating}
+              accessibilityRole="button"
             >
               <Image
                 source="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
