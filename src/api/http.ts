@@ -1,3 +1,5 @@
+import { cacheClear, cacheRead, cacheWrite } from "./cache";
+import { connectivity } from "./connectivity";
 import { KEYS, storage } from "./storage";
 
 /** Error de la API con el formato uniforme de docs/especificacion/13 §3. */
@@ -28,6 +30,9 @@ export const session = {
     return tokenCache;
   },
   async setToken(token: string | null) {
+    // La caché es de UNA sesión: al cerrar sesión o entrar otro usuario se borra (RN-OF04).
+    const previous = tokenCache === undefined ? await storage.get(KEYS.token) : tokenCache;
+    if (previous !== token) { await cacheClear(); connectivity.setOnline(); }
     tokenCache = token;
     if (token) await storage.set(KEYS.token, token);
     else await storage.remove(KEYS.token);
@@ -65,6 +70,8 @@ export interface RequestOptions {
 
 export interface ApiResponse<T> {
   data: T;
+  /** Si no hubo red y la lectura se sirvió desde la caché: de cuándo son los datos. */
+  cachedAt?: string;
   /** Versión del recurso (cabecera ETag), si la hay. */
   version?: number;
   replayed: boolean;
@@ -82,12 +89,20 @@ export async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH", path:
   if (opts.version !== undefined) headers["If-Match"] = `"${opts.version}"`;
   if (opts.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
 
+  const cacheKey = `${path}${qs}`;
   let res: Response;
   try {
     res = await fetch(`${base}${path}${qs}`, { method, headers, body: opts.body === undefined ? undefined : JSON.stringify(opts.body) });
   } catch {
-    throw new ApiError(0, "NETWORK_ERROR", "No se pudo conectar con el servidor");
+    // Sin red solo se CONSULTA: una lectura se sirve de la caché; una escritura nunca se finge confirmada (RN-OF01, RN-OF05).
+    if (method === "GET") {
+      const hit = await cacheRead(cacheKey);
+      if (hit) { connectivity.setOffline(hit.at); return { data: hit.data as T, version: hit.version, replayed: false, cachedAt: hit.at }; }
+      throw new ApiError(0, "NETWORK_ERROR", "Sin conexión, y esta información todavía no estaba guardada en tu teléfono.");
+    }
+    throw new ApiError(0, "NETWORK_ERROR", "Se perdió la conexión. Sin internet solo se puede consultar; si tocaste Guardar, reintenta: no se duplicará.");
   }
+  connectivity.setOnline();
 
   const text = await res.text();
   let json: unknown = null;
@@ -99,9 +114,11 @@ export async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH", path:
     throw new ApiError(res.status, e?.code ?? "UNKNOWN_ERROR", e?.message ?? `Error ${res.status}`, e?.details, e?.requestId);
   }
   const etag = res.headers.get("etag");
+  const version = etag ? Number(etag.replace(/"/g, "")) || undefined : undefined;
+  if (method === "GET") void cacheWrite(cacheKey, { at: new Date().toISOString(), version, data: json });
   return {
     data: json as T,
-    version: etag ? Number(etag.replace(/"/g, "")) || undefined : undefined,
+    version,
     replayed: res.headers.get("idempotency-replayed") === "true",
   };
 }

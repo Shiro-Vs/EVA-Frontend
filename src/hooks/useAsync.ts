@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { errorMessage } from "../api/client";
+import { useConnectivity } from "../api/connectivity";
 import { newKey } from "../api/http";
 
 /** Carga datos al montar y cuando cambian las dependencias; permite recargar a mano. */
@@ -22,6 +23,14 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []) {
       if (alive.current) setLoading(false);
     }
   }, []);
+
+  // Al volver la conexión, lo que se mostraba desde la caché se refresca solo.
+  const { offline } = useConnectivity();
+  const wasOffline = useRef(false);
+  useEffect(() => {
+    if (wasOffline.current && !offline) void reload();
+    wasOffline.current = offline;
+  }, [offline, reload]);
 
   useEffect(() => {
     alive.current = true;

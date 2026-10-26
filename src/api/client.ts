@@ -292,7 +292,7 @@ export interface ReceiptBody {
 /** Mensajes en español para los códigos de error de la API (docs 13 §3). El servidor devuelve códigos estables; el texto vive aquí. */
 export const ERROR_TEXT: Record<string, string> = {
   UNAUTHENTICATED: "Tu sesión expiró. Vuelve a entrar.",
-  NETWORK_ERROR: "No se pudo conectar con el servidor. Revisa tu conexión.",
+  NETWORK_ERROR: "No hay conexión con el servidor. Revisa tu internet.",
   NOT_FOUND: "No se encontró lo que buscas.",
   CONFLICT_VERSION: "Otro cambio se guardó antes. Actualiza y vuelve a intentar.",
   VALIDATION_ERROR: "Revisa los datos: alguno no es válido.",

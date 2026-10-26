@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import LoadingSplash from "../src/components/common/LoadingSplash";
+import OfflineBanner from "../src/components/common/OfflineBanner";
 import { View } from "react-native";
 import { useFonts } from 'expo-font';
 import { ThemeProvider, useAppThemeContext } from "../src/context/ThemeContext";
@@ -68,6 +69,7 @@ function RootLayoutContent() {
           del lado del cliente puede quedar ambiguo entre ambos, dejando la
           pantalla protegida visible sin sesion. Ver docs/06-auditoria-tecnica.md.
         */}
+        <OfflineBanner />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Protected guard={!user}>
             <Stack.Screen name="index" />

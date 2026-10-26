@@ -1,5 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { _cacheReset } from "../cache";
 import { ApiError, devLogin, newKey, request, session } from "../http";
 
+jest.mock("@react-native-async-storage/async-storage", () => require("@react-native-async-storage/async-storage/jest/async-storage-mock"));
 jest.mock("../storage", () => {
   const mem: Record<string, string> = {};
   return {
@@ -21,6 +24,7 @@ const reply = (status: number, body: unknown, headers: Record<string, string> = 
 });
 const fetchMock = jest.fn();
 beforeEach(async () => {
+  await AsyncStorage.clear(); _cacheReset();
   session._reset();
   fetchMock.mockReset();
   (global as unknown as { fetch: unknown }).fetch = fetchMock;
