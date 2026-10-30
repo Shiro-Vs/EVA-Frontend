@@ -17,9 +17,10 @@ import { useLogin } from "../../logic/auth/useLogin";
 import { useAppTheme } from "../../hooks/useAppTheme";
 
 const LOGO_LIGHT = require("../../../assets/LogoEVA_Fclaro.png");
+const LOGO_DARK = require("../../../assets/LogoEVA_Foscuro.png");
 
 export default function LoginScreen() {
-  const { colors, fonts } = useAppTheme();
+  const { colors, fonts, isDark } = useAppTheme();
 
   const {
     email,
@@ -55,7 +56,7 @@ export default function LoginScreen() {
           {/* Logo Section */}
           <View className="items-center mb-8">
             <Image
-              source={LOGO_LIGHT}
+              source={isDark ? LOGO_DARK : LOGO_LIGHT}
               style={{ width: 110, height: 110 }}
               contentFit="contain"
             />

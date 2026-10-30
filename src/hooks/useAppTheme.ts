@@ -1,4 +1,4 @@
-import { Colors } from "../constants/Colors";
+import { Palettes } from "../constants/Colors";
 import { FontFamilies, FontSizes } from "../constants/Fonts";
 import { useAppThemeContext } from "../context/ThemeContext";
 
@@ -7,15 +7,14 @@ import { useAppThemeContext } from "../context/ThemeContext";
  * Útil para componentes que requieren estilos en sus props (como Ionicons o Text)
  */
 export function useAppTheme() {
-  const { theme, fontFamily } = useAppThemeContext();
-  
-  // Tipado seguro para el tema
-  const currentTheme = (theme as keyof typeof Colors) || "light";
+  const { theme, fontFamily, palette } = useAppThemeContext();
+
+  const currentTheme = theme === "dark" ? "dark" : "light";
   // Obtener la familia de fuentes actual desde el contexto
   const currentFontFamily = FontFamilies[fontFamily] || FontFamilies.asap;
   
   return {
-    colors: Colors[currentTheme],
+    colors: (Palettes[palette] ?? Palettes.slate)[currentTheme],
     fonts: {
       family: currentFontFamily,
       size: FontSizes

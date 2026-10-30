@@ -87,7 +87,7 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
             return (
                 <View key={route.key} style={styles.centerButtonContainer}>
                   {/* Aura / Onda Expansiva */}
-                  <Animated.View style={[styles.aura, auraStyle, { backgroundColor: colors.primary }]} />
+                  <Animated.View style={[styles.aura, auraStyle, { backgroundColor: colors.fab }]} />
                   
                   {/* Botón Principal */}
                   <TouchableOpacity
@@ -96,8 +96,8 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
                     accessibilityRole="button"
                     accessibilityLabel="Nuevo: registrar o crear"
                   >
-                    <Animated.View style={[styles.centerButton, animatedStyle, { backgroundColor: colors.primary, shadowColor: colors.primary }]}>
-                      <Ionicons name="add" size={32} color={colors.onPrimaryTint} />
+                    <Animated.View style={[styles.centerButton, animatedStyle, { backgroundColor: colors.fab, shadowColor: colors.fab }]}>
+                      <Ionicons name="add" size={32} color={colors.onFab} />
                     </Animated.View>
                   </TouchableOpacity>
                 </View>

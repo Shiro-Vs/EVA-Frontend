@@ -7,6 +7,7 @@ import type { SectionKey } from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
 import { useAppThemeContext } from "../../context/ThemeContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
+import AppearanceCard from "./AppearanceCard";
 
 type Row = { icon: keyof typeof Ionicons.glyphMap; title: string; text: string; to: string };
 const GROUPS: Array<{ title: string; section: SectionKey; rows: Row[] }> = [
@@ -57,6 +58,9 @@ export default function MoreScreen() {
           <Ionicons name={theme === "dark" ? "sunny-outline" : "moon-outline"} size={20} color={colors.primary} />
         </TouchableOpacity>
       </View>
+
+      <Heading>Apariencia</Heading>
+      <AppearanceCard />
 
       {GROUPS.map((g) => (
         <React.Fragment key={g.title}>

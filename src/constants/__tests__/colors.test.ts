@@ -1,4 +1,4 @@
-import { Colors } from "../Colors";
+import { PALETTE_INFO, Palettes, type PaletteId } from "../Colors";
 
 // Guardia de accesibilidad: la paleta no puede volver a bajar de estos mínimos (WCAG 2.x y APCA).
 const hex = (s: string) => [0, 2, 4].map((i) => parseInt(s.slice(1 + i, 3 + i), 16));
@@ -13,12 +13,15 @@ const apca = (t: string, b: string) => {
   return s > -0.1 ? 0 : Math.abs((s + 0.027) * 100);
 };
 
-type Theme = typeof Colors.light;
-const themes: Array<[string, Theme, number]> = [["claro", Colors.light, 60], ["oscuro", Colors.dark, 50]];
+type Theme = (typeof Palettes)["slate"]["light"];
+const themes: Array<[string, Theme, number]> = (Object.keys(Palettes) as PaletteId[]).flatMap((id) => [
+  [`${PALETTE_INFO[id].label} · claro`, Palettes[id].light, 60] as [string, Theme, number],
+  [`${PALETTE_INFO[id].label} · oscuro`, Palettes[id].dark, 50] as [string, Theme, number],
+]);
 
-describe.each(themes)("Contraste en tema %s", (_name, c, minLc) => {
+describe.each(themes)("Contraste: %s", (_name, c, minLc) => {
   const surfaces = [c.background, c.card];
-  const textTokens: Array<keyof Theme> = ["text", "textSecondary", "muted", "primary", "incomeStrong", "expenseStrong", "warningStrong"];
+  const textTokens: Array<keyof Theme> = ["text", "textSecondary", "muted", "primary", "incomeStrong", "expenseStrong", "warningStrong", "accentStrong"];
 
   it.each(textTokens)("el texto «%s» cumple 4.5:1 sobre fondo y tarjeta", (tk) => {
     for (const s of surfaces) expect(wcag(c[tk] as string, s)).toBeGreaterThanOrEqual(4.5);
@@ -37,6 +40,8 @@ describe.each(themes)("Contraste en tema %s", (_name, c, minLc) => {
     expect(wcag(c.onPrimaryMuted, c.primarySurface)).toBeGreaterThanOrEqual(4.5);
     expect(wcag("#FFFFFF", c.dangerSurface)).toBeGreaterThanOrEqual(4.5);
     expect(wcag(c.onPrimaryTint, c.primary)).toBeGreaterThanOrEqual(4.5);
+    expect(wcag(c.onFab, c.fab)).toBeGreaterThanOrEqual(4.5);
+    expect(wcag(c.onAccent, c.accent)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("los íconos de la barra y los bordes fuertes cumplen 3:1", () => {
@@ -73,7 +78,13 @@ it("los acentos de sección se leen sobre su ficha (4.5:1) y sobre la tarjeta (3
 });
 
 describe("Estructura de tokens", () => {
-  it("claro y oscuro definen exactamente los mismos tokens", () => {
-    expect(Object.keys(Colors.dark).sort()).toEqual(Object.keys(Colors.light).sort());
+  it("todas las paletas, en claro y oscuro, definen exactamente los mismos tokens", () => {
+    const ref = Object.keys(Palettes.slate.light).sort();
+    for (const id of Object.keys(Palettes) as PaletteId[]) for (const mode of ["light", "dark"] as const) expect(Object.keys(Palettes[id][mode]).sort()).toEqual(ref);
+  });
+
+  it("las dos paletas son realmente distintas", () => {
+    expect(Palettes.slate.dark.background).not.toBe(Palettes.violet.dark.background);
+    expect(Palettes.slate.light.primary).not.toBe(Palettes.violet.light.primary);
   });
 });

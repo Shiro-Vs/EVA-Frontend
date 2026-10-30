@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { PaletteId } from "../constants/Colors";
 
 type ThemePreference = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
@@ -10,6 +11,9 @@ interface ThemeContextType {
   themePreference: ThemePreference;
   setTheme: (theme: ThemePreference) => void;
   toggleTheme: () => void;
+  /** Paleta de color elegida (cada una tiene tema claro y oscuro). */
+  palette: PaletteId;
+  setPalette: (palette: PaletteId) => void;
   isDark: boolean;
   fontFamily: "asap" | "roboto";
   setFontFamily: (font: "asap" | "roboto") => void;
@@ -18,6 +22,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const STORAGE_KEY = "eva.theme_preference";
+const PALETTE_KEY = "eva.palette";
 
 const resolveTheme = (preference: ThemePreference): ResolvedTheme => {
   if (preference === "system") {
@@ -30,6 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>("system");
   const [theme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveTheme("system"));
   const [fontFamily, setFontFamilyState] = useState<"asap" | "roboto">("asap");
+  const [palette, setPaletteState] = useState<PaletteId>("slate");
 
   // Cargar la preferencia guardada al arrancar
   useEffect(() => {
@@ -39,6 +45,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setResolvedTheme(resolveTheme(stored));
       }
     });
+  }, []);
+
+  useEffect(() => {
+    AsyncStorage.getItem(PALETTE_KEY).then((stored) => {
+      if (stored === "slate" || stored === "violet") setPaletteState(stored);
+    }).catch(() => {});
   }, []);
 
   // Si la preferencia es "system", seguir los cambios del SO en vivo
@@ -60,13 +72,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme(theme === "light" ? "dark" : "light");
   };
 
+  const setPalette = (next: PaletteId) => {
+    setPaletteState(next);
+    AsyncStorage.setItem(PALETTE_KEY, next).catch(() => {});
+  };
+
   const setFontFamily = (newFont: "asap" | "roboto") => setFontFamilyState(newFont);
 
   const isDark = theme === "dark";
 
   return (
     <ThemeContext.Provider
-      value={{ theme, themePreference, setTheme, toggleTheme, isDark, fontFamily, setFontFamily }}
+      value={{ theme, themePreference, setTheme, toggleTheme, palette, setPalette, isDark, fontFamily, setFontFamily }}
     >
       {children}
     </ThemeContext.Provider>
