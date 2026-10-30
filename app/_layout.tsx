@@ -9,6 +9,7 @@ import { View } from "react-native";
 import { useFonts } from 'expo-font';
 import { ThemeProvider, useAppThemeContext } from "../src/context/ThemeContext";
 import { AuthProvider, useAuth } from "../src/context/AuthContext";
+import { LockProvider } from "../src/security/LockGate";
 import { useReminderSync } from "../src/notifications/useReminderSync";
 
 // Prevenir que el splash screen nativo se oculte automáticamente
@@ -97,7 +98,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <RootLayoutContent />
+        <LockProvider>
+          <RootLayoutContent />
+        </LockProvider>
       </AuthProvider>
     </ThemeProvider>
   );

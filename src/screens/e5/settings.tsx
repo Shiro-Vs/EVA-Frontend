@@ -10,6 +10,7 @@ import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate } from "../../utils/dates";
 import { formatSoles } from "../../utils/money";
 import { MultiChoice } from "../e4/shared";
+import { useLock } from "../../security/LockGate";
 import { permissionStatus, requestPermission, syncReminders, type Permission } from "../../notifications/scheduler";
 
 const isHHMM = (s: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
@@ -31,6 +32,7 @@ export function SettingsMenuScreen() {
     ["Panel", "Las tarjetas que eliges, en el orden que quieras", "/panel"],
     ["Tarjetas del panel", "Elegir y ordenar", "/settings/dashboard"],
     ["Avisos y recordatorios", "Qué avisar, cuándo y con qué detalle", "/settings/notifications"],
+    ["PIN y huella", "Bloquear la app en este teléfono", "/settings/lock"],
     ["Bloqueo y captura", "Re-bloqueo, revisión de propuestas y duplicados", "/settings/general"],
     ["Respaldos", "Copias, restaurar y exportar", "/settings/backups"],
     ["Resumen mensual", "Flujo de dinero, resultado, versiones y PDF", "/reports"],
@@ -195,8 +197,9 @@ export function GeneralSettingsScreen() {
   const prefs = useAsync(() => api.preferences(), []);
   const [p, setP] = useState<Preferences | null>(null);
   const [saved, setSaved] = useState(false);
+  const lock = useLock();
   useEffect(() => { if (prefs.data) setP(prefs.data); }, [prefs.data]);
-  const save = useSubmit(async () => { await api.savePreferences({ security: p!.security, capture: p!.capture }); setSaved(true); });
+  const save = useSubmit(async () => { await api.savePreferences({ security: p!.security, capture: p!.capture }); setSaved(true); await lock.refresh(); });
   if (!p) return <Screen title="Bloqueo y captura">{prefs.error ? <ErrorBox message={prefs.error} onRetry={prefs.reload} /> : <Loading />}</Screen>;
   const upd = (patch: Partial<Preferences>) => { setP({ ...p, ...patch }); setSaved(false); };
   return (
