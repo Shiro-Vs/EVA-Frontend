@@ -105,7 +105,7 @@ function FilterChip({ label, active, onPress }: { label: string; active: boolean
   const { colors } = useAppTheme();
   return (
     <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: active }} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, backgroundColor: active ? colors.primarySurface : `${colors.primary}12` }}>
-      <Txt size={12} bold color={active ? "#fff" : colors.primary}>{label}</Txt>
+      <Txt size={12} bold color={active ? colors.onPrimary : colors.primary}>{label}</Txt>
     </TouchableOpacity>
   );
 }

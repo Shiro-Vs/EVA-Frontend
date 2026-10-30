@@ -102,13 +102,13 @@ export function Button({ title, onPress, variant = "primary", busy, disabled, ic
   const { colors } = useAppTheme();
   const primary = variant === "primary", danger = variant === "danger";
   const off = disabled || busy;
-  const fg = primary || danger ? "#fff" : colors.primary;
+  const fg = primary || danger ? colors.onPrimary : colors.primary;
   return (
     <TouchableOpacity
       onPress={onPress} disabled={off} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ disabled: !!off, busy: !!busy }}
       style={{
         height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: off ? 0.55 : 1,
-        backgroundColor: primary ? colors.primarySurface : danger ? colors.expense : `${colors.primary}15`,
+        backgroundColor: primary ? colors.primarySurface : danger ? colors.dangerSurface : `${colors.primary}15`,
         shadowColor: primary ? colors.primary : "transparent", shadowOpacity: primary ? 0.2 : 0, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
       }}
     >
@@ -144,7 +144,7 @@ const CHIPS: Record<string, { text: string; tone: "ok" | "warn" | "info" | "err"
 export function Chip({ status, label }: { status: string; label?: string }) {
   const { colors } = useAppTheme();
   const c = CHIPS[status] ?? { text: status, tone: "muted" as const };
-  const col = c.tone === "ok" ? colors.incomeStrong : c.tone === "warn" ? colors.warning : c.tone === "err" ? colors.expenseStrong : c.tone === "info" ? colors.primary : colors.textSecondary;
+  const col = c.tone === "ok" ? colors.incomeStrong : c.tone === "warn" ? colors.warningStrong : c.tone === "err" ? colors.expenseStrong : c.tone === "info" ? colors.primary : colors.textSecondary;
   return (
     <View style={{ backgroundColor: `${col}15`, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 }}>
       <Text style={{ color: col, fontSize: 9, fontFamily: "AsapBold", textTransform: "uppercase" }}>{label ?? c.text}</Text>
@@ -153,9 +153,10 @@ export function Chip({ status, label }: { status: string; label?: string }) {
 }
 
 /** Insignia compacta con ícono opcional (como las de cuenta / compartido / día en el encabezado del servicio). */
-export function Badge({ text, icon, color }: { text: string; icon?: IconName; color?: string }) {
+export function Badge({ text, icon, color, tone }: { text: string; icon?: IconName; color?: string; tone?: "danger" | "warn" | "info" | "ok" }) {
   const { colors } = useAppTheme();
-  const c = color ?? colors.textSecondary;
+  // `tone` usa los colores semánticos del tema (con contraste verificado); `color` queda para colores de marca (p. ej. el de un servicio).
+  const c = tone === "danger" ? colors.expenseStrong : tone === "warn" ? colors.warningStrong : tone === "info" ? colors.primary : tone === "ok" ? colors.incomeStrong : color ?? colors.textSecondary;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: `${c}12`, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
       {icon && <Ionicons name={icon} size={10} color={c} />}
@@ -244,7 +245,7 @@ export function MenuRow({ icon, title, text, onPress, badge }: { icon: IconName;
         <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{title}</Text>
         {text ? <Text numberOfLines={2} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{text}</Text> : null}
       </View>
-      {badge ? <Badge text={String(badge)} color={colors.expenseStrong} /> : null}
+      {badge ? <Badge text={String(badge)} tone="danger" /> : null}
       <Ionicons name="chevron-forward" size={18} color={colors.muted} />
     </RowLink>
   );

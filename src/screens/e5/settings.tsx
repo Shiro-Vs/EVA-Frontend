@@ -179,8 +179,8 @@ export function NotificationsSettingsScreen() {
           {r.detail && <Txt size={12}>{r.detail}</Txt>}
           <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
             {r.dueDate && <Badge text={`Vence ${humanDate(r.dueDate)}`} />}
-            {r.overdue && <Badge text="Vencido" color="#D64545" />}
-            {r.fireAt.map((f) => <Badge key={f} text={`Aviso ${f.slice(5, 10)} ${f.slice(11)}`} color="#3B82F6" />)}
+            {r.overdue && <Badge text="Vencido" tone="danger" />}
+            {r.fireAt.map((f) => <Badge key={f} text={`Aviso ${f.slice(5, 10)} ${f.slice(11)}`} tone="info" />)}
           </View>
         </Card>
       ))}

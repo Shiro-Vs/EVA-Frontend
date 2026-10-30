@@ -42,8 +42,8 @@ export function BankLoansScreen() {
             <Txt size={12} muted>{l.entity ?? "Sin entidad"}{l.nextDue ? ` · próxima cuota ${humanDate(l.nextDue.dueDate)}` : " · sin calendario"}</Txt>
             <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
               {l.status === "closed" && <Badge text="Cerrado" />}
-              {l.overdue > 0 && <Badge text={`${l.overdue} vencida${l.overdue > 1 ? "s" : ""}`} color="#D64545" />}
-              {l.pending.length > 0 && <Badge text={`Faltan ${l.pending.length} datos`} color="#E5A00D" />}
+              {l.overdue > 0 && <Badge text={`${l.overdue} vencida${l.overdue > 1 ? "s" : ""}`} tone="danger" />}
+              {l.pending.length > 0 && <Badge text={`Faltan ${l.pending.length} datos`} tone="warn" />}
             </View>
           </View>
           <Txt bold>{formatSoles(l.remainingScheduled)}</Txt>

@@ -65,8 +65,8 @@ export default function MoreScreen() {
       ))}
 
       <TouchableOpacity onPress={async () => { await logout(); router.replace("/"); }} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 16, marginTop: 8 }}>
-        <Ionicons name="log-out-outline" size={20} color={colors.expense} />
-        <Text style={{ color: colors.expense, fontSize: 15, fontFamily: "AsapBold" }}>Cerrar sesión</Text>
+        <Ionicons name="log-out-outline" size={20} color={colors.expenseStrong} />
+        <Text style={{ color: colors.expenseStrong, fontSize: 15, fontFamily: "AsapBold" }}>Cerrar sesión</Text>
       </TouchableOpacity>
     </Screen>
   );

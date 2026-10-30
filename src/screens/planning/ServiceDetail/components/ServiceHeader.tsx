@@ -54,7 +54,7 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
 
             <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: `${colors.warning}10`, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginBottom: 4 }}>
               <Ionicons name="calendar-outline" size={10} color={colors.warning} />
-              <Text style={{ color: colors.warning, fontFamily: fonts.family.bold, fontSize: 10, marginLeft: 4 }}>
+              <Text style={{ color: colors.warningStrong, fontFamily: fonts.family.bold, fontSize: 10, marginLeft: 4 }}>
                 Renueva {humanDate(service.currentCycle?.endDate)}
               </Text>
             </View>

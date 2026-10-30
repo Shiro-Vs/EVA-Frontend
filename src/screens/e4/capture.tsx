@@ -28,8 +28,8 @@ function ProposalRow({ p, onPress }: { p: Proposal; onPress: () => void }) {
         <Txt bold>{p.counterparty ?? p.description ?? "Movimiento sin nombre"}</Txt>
         <Txt size={12} muted>{KIND[p.direction]} · {whenOf(p)}{p.channel ? ` · ${p.channel}` : ""}</Txt>
         <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-          {p.missing.length > 0 && <Badge text={`Falta: ${p.missing.map((m) => MISSING[m] ?? m).join(", ")}`} color="#E5A00D" />}
-          {p.duplicates.length > 0 && <Badge text="Posible duplicado" color="#D64545" />}
+          {p.missing.length > 0 && <Badge text={`Falta: ${p.missing.map((m) => MISSING[m] ?? m).join(", ")}`} tone="warn" />}
+          {p.duplicates.length > 0 && <Badge text="Posible duplicado" tone="danger" />}
         </View>
       </View>
       <Txt bold>{p.amount ? formatSoles(p.amount) : "—"}</Txt>

@@ -68,7 +68,7 @@ export function BackupsScreen() {
         <Card key={b.id} outlined>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <Chip status={b.kind === "recovery" ? "partial" : "converted"} label={KIND[b.kind]} />
-            {b.encrypted && <Badge text="Cifrado" color="#3B82F6" />}
+            {b.encrypted && <Badge text="Cifrado" tone="info" />}
             <Txt bold style={{ flex: 1 }}>{humanDate(b.createdAt.slice(0, 10))}</Txt>
           </View>
           <Txt size={12} muted>{b.totalRows} registros · {mb(b.sizeBytes)}{b.note ? ` · ${b.note}` : ""}</Txt>

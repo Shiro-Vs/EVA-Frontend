@@ -94,7 +94,7 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
                     accessibilityLabel="Nuevo: registrar o crear"
                   >
                     <Animated.View style={[styles.centerButton, animatedStyle, { backgroundColor: colors.primary, shadowColor: colors.primary }]}>
-                      <Ionicons name="add" size={32} color="white" />
+                      <Ionicons name="add" size={32} color={colors.onPrimaryTint} />
                     </Animated.View>
                   </TouchableOpacity>
                 </View>

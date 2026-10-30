@@ -26,7 +26,7 @@ export function EVAInput({ label, error, icon, rightAction, style, ...props }: E
         className="flex-row items-center px-4 py-3 rounded-2xl border"
         style={{ 
           backgroundColor: colors.card, 
-          borderColor: error ? colors.expense : colors.border,
+          borderColor: error ? colors.expenseStrong : colors.borderStrong,
           borderWidth: 1
         }}
       >

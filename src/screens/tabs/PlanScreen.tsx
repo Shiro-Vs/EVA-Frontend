@@ -70,7 +70,7 @@ function BudgetCard({ b, onPress }: { b: Budget; onPress: () => void }) {
   const { colors } = useAppTheme();
   const c = b.current;
   const pct = c.percent ?? 0;
-  const tone = c.exceeded ? colors.expenseStrong : pct >= 80 ? colors.warning : colors.incomeStrong;
+  const tone = c.exceeded ? colors.expenseStrong : pct >= 80 ? colors.warningStrong : colors.incomeStrong;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button">
       <Card style={{ gap: 8 }}>
@@ -93,7 +93,7 @@ function BudgetCard({ b, onPress }: { b: Budget; onPress: () => void }) {
 
 function GoalCard({ g, onPress }: { g: Goal; onPress: () => void }) {
   const { colors } = useAppTheme();
-  const tone = g.achieved ? colors.incomeStrong : "#F59E0B";
+  const tone = g.achieved ? colors.incomeStrong : colors.warningStrong;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button">
       <Card style={{ gap: 10 }}>

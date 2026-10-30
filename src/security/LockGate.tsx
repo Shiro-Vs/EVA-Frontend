@@ -91,7 +91,7 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
         keyboardType="number-pad" secureTextEntry maxLength={PIN_LENGTH} autoFocus editable={!busy} accessibilityLabel="PIN"
         style={{ width: 180, textAlign: "center", fontSize: 28, letterSpacing: 8, color: colors.text, borderBottomWidth: 2, borderColor: colors.primary, paddingVertical: 6 }}
       />
-      {msg && <Text style={{ color: "#D64545", fontSize: 13, fontFamily: "Asap", textAlign: "center" }}>{msg}</Text>}
+      {msg && <Text style={{ color: colors.expenseStrong, fontSize: 13, fontFamily: "Asap", textAlign: "center" }}>{msg}</Text>}
       {bio && (
         <TouchableOpacity onPress={() => void tryBiometric()} accessibilityRole="button" style={{ flexDirection: "row", gap: 8, alignItems: "center", padding: 10 }}>
           <Ionicons name="finger-print" size={22} color={colors.primary} />
