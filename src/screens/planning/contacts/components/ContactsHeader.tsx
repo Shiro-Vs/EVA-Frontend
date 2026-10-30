@@ -54,7 +54,7 @@ export function ContactsHeader({
         <View className="flex-1 bg-white/10 p-3 rounded-2xl border border-white/5">
           <View className="flex-row items-center mb-1">
             <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: colors.income }} />
-            <Text className="text-white/70 text-[9px] uppercase" style={{ fontFamily: fonts.family.medium }}>Al día</Text>
+            <Text className="text-white/70 text-[11px] uppercase" style={{ fontFamily: fonts.family.medium }}>Al día</Text>
           </View>
           <Text className="text-white text-lg" style={{ fontFamily: fonts.family.bold }}>{onDayCount}</Text>
         </View>
@@ -62,7 +62,7 @@ export function ContactsHeader({
         <View className="flex-1 bg-white/10 p-3 rounded-2xl border border-white/5">
           <View className="flex-row items-center mb-1">
             <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: colors.warning }} />
-            <Text className="text-white/70 text-[9px] uppercase" style={{ fontFamily: fonts.family.medium }}>Pendientes</Text>
+            <Text className="text-white/70 text-[11px] uppercase" style={{ fontFamily: fonts.family.medium }}>Pendientes</Text>
           </View>
           <Text className="text-white text-lg" style={{ fontFamily: fonts.family.bold }}>{debtorCount}</Text>
         </View>
@@ -75,7 +75,7 @@ export function ContactsHeader({
         >
           <Ionicons name="notifications" size={20} color={colors.primary} />
           <Text 
-            className="text-[8px] mt-0.5 uppercase tracking-tighter"
+            className="text-[11px] mt-0.5 uppercase tracking-tighter"
             style={{ color: colors.primary, fontFamily: fonts.family.bold }}
           >
             Cobrar

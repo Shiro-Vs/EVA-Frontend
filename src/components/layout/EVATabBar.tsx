@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tabLabel: {
-    fontSize: 9.5,
+    fontSize: 10,
     marginTop: 4,
   },
   centerButtonContainer: {

@@ -16,18 +16,19 @@ export function EVAInput({ label, error, icon, rightAction, style, ...props }: E
     <View className="mb-4 w-full">
       {label && (
         <Text 
-          className="text-[10px] uppercase tracking-widest mb-2 ml-1"
+          className="text-[11px] uppercase tracking-widest mb-2 ml-1"
           style={{ color: colors.textSecondary, fontFamily: fonts.family.semiBold }}
         >
           {label}
         </Text>
       )}
       <View
-        className="flex-row items-center px-4 py-3 rounded-2xl border"
+        className="flex-row items-center px-4 rounded-2xl border"
         style={{ 
           backgroundColor: colors.card, 
           borderColor: error ? colors.expenseStrong : colors.borderStrong,
-          borderWidth: 1
+          borderWidth: 1,
+          minHeight: 52,
         }}
       >
         {icon && <View className="mr-3">{icon}</View>}
@@ -40,7 +41,7 @@ export function EVAInput({ label, error, icon, rightAction, style, ...props }: E
         {rightAction && <View className="ml-2">{rightAction}</View>}
       </View>
       {error && (
-        <Text className="text-[10px] mt-1 ml-1" style={{ color: (colors as any).expenseStrong || colors.expense, fontFamily: fonts.family.regular }}>
+        <Text className="text-[11px] mt-1 ml-1" style={{ color: colors.expenseStrong, fontFamily: fonts.family.regular }}>
           {error}
         </Text>
       )}

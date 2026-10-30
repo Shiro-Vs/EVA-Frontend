@@ -77,11 +77,12 @@ export default function LoginScreen() {
                 Correo Electrónico
               </Text>
               <View
-                className="flex-row items-center rounded-2xl px-5 py-1.5"
+                className="flex-row items-center rounded-2xl px-4"
                 style={{
+                  minHeight: 52,
                   backgroundColor: colors.card,
                   borderWidth: errors.email ? 1 : 0,
-                  borderColor: colors.expense,
+                  borderColor: colors.expenseStrong,
                 }}
               >
                 <Ionicons
@@ -121,11 +122,12 @@ export default function LoginScreen() {
                 Contraseña
               </Text>
               <View
-                className="flex-row items-center rounded-2xl px-5 py-1.5"
+                className="flex-row items-center rounded-2xl px-4"
                 style={{
+                  minHeight: 52,
                   backgroundColor: colors.card,
                   borderWidth: errors.password ? 1 : 0,
-                  borderColor: colors.expense,
+                  borderColor: colors.expenseStrong,
                 }}
               >
                 <Ionicons
@@ -179,7 +181,7 @@ export default function LoginScreen() {
             <TouchableOpacity
               onPress={handleLogin}
               disabled={isAuthenticating}
-              className="rounded-2xl h-16 items-center justify-center shadow-lg mt-4"
+              className="rounded-2xl h-14 items-center justify-center shadow-lg mt-4"
               style={{ backgroundColor: colors.primarySurface, opacity: isAuthenticating ? 0.7 : 1 }}
               activeOpacity={0.8}
             >
@@ -199,7 +201,7 @@ export default function LoginScreen() {
 
             {/* Google Button */}
             <TouchableOpacity
-              className="flex-row items-center justify-center rounded-2xl h-16"
+              className="flex-row items-center justify-center rounded-2xl h-14"
               style={{ backgroundColor: colors.card }}
               activeOpacity={0.7}
               onPress={handleGoogleLogin}

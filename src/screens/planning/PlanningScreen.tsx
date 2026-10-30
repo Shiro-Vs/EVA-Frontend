@@ -150,7 +150,7 @@ export default function PlanningScreen() {
                         className="ml-2 px-2 py-0.5 rounded-md"
                         style={{ backgroundColor: `${colors.primary}15` }}
                       >
-                        <Text className="font-asap text-[8px] font-bold" style={{ color: colors.primary }}>
+                        <Text className="font-asap text-[11px] font-bold" style={{ color: colors.primary }}>
                           COMPARTIDO
                         </Text>
                       </View>

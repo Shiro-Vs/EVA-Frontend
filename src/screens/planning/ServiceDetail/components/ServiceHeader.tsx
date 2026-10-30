@@ -25,10 +25,10 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
   return (
     <View style={{ paddingHorizontal: 24, paddingTop: 24, backgroundColor: colors.background }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <TouchableOpacity onPress={onBack} accessibilityLabel="Volver" style={{ width: 40, height: 40, backgroundColor: colors.card, borderRadius: 20, alignItems: "center", justifyContent: "center" }}>
+        <TouchableOpacity onPress={onBack} accessibilityLabel="Volver" style={{ width: 44, height: 44, backgroundColor: colors.card, borderRadius: 22, alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="chevron-back" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
@@ -60,7 +60,7 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
             </View>
           </View>
         </View>
-        <TouchableOpacity onPress={onEdit} accessibilityLabel="Editar servicio" style={{ width: 40, height: 40, backgroundColor: `${colors.primary}15`, borderRadius: 20, alignItems: "center", justifyContent: "center", marginLeft: 8 }}>
+        <TouchableOpacity onPress={onEdit} accessibilityLabel="Editar servicio" style={{ width: 44, height: 44, backgroundColor: `${colors.primary}15`, borderRadius: 22, alignItems: "center", justifyContent: "center", marginLeft: 8 }}>
           <Ionicons name="pencil" size={18} color={colors.primary} />
         </TouchableOpacity>
       </View>

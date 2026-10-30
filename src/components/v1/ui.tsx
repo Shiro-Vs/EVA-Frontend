@@ -7,6 +7,7 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 import { EVAInput } from "../common/EVAInput";
 import { formatSoles } from "../../utils/money";
 import type { SectionKey } from "../../constants/Colors";
+import { control, minTouch, radius } from "../../constants/Layout";
 
 // Componentes base de las pantallas nuevas. Reproducen el lenguaje visual de la app: botón de volver circular,
 // tarjetas rounded-3xl con borde tenue, botones rounded-2xl con primarySurface y chips pequeños en mayúsculas.
@@ -19,7 +20,7 @@ export function BackButton({ onPress }: { onPress?: () => void }) {
     <TouchableOpacity
       onPress={onPress ?? (() => (router.canGoBack() ? router.back() : router.replace("/")))}
       accessibilityLabel="Volver" accessibilityRole="button" activeOpacity={0.7}
-      style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", marginRight: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: `${colors.text}05` }}
+      style={{ width: minTouch, height: minTouch, borderRadius: minTouch / 2, alignItems: "center", justifyContent: "center", marginRight: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
     >
       <Ionicons name="chevron-back" size={24} color={colors.primary} />
     </TouchableOpacity>
@@ -99,8 +100,10 @@ export function Money({ value, size = 16, bold = true, tone }: { value: string; 
   return <Text style={{ color, fontSize: size, fontFamily: bold ? "AsapBold" : "Asap" }}>{formatSoles(value)}</Text>;
 }
 
-export function Button({ title, onPress, variant = "primary", busy, disabled, icon }: { title: string; onPress: () => void; variant?: "primary" | "secondary" | "danger"; busy?: boolean; disabled?: boolean; icon?: IconName }) {
+/** `regular` (56) para acciones de formulario y pie de pantalla; `compact` (44) para botones en línea o en cabeceras. */
+export function Button({ title, onPress, variant = "primary", busy, disabled, icon, size = "regular" }: { title: string; onPress: () => void; variant?: "primary" | "secondary" | "danger"; busy?: boolean; disabled?: boolean; icon?: IconName; size?: "regular" | "compact" }) {
   const { colors } = useAppTheme();
+  const compact = size === "compact";
   const primary = variant === "primary", danger = variant === "danger";
   const off = disabled || busy;
   const fg = primary || danger ? colors.onPrimary : colors.primary;
@@ -108,15 +111,15 @@ export function Button({ title, onPress, variant = "primary", busy, disabled, ic
     <TouchableOpacity
       onPress={onPress} disabled={off} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ disabled: !!off, busy: !!busy }}
       style={{
-        height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: off ? 0.55 : 1,
+        height: compact ? control.compact : control.regular, paddingHorizontal: compact ? 16 : 0, borderRadius: radius.md, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: off ? 0.55 : 1,
         backgroundColor: primary ? colors.primarySurface : danger ? colors.dangerSurface : `${colors.primary}15`,
         shadowColor: primary ? colors.primary : "transparent", shadowOpacity: primary ? 0.2 : 0, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
       }}
     >
       {busy ? <ActivityIndicator color={fg} /> : (
         <>
-          {icon && <Ionicons name={icon} size={18} color={fg} />}
-          <Text style={{ color: fg, fontSize: 16, fontFamily: "AsapBold" }}>{title}</Text>
+          {icon && <Ionicons name={icon} size={compact ? 16 : 18} color={fg} />}
+          <Text style={{ color: fg, fontSize: compact ? 14 : 16, fontFamily: "AsapBold" }}>{title}</Text>
         </>
       )}
     </TouchableOpacity>
@@ -148,7 +151,7 @@ export function Chip({ status, label }: { status: string; label?: string }) {
   const col = c.tone === "ok" ? colors.incomeStrong : c.tone === "warn" ? colors.warningStrong : c.tone === "err" ? colors.expenseStrong : c.tone === "info" ? colors.primary : colors.textSecondary;
   return (
     <View style={{ backgroundColor: `${col}15`, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 }}>
-      <Text style={{ color: col, fontSize: 9, fontFamily: "AsapBold", textTransform: "uppercase" }}>{label ?? c.text}</Text>
+      <Text style={{ color: col, fontSize: 11, fontFamily: "AsapBold", textTransform: "uppercase" }}>{label ?? c.text}</Text>
     </View>
   );
 }
@@ -160,8 +163,8 @@ export function Badge({ text, icon, color, tone }: { text: string; icon?: IconNa
   const c = tone === "danger" ? colors.expenseStrong : tone === "warn" ? colors.warningStrong : tone === "info" ? colors.primary : tone === "ok" ? colors.incomeStrong : color ?? colors.textSecondary;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: `${c}12`, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
-      {icon && <Ionicons name={icon} size={10} color={c} />}
-      <Text style={{ color: c, fontSize: 10, fontFamily: "AsapBold", marginLeft: icon ? 4 : 0 }}>{text}</Text>
+      {icon && <Ionicons name={icon} size={12} color={c} />}
+      <Text style={{ color: c, fontSize: 11, fontFamily: "AsapBold", marginLeft: icon ? 4 : 0 }}>{text}</Text>
     </View>
   );
 }

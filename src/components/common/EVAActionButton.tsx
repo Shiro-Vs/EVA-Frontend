@@ -28,8 +28,8 @@ export function EVAActionButton({
         };
       case "delete":
         return {
-          backgroundColor: colors.expense,
-          color: "#FFFFFF",
+          backgroundColor: colors.dangerSurface,
+          color: colors.onPrimary,
           iconName: icon || "trash-outline"
         };
       default:
@@ -49,6 +49,8 @@ export function EVAActionButton({
       className="w-8 h-8 rounded-full items-center justify-center"
       style={{ backgroundColor: buttonStyle.backgroundColor }}
       activeOpacity={0.7}
+      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      accessibilityRole="button"
     >
       <Ionicons 
         name={buttonStyle.iconName as any} 

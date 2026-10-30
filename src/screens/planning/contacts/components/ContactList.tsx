@@ -84,7 +84,7 @@ export function ContactList({
                 }}
               >
                 <Text
-                  className="text-[8px] uppercase"
+                  className="text-[11px] uppercase"
                   style={{ 
                     color: (contact.total_servicios || 0) === 0 
                       ? colors.textSecondary 
@@ -109,7 +109,7 @@ export function ContactList({
                   />
                   <Ionicons name="layers-outline" size={10} color={colors.muted} />
                   <Text 
-                    className="text-[9px] ml-1"
+                    className="text-[11px] ml-1"
                     style={{ color: colors.textSecondary, fontFamily: fonts.family.bold }}
                   >
                     {contact.total_servicios} {contact.total_servicios === 1 ? 'servicio' : 'servicios'}

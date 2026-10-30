@@ -74,7 +74,7 @@ export function ContactModal({
                   borderColor: isSelected ? 'rgba(255,255,255,0.8)' : 'transparent',
                   opacity: isSelected ? 1 : 0.8
                 }}
-                className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                className="w-11 h-11 rounded-full items-center justify-center mr-3"
                 activeOpacity={0.8}
               >
                 {isSelected && (

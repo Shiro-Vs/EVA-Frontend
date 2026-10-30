@@ -10,6 +10,7 @@ import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate } from "../../utils/dates";
 import { cmpMoney, formatSoles } from "../../utils/money";
+import { minTouch, radius } from "../../constants/Layout";
 
 const ICON: Record<string, keyof typeof Ionicons.glyphMap> = { bank: "business", savings: "save", cash: "cash", wallet: "phone-portrait", credit: "card" };
 const KINDS: Array<[string | undefined, string]> = [[undefined, "Todos"], ["income", "Ingresos"], ["expense", "Gastos"], ["transfer", "Transferencias"]];
@@ -52,7 +53,7 @@ export default function MoneyScreen() {
   const s = summary.data;
 
   return (
-    <Screen title="Dinero" back={false} subtitle="Cuentas y movimientos" right={<Button title="Nueva" variant="secondary" icon="add" onPress={() => router.push("/account/new" as never)} />}>
+    <Screen title="Dinero" back={false} subtitle="Cuentas y movimientos" right={<Button title="Nueva" variant="secondary" icon="add" size="compact" onPress={() => router.push("/account/new" as never)} />}>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <SummaryTile label="Saldo total" icon="wallet-outline" value={s ? formatSoles(s.balance.net) : "…"} />
         <SummaryTile label="Cuentas" icon="albums-outline" value={String(list.length)} />
@@ -104,7 +105,7 @@ export default function MoneyScreen() {
 function FilterChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   const { colors } = useAppTheme();
   return (
-    <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: active }} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, backgroundColor: active ? colors.primarySurface : `${colors.primary}12` }}>
+    <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: active }} style={{ minHeight: minTouch, paddingHorizontal: 14, justifyContent: "center", borderRadius: radius.sm + 2, backgroundColor: active ? colors.primarySurface : `${colors.primary}12` }}>
       <Txt size={12} bold color={active ? colors.onPrimary : colors.primary}>{label}</Txt>
     </TouchableOpacity>
   );

@@ -50,7 +50,7 @@ export function ContactHistory({
         <View className="px-6 pt-4">
           <TouchableOpacity 
             onPress={onBack} 
-            className="w-10 h-10 rounded-full items-center justify-center"
+            className="w-11 h-11 rounded-full items-center justify-center"
             style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: `${colors.text}05` }}
           >
             <Ionicons name="chevron-back" size={24} color={colors.primary} />
@@ -80,7 +80,7 @@ export function ContactHistory({
           <View className="flex-row items-center justify-between mb-6">
             <TouchableOpacity
               onPress={onBack}
-              className="w-10 h-10 rounded-full items-center justify-center"
+              className="w-11 h-11 rounded-full items-center justify-center"
               style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: `${colors.text}05` }}
             >
               <Ionicons name="chevron-back" size={24} color={colors.primary} />
@@ -88,7 +88,7 @@ export function ContactHistory({
 
             <TouchableOpacity 
               onPress={onAddServicePress}
-              className="w-10 h-10 rounded-full items-center justify-center"
+              className="w-11 h-11 rounded-full items-center justify-center"
               style={{ backgroundColor: `${colors.primary}15` }}
               activeOpacity={0.8}
             >
@@ -265,7 +265,7 @@ export function ContactHistory({
                               }}
                             >
                               <Text 
-                                className="text-[8px] uppercase"
+                                className="text-[11px] uppercase"
                                 style={{ 
                                   color: pay.free 
                                     ? colors.primary 
