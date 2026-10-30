@@ -10,6 +10,7 @@ import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate } from "../../utils/dates";
 import { formatSoles } from "../../utils/money";
 import { MultiChoice } from "../e4/shared";
+import { permissionStatus, requestPermission, syncReminders, type Permission } from "../../notifications/scheduler";
 
 const isHHMM = (s: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
 
@@ -125,14 +126,24 @@ export function NotificationsSettingsScreen() {
   const rem = useAsync(() => api.reminders(14), []);
   const [n, setN] = useState<Preferences["notifications"] | null>(null);
   const [saved, setSaved] = useState(false);
+  const [perm, setPerm] = useState<Permission>("undetermined");
+  useEffect(() => { permissionStatus().then(setPerm).catch(() => {}); }, []);
   useEffect(() => { if (prefs.data) setN(prefs.data.notifications); }, [prefs.data]);
+  const allow = useSubmit(async () => { const p = await requestPermission(); setPerm(p); if (p === "granted") await syncReminders(); });
   const set = (patch: Partial<Preferences["notifications"]>) => { setN((x) => (x ? { ...x, ...patch } : x)); setSaved(false); };
   const setKind = (k: keyof Preferences["notifications"]["kinds"], v: Partial<LeadKind>) => { setN((x) => (x ? { ...x, kinds: { ...x.kinds, [k]: { ...(x.kinds[k] as LeadKind), ...v } } } : x)); setSaved(false); };
   const valid = !!n && isHHMM(n.time) && (!n.quiet || (isHHMM(n.quiet.from) && isHHMM(n.quiet.to)));
-  const save = useSubmit(async () => { await api.savePreferences({ notifications: n! }); setSaved(true); await rem.reload(); });
+  const save = useSubmit(async () => { await api.savePreferences({ notifications: n! }); setSaved(true); await rem.reload(); await syncReminders().catch(() => {}); });
   if (!n) return <Screen title="Avisos">{prefs.error ? <ErrorBox message={prefs.error} onRetry={prefs.reload} /> : <Loading />}</Screen>;
   return (
     <Screen title="Avisos" subtitle="EVA nunca envía mensajes a otras personas" footer={<Button title="Guardar" busy={save.busy} disabled={!valid} onPress={save.submit} />}>
+      {perm === "unsupported" ? <Notice tone="info">Las notificaciones del teléfono solo funcionan en la app instalada, no en el navegador.</Notice> : perm !== "granted" && (
+        <Card>
+          <Txt bold>Permiso de notificaciones</Txt>
+          <Txt size={13}>{perm === "denied" ? "Las notificaciones están bloqueadas: actívalas en los ajustes del teléfono para esta app." : "Para avisarte necesitamos tu permiso."}</Txt>
+          {perm !== "denied" && <Button title="Permitir notificaciones" busy={allow.busy} onPress={allow.submit} />}
+        </Card>
+      )}
       <Card>
         <Row label="Activar avisos" value={n.enabled} onChange={(v) => set({ enabled: v })} />
         <Row label="Texto discreto" hint="Sin nombres ni importes en la notificación" value={n.discreet} onChange={(v) => set({ discreet: v })} />
@@ -171,7 +182,7 @@ export function NotificationsSettingsScreen() {
           </View>
         </Card>
       ))}
-      <Notice tone="info">Esta lista es lo que el servidor calcula. Las notificaciones en el teléfono se programan con ella al instalar la app (aún no están activadas en esta versión de prueba).</Notice>
+      <Notice tone="info">Esta lista es lo que el servidor calcula; el teléfono la programa sola al abrir la app y al guardar. Se borra al cerrar sesión.</Notice>
     </Screen>
   );
 }
