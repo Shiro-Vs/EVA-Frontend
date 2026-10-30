@@ -3,6 +3,8 @@ import { errorMessage } from "../api/client";
 import { useConnectivity } from "../api/connectivity";
 import { newKey } from "../api/http";
 
+const RECONNECT_COOLDOWN_MS = 10_000;
+
 /** Carga datos al montar y cuando cambian las dependencias; permite recargar a mano. */
 export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []) {
   const [data, setData] = useState<T | null>(null);
@@ -12,7 +14,9 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []) {
   const fnRef = useRef(fn);
   fnRef.current = fn;
 
+  const lastLoad = useRef(0);
   const reload = useCallback(async () => {
+    lastLoad.current = Date.now();
     setLoading(true);
     try {
       const r = await fnRef.current();
@@ -28,7 +32,8 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []) {
   const { offline } = useConnectivity();
   const wasOffline = useRef(false);
   useEffect(() => {
-    if (wasOffline.current && !offline) void reload();
+    // Con enfriamiento: si un endpoint falla y otro acierta, la conexión «parpadea» y sin esto todo se recargaría en bucle.
+    if (wasOffline.current && !offline && Date.now() - lastLoad.current > RECONNECT_COOLDOWN_MS) void reload();
     wasOffline.current = offline;
   }, [offline, reload]);
 
