@@ -203,8 +203,8 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
 
           {asTab && (
             <View style={{ gap: 12, marginTop: 8 }}>
-              <MenuRow icon="return-down-back-outline" title="Devoluciones" text="Dinero que debes devolver a alguien" onPress={() => router.push("/refunds" as never)} />
-              <MenuRow icon="people-outline" title="Préstamos entre personas" text="Lo que prestaste o te prestaron" onPress={() => router.push("/loans" as never)} />
+              <MenuRow section="people" icon="return-down-back-outline" title="Devoluciones" text="Dinero que debes devolver a alguien" onPress={() => router.push("/refunds" as never)} />
+              <MenuRow section="people" icon="people-outline" title="Préstamos entre personas" text="Lo que prestaste o te prestaron" onPress={() => router.push("/loans" as never)} />
             </View>
           )}
           <View className="h-32" />

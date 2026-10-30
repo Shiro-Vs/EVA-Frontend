@@ -54,6 +54,18 @@ describe.each(themes)("Contraste en tema %s", (_name, c, minLc) => {
     for (const k of ["success", "error", "warning", "info"] as const) expect(wcag(c.alert[k].icon, over(c.alert[k].bg, c.background))).toBeGreaterThanOrEqual(3);
   });
 
+it("los acentos de sección se leen sobre su ficha (4.5:1) y sobre la tarjeta (3:1)", () => {
+    for (const k of Object.keys(c.sections) as Array<keyof typeof c.sections>) {
+      expect(wcag(c.sections[k].ink, c.sections[k].tint)).toBeGreaterThanOrEqual(4.5);
+      expect(wcag(c.sections[k].ink, c.card)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("los acentos de sección son todos distintos", () => {
+    const inks = Object.values(c.sections).map((x) => x.ink);
+    expect(new Set(inks).size).toBe(inks.length);
+  });
+
   it("income/expense/warning se distinguen de sus variantes «Strong»", () => {
     expect(c.income).not.toBe(c.incomeStrong);
     expect(c.expense).not.toBe(c.expenseStrong);

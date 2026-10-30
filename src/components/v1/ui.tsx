@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { EVAInput } from "../common/EVAInput";
 import { formatSoles } from "../../utils/money";
+import type { SectionKey } from "../../constants/Colors";
 
 // Componentes base de las pantallas nuevas. Reproducen el lenguaje visual de la app: botón de volver circular,
 // tarjetas rounded-3xl con borde tenue, botones rounded-2xl con primarySurface y chips pequeños en mayúsculas.
@@ -234,12 +235,13 @@ export function SummaryTile({ label, value, tone, icon, onPress }: { label: stri
 }
 
 /** Fila de menú con ícono, título y descripción: la misma en Dinero, Personas, Planificar y Más. */
-export function MenuRow({ icon, title, text, onPress, badge }: { icon: IconName; title: string; text?: string; onPress: () => void; badge?: string | number | null }) {
+export function MenuRow({ icon, title, text, onPress, badge, section }: { icon: IconName; title: string; text?: string; onPress: () => void; badge?: string | number | null; section?: SectionKey }) {
   const { colors } = useAppTheme();
+  const accent = section ? colors.sections[section] : { ink: colors.primary, tint: `${colors.primary}12` };
   return (
     <RowLink onPress={onPress}>
-      <View style={{ width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}12` }}>
-        <Ionicons name={icon} size={20} color={colors.primary} />
+      <View style={{ width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: accent.tint }}>
+        <Ionicons name={icon} size={20} color={accent.ink} />
       </View>
       <View style={{ flex: 1 }}>
         <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{title}</Text>

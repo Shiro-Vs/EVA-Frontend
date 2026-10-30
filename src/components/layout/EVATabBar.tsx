@@ -4,6 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { quickAdd } from "../../screens/tabs/quickAdd";
+import type { SectionKey } from "../../constants/Colors";
+
+const SECTION_OF: Record<string, SectionKey> = { index: "home", money: "money", planning: "services", people: "people", plan: "plan", more: "more" };
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -103,7 +106,7 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
 
           // Iconos normales
           const getIcon = (name: string, focused: boolean) => {
-            const color = focused ? colors.primary : colors.textSecondary;
+            const color = focused ? (colors.sections[SECTION_OF[name] ?? "home"].ink) : colors.textSecondary;
             let iconName: any = "help-circle";
 
             if (name === "index") iconName = focused ? "grid" : "grid-outline";
@@ -128,7 +131,7 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
               {getIcon(route.name, isFocused)}
               <Text numberOfLines={1} style={[
                 styles.tabLabel, 
-                { color: isFocused ? colors.primary : colors.textSecondary, fontFamily: fonts.family.medium }
+                { color: isFocused ? colors.sections[SECTION_OF[route.name] ?? "home"].ink : colors.textSecondary, fontFamily: fonts.family.medium }
               ]}>
                 {labelText === "index" ? "Inicio" : labelText}
               </Text>

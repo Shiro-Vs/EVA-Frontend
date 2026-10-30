@@ -63,8 +63,8 @@ export default function MoneyScreen() {
         <Empty icon="wallet-outline" title="Aún no tienes cuentas" text="Crea tu primera cuenta con su saldo actual. No cuenta como ingreso del mes." action={<Button title="Crear cuenta" icon="add" onPress={() => router.push("/account/new" as never)} />} />
       ) : list.map((a: Account) => (
         <RowLink key={a.id} onPress={() => router.push(`/account/${a.id}` as never)}>
-          <View style={{ width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}15` }}>
-            <Ionicons name={ICON[a.type] ?? "wallet"} size={22} color={colors.primary} />
+          <View style={{ width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: colors.sections.money.tint }}>
+            <Ionicons name={ICON[a.type] ?? "wallet"} size={22} color={colors.sections.money.ink} />
           </View>
           <View style={{ flex: 1 }}>
             <Txt bold>{a.name}</Txt>
@@ -95,8 +95,8 @@ export default function MoneyScreen() {
       {cursor && <Button title="Ver más movimientos" variant="secondary" busy={loadingMore} onPress={loadMore} />}
 
       <Heading>Préstamos</Heading>
-      <MenuRow icon="people-outline" title="Entre personas" text="Lo que prestaste o te prestaron, con sus cuotas" onPress={() => router.push("/loans" as never)} />
-      <MenuRow icon="business-outline" title="Préstamos bancarios" text="Cronograma, pagos y documentos del banco" onPress={() => router.push("/bank-loans" as never)} />
+      <MenuRow section="money" icon="people-outline" title="Entre personas" text="Lo que prestaste o te prestaron, con sus cuotas" onPress={() => router.push("/loans" as never)} />
+      <MenuRow section="money" icon="business-outline" title="Préstamos bancarios" text="Cronograma, pagos y documentos del banco" onPress={() => router.push("/bank-loans" as never)} />
     </Screen>
   );
 }

@@ -11,6 +11,7 @@ import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { ErrorBox } from "../../components/v1/ui";
 import DailyTipCard from "../../components/common/DailyTipCard";
+import type { SectionKey } from "../../constants/Colors";
 import { humanDate } from "../../utils/dates";
 import { cmpMoney, formatSoles } from "../../utils/money";
 
@@ -114,21 +115,21 @@ export default function DashboardScreen() {
         {/* Quick Actions */}
         <View className="flex-row justify-between mt-10">
           {[
-            { label: "Cobrar", icon: "cash-outline", color: colors.primary, to: "/people" },
-            { label: "Servicios", icon: "calendar-outline", color: colors.income, to: "/planning" },
-            { label: "Capturar", icon: "scan-outline", color: colors.warning, to: "/capture/new" },
-            { label: "Análisis", icon: "sparkles-outline", color: colors.muted, to: "/analysis" },
+            { label: "Cobrar", icon: "cash-outline", section: "money", to: "/people" },
+            { label: "Servicios", icon: "calendar-outline", section: "services", to: "/planning" },
+            { label: "Capturar", icon: "scan-outline", section: "people", to: "/capture/new" },
+            { label: "Análisis", icon: "sparkles-outline", section: "plan", to: "/analysis" },
           ].map((action, index) => (
             <View key={index} className="items-center">
               <TouchableOpacity
                 onPress={() => router.push(action.to as never)}
                 className="w-16 h-16 rounded-2xl items-center justify-center shadow-sm border"
-                style={{ backgroundColor: colors.card, borderColor: `${colors.border}4D` }}
+                style={{ backgroundColor: colors.sections[action.section as SectionKey].tint, borderColor: "transparent" }}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={action.label}
               >
-                <Ionicons name={action.icon as any} size={26} color={action.color} />
+                <Ionicons name={action.icon as any} size={26} color={colors.sections[action.section as SectionKey].ink} />
               </TouchableOpacity>
               <Text className="font-asap-medium text-xs mt-2" style={{ color: colors.textSecondary }}>
                 {action.label}

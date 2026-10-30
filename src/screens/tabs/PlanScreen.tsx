@@ -35,7 +35,7 @@ export default function PlanScreen() {
       </View>
 
       <Heading action={<SeeAll onPress={() => router.push("/recurring" as never)} />}>Recurrentes</Heading>
-      <MenuRow icon="repeat-outline" title="Sueldo, alquiler y otros" text={due > 0 ? `${due} por decidir: confírmalos u omítelos` : "Nada pendiente por ahora"} badge={due > 0 ? due : null} onPress={() => router.push("/recurring" as never)} />
+      <MenuRow section="plan" icon="repeat-outline" title="Sueldo, alquiler y otros" text={due > 0 ? `${due} por decidir: confírmalos u omítelos` : "Nada pendiente por ahora"} badge={due > 0 ? due : null} onPress={() => router.push("/recurring" as never)} />
 
       <Heading action={<SeeAll onPress={() => router.push("/budgets" as never)} />}>Presupuestos</Heading>
       {budgets.loading && !budgets.data ? <Loading /> : budgets.error ? <ErrorBox message={budgets.error} onRetry={budgets.reload} /> : bl.length === 0 ? (
@@ -50,9 +50,9 @@ export default function PlanScreen() {
       <Button title="Nueva meta" variant="secondary" icon="add" onPress={() => router.push("/goals/new" as never)} />
 
       <Heading>Ordenar tus datos</Heading>
-      <MenuRow icon="pricetags-outline" title="Categorías" text="Categorías y subcategorías" onPress={() => router.push("/categories" as never)} />
-      <MenuRow icon="git-branch-outline" title="Reglas de clasificación" text="Asignan o sugieren categorías solas" onPress={() => router.push("/rules" as never)} />
-      <MenuRow icon="help-circle-outline" title="Movimientos sin categoría" text="Clasifica lo que quedó pendiente" onPress={() => router.push("/classify" as never)} />
+      <MenuRow section="plan" icon="pricetags-outline" title="Categorías" text="Categorías y subcategorías" onPress={() => router.push("/categories" as never)} />
+      <MenuRow section="plan" icon="git-branch-outline" title="Reglas de clasificación" text="Asignan o sugieren categorías solas" onPress={() => router.push("/rules" as never)} />
+      <MenuRow section="plan" icon="help-circle-outline" title="Movimientos sin categoría" text="Clasifica lo que quedó pendiente" onPress={() => router.push("/classify" as never)} />
     </Screen>
   );
 }

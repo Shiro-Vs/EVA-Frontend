@@ -1,72 +1,97 @@
-// Paleta verificada con WCAG 2.x y APCA (auditoría de color de la sesión):
-//  · todo token de TEXTO (textSecondary, muted, primary, incomeStrong, expenseStrong, warningStrong) cumple >=4.5:1 sobre fondo y tarjeta,
-//    y APCA Lc>=60 (cuerpo) en claro; en oscuro Lc>=50-60 según el rol.
-//  · income / expense / warning son para RELLENOS e ÍCONOS (>=3:1); para escribir con ese color se usa la variante «Strong».
-//  · Los ajustes se hicieron moviendo solo la claridad en OKLCH, conservando matiz y croma.
-const tintColorLight = "#0A71BC";
-const tintColorDark = "#6CBFFE";
+// Sistema de color de EVA (verificado con WCAG 2.x y APCA; ver src/constants/__tests__/colors.test.ts).
+//
+// Capas (guía de la skill color-expert): referencia → semántica → componente.
+//  · NEUTROS: la rampa de grises azulados elegida (#06141B · #11212D · #253745 · #4A5C6A · #9BA8AB · #CCD0CF) es la base de fondos,
+//    tarjetas, bordes y textos. El tema claro se deriva de la misma rampa (mismo matiz, claridad invertida).
+//  · MARCA: el azul queda para la acción principal (botones, enlaces, selección).
+//  · SECCIONES: cada sección tiene su acento (misma claridad y croma en OKLCH, solo cambia el matiz) y se usa en íconos y fichas,
+//    nunca en bloques grandes: el color es el 10% y los neutros el 90%.
+//  · SEMÁNTICOS: ingreso (verde), gasto/peligro (rojo), advertencia (ámbar). income/expense/warning son para rellenos e íconos (>=3:1);
+//    para escribir con ese color se usan las variantes «Strong» (>=4.5:1).
+
+export type SectionKey = "home" | "money" | "services" | "people" | "plan" | "more";
+export interface SectionColor { ink: string; tint: string }
+
+const tintColorLight = "#0369B2";
+const tintColorDark = "#68BCFB";
 
 export const Colors = {
   light: {
-    text: "#0C1B26",
-    textSecondary: "#65717E",
-    muted: "#607185",
-    background: "#FFFFFF",
-    card: "#F1F4F7",
+    text: "#06141B",
+    textSecondary: "#4A5C6A",
+    muted: "#5A6A7E",
+    background: "#F7F9F9",
+    card: "#ECEFEF",
     elevated: "#FFFFFF",
-    border: "#E2E8F0",
-    borderStrong: "#78899E",
+    border: "#CCD0CF",
+    borderStrong: "#6F8190",
     tint: tintColorLight,
-    primary: "#0A71BC",
+    primary: "#0369B2",
     primarySurface: "#1A6FB5",
     onPrimary: "#FFFFFF",
     onPrimaryTint: "#FFFFFF",
     onPrimaryMuted: "#EAF3FB",
-    income: "#3CA042",
-    incomeStrong: "#0C8133",
-    warning: "#C47E10",
-    warningStrong: "#B45309",
-    expense: "#D62639",
-    expenseStrong: "#C21F2C",
-    dangerSurface: "#C21F2C",
-    tabIconDefault: "#607185",
+    income: "#34963A",
+    incomeStrong: "#047029",
+    warning: "#BA7403",
+    warningStrong: "#A64A02",
+    expense: "#CC1E32",
+    expenseStrong: "#B91D2A",
+    dangerSurface: "#B91D2A",
+    tabIconDefault: "#5A6A7E",
     tabIconSelected: tintColorLight,
+    sections: {
+      home: { ink: "#0465AF", tint: "#E1EEFA" },
+      money: { ink: "#02736E", tint: "#D9F3F0" },
+      services: { ink: "#9B3B6E", tint: "#F8E6EF" },
+      people: { ink: "#6A4FA9", tint: "#ECE8F8" },
+      plan: { ink: "#716402", tint: "#F0EDD6" },
+      more: { ink: "#576574", tint: "#E3E8EB" },
+    } as Record<SectionKey, SectionColor>,
     alert: {
-      success: { bg: "rgba(60,160,66,0.12)", border: "rgba(60,160,66,0.35)", icon: "#0C8133" },
-      error: { bg: "rgba(214,38,57,0.10)", border: "rgba(214,38,57,0.35)", icon: "#C21F2C" },
-      warning: { bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.35)", icon: "#B45309" },
-      info: { bg: "rgba(10,113,188,0.10)", border: "rgba(10,113,188,0.30)", icon: "#0A71BC" },
+      success: { bg: "rgba(52,150,58,0.12)", border: "rgba(52,150,58,0.35)", icon: "#047029" },
+      error: { bg: "rgba(204,30,50,0.10)", border: "rgba(204,30,50,0.35)", icon: "#B91D2A" },
+      warning: { bg: "rgba(186,116,3,0.12)", border: "rgba(186,116,3,0.35)", icon: "#A64A02" },
+      info: { bg: "rgba(3,105,178,0.10)", border: "rgba(3,105,178,0.30)", icon: "#0369B2" },
     },
   },
   dark: {
-    text: "#F1F5F9",
-    textSecondary: "#ACBAC6",
-    muted: "#96A9B9",
-    background: "#0B141C",
-    card: "#16222E",
-    elevated: "#1E2C3A",
-    border: "#2A3B4D",
-    borderStrong: "#5E7B96",
+    text: "#CCD0CF",
+    textSecondary: "#AEBBC6",
+    muted: "#9BA8AB",
+    background: "#06141B",
+    card: "#11212D",
+    elevated: "#253745",
+    border: "#253745",
+    borderStrong: "#5B7080",
     tint: tintColorDark,
-    primary: "#6CBFFE",
+    primary: "#68BCFB",
     primarySurface: "#14568C",
     onPrimary: "#FFFFFF",
     onPrimaryTint: "#06121B",
     onPrimaryMuted: "#DCEBF7",
-    income: "#62CE70",
+    income: "#5FCB6E",
     incomeStrong: "#7BD98A",
     warning: "#FBBF24",
     warningStrong: "#FBBF24",
     expense: "#FF7E87",
-    expenseStrong: "#FF9CA2",
+    expenseStrong: "#FF979D",
     dangerSurface: "#CF3F4F",
-    tabIconDefault: "#96A9B9",
+    tabIconDefault: "#9BA8AB",
     tabIconSelected: tintColorDark,
+    sections: {
+      home: { ink: "#7EBDFD", tint: "#192F46" },
+      money: { ink: "#3ED0C8", tint: "#033633" },
+      services: { ink: "#F197C2", tint: "#412331" },
+      people: { ink: "#BDA8FC", tint: "#302844" },
+      plan: { ink: "#C9B957", tint: "#342E0D" },
+      more: { ink: "#A9B9CA", tint: "#2A2E33" },
+    } as Record<SectionKey, SectionColor>,
     alert: {
-      success: { bg: "rgba(98,206,112,0.14)", border: "rgba(98,206,112,0.35)", icon: "#7BD98A" },
-      error: { bg: "rgba(255,126,135,0.14)", border: "rgba(255,126,135,0.35)", icon: "#FF9CA2" },
+      success: { bg: "rgba(95,203,110,0.14)", border: "rgba(95,203,110,0.35)", icon: "#7BD98A" },
+      error: { bg: "rgba(255,126,135,0.14)", border: "rgba(255,126,135,0.35)", icon: "#FF979D" },
       warning: { bg: "rgba(251,191,36,0.14)", border: "rgba(251,191,36,0.35)", icon: "#FBBF24" },
-      info: { bg: "rgba(108,191,254,0.12)", border: "rgba(108,191,254,0.30)", icon: "#6CBFFE" },
+      info: { bg: "rgba(104,188,251,0.12)", border: "rgba(104,188,251,0.30)", icon: "#68BCFB" },
     },
   },
 };

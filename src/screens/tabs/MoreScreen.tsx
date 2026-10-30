@@ -3,33 +3,34 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Heading, MenuRow, Screen, Txt } from "../../components/v1/ui";
+import type { SectionKey } from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
 import { useAppThemeContext } from "../../context/ThemeContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 
 type Row = { icon: keyof typeof Ionicons.glyphMap; title: string; text: string; to: string };
-const GROUPS: Array<{ title: string; rows: Row[] }> = [
-  { title: "Inteligencia", rows: [
+const GROUPS: Array<{ title: string; section: SectionKey; rows: Row[] }> = [
+  { title: "Inteligencia", section: "plan", rows: [
     { icon: "sparkles-outline", title: "Análisis con IA", text: "Pregunta sobre tus gastos por periodo, cuentas o servicios", to: "/analysis" },
     { icon: "chatbubbles-outline", title: "Chats guardados", text: "Conversaciones sobre tus datos", to: "/analysis/chats" },
   ] },
-  { title: "Captura", rows: [
+  { title: "Captura", section: "people", rows: [
     { icon: "scan-outline", title: "Bandeja de captura", text: "Comprobantes y correos por revisar", to: "/capture" },
     { icon: "funnel-outline", title: "Reglas por remitente", text: "Qué cuenta o categoría usar según quién envía", to: "/capture/rules" },
   ] },
-  { title: "Informes", rows: [
+  { title: "Informes", section: "money", rows: [
     { icon: "bar-chart-outline", title: "Resumen mensual", text: "Flujo de dinero, resultado, versiones y PDF", to: "/reports" },
     { icon: "download-outline", title: "Exportar", text: "CSV, Excel y PDF con lo que elijas", to: "/export" },
     { icon: "return-down-back-outline", title: "Devoluciones", text: "Dinero que debes devolver a alguien", to: "/refunds" },
   ] },
-  { title: "Seguridad y datos", rows: [
+  { title: "Seguridad y datos", section: "more", rows: [
     { icon: "lock-closed-outline", title: "PIN y huella", text: "Bloquear la app en este teléfono", to: "/settings/lock" },
     { icon: "notifications-outline", title: "Avisos y recordatorios", text: "Qué avisar, cuándo y con qué detalle", to: "/settings/notifications" },
     { icon: "cloud-done-outline", title: "Respaldos", text: "Copias, restaurar y exportar", to: "/settings/backups" },
     { icon: "apps-outline", title: "Panel y tarjetas", text: "Elige y ordena lo que ves", to: "/settings/dashboard" },
     { icon: "options-outline", title: "Bloqueo y captura", text: "Re-bloqueo, revisión de propuestas y duplicados", to: "/settings/general" },
   ] },
-  { title: "Cuenta", rows: [
+  { title: "Cuenta", section: "more", rows: [
     { icon: "cash-outline", title: "Ajustes de cobro", text: "Días gratis al incorporar y límite en bajas", to: "/settings/billing" },
     { icon: "shield-checkmark-outline", title: "Cuenta y privacidad", text: "Eliminar mi cuenta y mis datos", to: "/settings/account" },
   ] },
@@ -60,7 +61,7 @@ export default function MoreScreen() {
       {GROUPS.map((g) => (
         <React.Fragment key={g.title}>
           <Heading>{g.title}</Heading>
-          {g.rows.map((r) => <MenuRow key={r.to} icon={r.icon} title={r.title} text={r.text} onPress={() => router.push(r.to as never)} />)}
+          {g.rows.map((r) => <MenuRow key={r.to} section={g.section} icon={r.icon} title={r.title} text={r.text} onPress={() => router.push(r.to as never)} />)}
         </React.Fragment>
       ))}
 
