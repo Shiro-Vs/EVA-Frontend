@@ -1,4 +1,5 @@
 import React from "react";
+import RichText from "./RichText";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../api/client";
@@ -38,7 +39,7 @@ export default function DailyTipCard() {
         <Text className="font-asap-bold text-sm ml-2 flex-1" style={{ color: colors.text }}>Consejo del día</Text>
         {d.tip.focusLabel && <Text className="font-asap text-xs" style={{ color: colors.textSecondary }}>{d.tip.focusLabel}</Text>}
       </View>
-      <Text className="font-asap text-base" style={{ color: colors.text, lineHeight: 22 }}>{d.tip.text}</Text>
+      <RichText text={d.tip.text} size={16} />
       <Text className="font-asap text-xs mt-3" style={{ color: colors.textSecondary }}>Generado con IA a partir de tus registros. Es orientativo, no asesoría financiera.</Text>
     </View>
   );

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import RichText from "../../components/common/RichText";
 import { Switch, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
@@ -31,7 +32,7 @@ function ResultView({ r }: { r: AnalysisResult }) {
   return (
     <>
       <Card>
-        <Txt>{r.answer}</Txt>
+        <RichText text={r.answer} size={15} />
         <Txt size={11} muted>Generado el {humanDate(r.generatedAt.slice(0, 10))} · {r.provider} {r.model}</Txt>
       </Card>
       <Coverage r={r} />
@@ -202,7 +203,7 @@ export function ChatScreen() {
       {(local ?? []).length === 0 && <Empty icon="chatbubble-ellipses-outline" title="Pregunta lo que quieras" text="La IA responde solo con los datos del alcance elegido y no puede modificar nada." />}
       {(local ?? []).map((m, i) => (
         <View key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "88%" }}>
-          <Card outlined={m.role === "assistant"}><Txt size={14}>{m.content}</Txt></Card>
+          <Card outlined={m.role === "assistant"}><RichText text={m.content} size={14} /></Card>
         </View>
       ))}
       {send.busy && <Txt size={12} muted>La IA está respondiendo…</Txt>}

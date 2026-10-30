@@ -35,7 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>("system");
   const [theme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveTheme("system"));
   const [fontFamily, setFontFamilyState] = useState<"asap" | "roboto">("asap");
-  const [palette, setPaletteState] = useState<PaletteId>("slate");
+  const [palette, setPaletteState] = useState<PaletteId>("violet");
 
   // Cargar la preferencia guardada al arrancar
   useEffect(() => {
