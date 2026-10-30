@@ -10,6 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { ErrorBox } from "../../components/v1/ui";
+import DailyTipCard from "../../components/common/DailyTipCard";
 import { humanDate } from "../../utils/dates";
 import { cmpMoney, formatSoles } from "../../utils/money";
 
@@ -107,6 +108,8 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </View>
+
+        <DailyTipCard />
 
         {/* Quick Actions */}
         <View className="flex-row justify-between mt-10">

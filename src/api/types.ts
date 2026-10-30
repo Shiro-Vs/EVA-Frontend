@@ -99,6 +99,12 @@ export interface Statement {
   loans: Loan[]; shareText: string; asOf: IsoDate;
 }
 
+export interface DailyTip {
+  date: string;
+  tip: { date: string; focus: string; focusLabel: string | null; text: string; provider: string; generatedAt: string } | null;
+  reason?: "NOT_ENOUGH_DATA" | "AI_UNAVAILABLE" | "AI_LIMIT_REACHED" | "AI_ERROR";
+}
+
 export interface Summary {
   asOf: IsoDate;
   balance: { net: Money; accounts: number };

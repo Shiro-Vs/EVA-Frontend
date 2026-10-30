@@ -13,6 +13,7 @@ const patch = async <R,>(path: string, body: unknown, version: number) => (await
 export const api = {
   me: () => get<T.Profile>("/me"),
   summary: () => get<T.Summary>("/summary"),
+  tipToday: () => get<T.DailyTip>("/tips/today"),
   patchMe: (body: { displayName?: string; defaultFreeDays?: number; exitDaysLimit?: number | null }, version: number) => patch<T.Profile>("/me", body, version),
 
   patchAccount: (id: string, body: { name?: string; color?: string | null; icon?: string | null; isDefault?: boolean; excludeFromTotal?: boolean }, version: number) => patch<T.Account>(`/accounts/${id}`, body, version),
