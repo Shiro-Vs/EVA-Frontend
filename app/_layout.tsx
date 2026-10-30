@@ -1,6 +1,7 @@
 import "../global.css";
 import React, { useEffect, useState } from "react";
 import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import LoadingSplash from "../src/components/common/LoadingSplash";
@@ -16,7 +17,7 @@ import { useReminderSync } from "../src/notifications/useReminderSync";
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
-  const { theme } = useAppThemeContext();
+  const { theme, isDark } = useAppThemeContext();
   const { user } = useAuth();
   useReminderSync();
   const [appIsReady, setAppIsReady] = useState(false);
@@ -62,6 +63,8 @@ function RootLayoutContent() {
 
   return (
     <View style={{ flex: 1 }} className={theme}>
+      {/* La barra de estado sigue el tema de la app (no el del teléfono): íconos claros sobre fondo oscuro y al revés. */}
+      <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaProvider>
         {/*
           Stack.Protected condiciona que pantallas existen en el navegador
