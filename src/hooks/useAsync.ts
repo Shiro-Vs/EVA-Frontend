@@ -15,12 +15,14 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []) {
   fnRef.current = fn;
 
   const lastLoad = useRef(0);
+  const hasData = useRef(false);
   const reload = useCallback(async () => {
     lastLoad.current = Date.now();
-    setLoading(true);
+    // Solo la primera carga muestra «cargando»; al recargar con datos ya en pantalla se refresca en silencio (evita el parpadeo).
+    if (!hasData.current) setLoading(true);
     try {
       const r = await fnRef.current();
-      if (alive.current) { setData(r); setError(null); }
+      if (alive.current) { hasData.current = true; setData(r); setError(null); }
     } catch (e) {
       if (alive.current) setError(errorMessage(e));
     } finally {

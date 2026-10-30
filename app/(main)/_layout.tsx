@@ -1,16 +1,19 @@
 import { Tabs } from "expo-router";
 import { View } from "react-native";
 import EVATabBar from "../../src/components/layout/EVATabBar";
+import { useAppTheme } from "../../src/hooks/useAppTheme";
 import QuickAddSheet from "../../src/screens/tabs/QuickAddSheet";
 
 // Seis pestañas y el «+» al centro: Inicio · Dinero · Servicios | + | Personas · Planificar · Más.
 export default function MainLayout() {
+  const { colors } = useAppTheme();
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Tabs
         tabBar={(props) => <EVATabBar {...props} />}
         screenOptions={{
           headerShown: false,
+          sceneStyle: { backgroundColor: colors.background },
         }}
       >
         <Tabs.Screen name="index" options={{ title: "Inicio" }} />

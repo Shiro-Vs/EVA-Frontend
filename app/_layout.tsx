@@ -9,6 +9,7 @@ import OfflineBanner from "../src/components/common/OfflineBanner";
 import { View } from "react-native";
 import { useFonts } from 'expo-font';
 import { ThemeProvider, useAppThemeContext } from "../src/context/ThemeContext";
+import { useAppTheme } from "../src/hooks/useAppTheme";
 import { AuthProvider, useAuth } from "../src/context/AuthContext";
 import { LockProvider } from "../src/security/LockGate";
 import { useReminderSync } from "../src/notifications/useReminderSync";
@@ -18,6 +19,7 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
   const { theme, isDark } = useAppThemeContext();
+  const { colors } = useAppTheme();
   const { user } = useAuth();
   useReminderSync();
   const [appIsReady, setAppIsReady] = useState(false);
@@ -62,7 +64,7 @@ function RootLayoutContent() {
   }
 
   return (
-    <View style={{ flex: 1 }} className={theme}>
+    <View style={{ flex: 1, backgroundColor: colors.background }} className={theme}>
       {/* La barra de estado sigue el tema de la app (no el del teléfono): íconos claros sobre fondo oscuro y al revés. */}
       <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaProvider>
@@ -76,7 +78,8 @@ function RootLayoutContent() {
           pantalla protegida visible sin sesion. Ver docs/06-auditoria-tecnica.md.
         */}
         <OfflineBanner />
-        <Stack screenOptions={{ headerShown: false }}>
+        {/* Fondo del tema en cada pantalla: sin esto, durante la transición se ve un fondo blanco/negro que «parpadea». */}
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: "slide_from_right", animationDuration: 200 }}>
           <Stack.Protected guard={!user}>
             <Stack.Screen name="index" />
             <Stack.Screen name="register" />
