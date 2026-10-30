@@ -139,7 +139,7 @@ export function NotificationsSettingsScreen() {
   if (!n) return <Screen title="Avisos">{prefs.error ? <ErrorBox message={prefs.error} onRetry={prefs.reload} /> : <Loading />}</Screen>;
   return (
     <Screen title="Avisos" subtitle="EVA nunca envía mensajes a otras personas" footer={<Button title="Guardar" busy={save.busy} disabled={!valid} onPress={save.submit} />}>
-      {perm === "unsupported" ? <Notice tone="info">Las notificaciones del teléfono solo funcionan en la app instalada, no en el navegador.</Notice> : perm !== "granted" && (
+      {perm === "unsupported" ? <Notice tone="info">Las notificaciones del teléfono solo funcionan en la app instalada (APK), no en el navegador ni en Expo Go.</Notice> : perm !== "granted" && (
         <Card>
           <Txt bold>Permiso de notificaciones</Txt>
           <Txt size={13}>{perm === "denied" ? "Las notificaciones están bloqueadas: actívalas en los ajustes del teléfono para esta app." : "Para avisarte necesitamos tu permiso."}</Txt>

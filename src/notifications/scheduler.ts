@@ -1,9 +1,12 @@
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { Platform } from "react-native";
 import { api } from "../api/client";
 import { planNotifications } from "./plan";
 
-// Notificaciones locales del teléfono. En la web no existen: todo es un no-op.
-const supported = () => Platform.OS === "ios" || Platform.OS === "android";
+// Notificaciones locales del teléfono. En la web no existen, y en Expo Go ni siquiera se carga el módulo (Expo Go lo rechaza
+// con un error en pantalla): solo funcionan en la app instalada (APK / development build).
+const inExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+const supported = () => (Platform.OS === "ios" || Platform.OS === "android") && !inExpoGo;
 const lazy = () => import("expo-notifications");
 
 export type Permission = "granted" | "denied" | "undetermined" | "unsupported";
