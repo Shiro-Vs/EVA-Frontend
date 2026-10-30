@@ -33,6 +33,8 @@ export function SettingsMenuScreen() {
     ["Bloqueo y captura", "Re-bloqueo, revisión de propuestas y duplicados", "/settings/general"],
     ["Respaldos", "Copias, restaurar y exportar", "/settings/backups"],
     ["Resumen mensual", "Flujo de dinero, resultado, versiones y PDF", "/reports"],
+    ["Exportar", "CSV, Excel y PDF con lo que elijas", "/export"],
+    ["Cuenta y privacidad", "Eliminar mi cuenta y mis datos", "/settings/account"],
   ];
   return (
     <Screen title="Ajustes" back={false}>

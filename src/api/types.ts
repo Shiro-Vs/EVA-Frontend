@@ -289,3 +289,13 @@ export interface RestorePreview {
   report: Array<{ table: string; inBackup: number; current: number; willAdd: number; alreadyThere: number; willRemove: number }>;
 }
 export interface RestoreResult { restored: boolean; mode: "replace" | "merge"; backupId: string; recoveryBackupId: string; inserted: Record<string, number>; balancesMatch: boolean | null; note: string }
+
+// ---- Entrega 6: exportaciones y privacidad ----
+export type SectionId = "transactions" | "flow" | "income_by_category" | "expense_by_category" | "accounts" | "services" | "contacts" | "loans" | "budgets" | "goals";
+export interface ExportBody { from: IsoDate; to: IsoDate; accountIds?: string[]; sections: SectionId[]; level: "summary" | "detail"; format: "csv" | "xlsx" | "pdf" }
+export interface ExportPreview {
+  sections: Array<{ id: SectionId; title: string; note: string | null; columns: Array<{ key: string; label: string; type: string }>; rows: number; sample: Array<Record<string, string | number | null>>; totals: Record<string, string | number | null> | null }>;
+  totalRows: number; async: boolean; format: string; warnings: string[];
+}
+export interface ExportJob { id: string; status: "queued" | "running" | "done" | "failed" | "expired"; format: "csv" | "xlsx" | "pdf"; rows: number; filename: string | null; sizeBytes: number | null; errorCode: string | null; createdAt: string; finishedAt: string | null; expiresAt: string | null; ready: boolean }
+export interface DeletionPreview { tables: Record<string, number>; totalRows: number; files: number; confirmPhrase: string; previewToken: string; willDelete: string[]; warnings: string[] }

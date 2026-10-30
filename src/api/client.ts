@@ -238,6 +238,16 @@ export const api = {
   importBackup: (contentBase64: string) => post<T.BackupMeta>("/backups/import", { contentBase64 }),
   previewRestore: (id: string, mode: "replace" | "merge") => post<T.RestorePreview>(`/backups/${id}/restore/preview`, { mode }),
   restoreBackup: (id: string, body: { mode: "replace" | "merge"; previewToken: string }, key: string) => post<T.RestoreResult>(`/backups/${id}/restore`, body, key),
+
+  // ---- Entrega 6 ----
+  previewExport: (body: T.ExportBody) => post<T.ExportPreview>("/exports/preview", body),
+  createExport: (body: T.ExportBody, key: string) => post<T.ExportJob>("/exports", body, key),
+  exports: async () => (await get<{ items: T.ExportJob[] }>("/exports")).items,
+  exportJob: (id: string) => get<T.ExportJob>(`/exports/${id}`),
+  downloadExport: (id: string) => requestBytes(`/exports/${id}/download`),
+  contactStatementFile: (id: string, format: "pdf" | "xlsx" | "csv") => requestBytes(`/contacts/${id}/statement/export`, { format }),
+  deletionPreview: () => get<T.DeletionPreview>("/me/deletion/preview"),
+  deleteAccount: (body: { previewToken: string; confirm: string }) => post<{ deleted: boolean; rows: number; files: number; identityDeleted: boolean }>("/me/deletion", body),
 };
 
 export interface CaptureUploadBody { origin: "photo" | "pdf" | "text"; mime?: string; filename?: string; contentBase64?: string; text?: string; subject?: string; sender?: string }
@@ -414,6 +424,11 @@ export const ERROR_TEXT: Record<string, string> = {
   BACKUP_NEWER_FORMAT: "El respaldo se generó con una versión más nueva de EVA.",
   RESTORE_FAILED: "No se pudo restaurar: los datos del respaldo no son coherentes con este servidor. No se cambió nada.",
   RESTORE_MISMATCH: "Tras restaurar, los saldos no coincidían con los del respaldo: no se cambió nada.",
+  EXPORT_TOO_LARGE: "Hay demasiados movimientos en ese periodo: acota las fechas o las cuentas.",
+  EXPORT_EXPIRED: "La exportación venció (dura 24 horas): genera otra.",
+  EXPORT_NOT_READY: "La exportación todavía se está generando.",
+  CONFIRMATION_MISMATCH: "Escribe exactamente la frase de confirmación.",
+  ACCOUNT_DELETED: "Esta cuenta fue eliminada.",
   IDEMPOTENCY_KEY_REUSED: "Esta acción ya se envió con otros datos.",
 };
 

@@ -55,7 +55,7 @@ export function presetRange(preset: Exclude<Preset, "custom">, now = new Date())
 }
 
 /** Alcance del análisis: periodo, cuentas, categorías y servicios. Solo lo que se elija se analiza (07 §9). */
-export function ScopeForm({ value, onChange }: { value: AnalysisScope; onChange: (s: AnalysisScope) => void }) {
+export function ScopeForm({ value, onChange, accountsOnly }: { value: AnalysisScope; onChange: (s: AnalysisScope) => void; accountsOnly?: boolean }) {
   const accounts = useAsync(() => api.accounts(), []);
   const cats = useAsync(() => api.categories("active"), []);
   const subs = useAsync(() => api.subscriptions(), []);
@@ -74,8 +74,8 @@ export function ScopeForm({ value, onChange }: { value: AnalysisScope; onChange:
         </>
       )}
       <MultiChoice label="Cuentas (ninguna = todas)" options={(accounts.data ?? []).filter((a) => a.status === "active").map((a) => ({ id: a.id, label: a.name }))} value={value.accountIds ?? []} onChange={(v) => set({ accountIds: v })} />
-      <MultiChoice label="Categorías (ninguna = todas)" options={catOpts} value={value.categoryIds ?? []} onChange={(v) => set({ categoryIds: v })} />
-      <MultiChoice label="Servicios compartidos a incluir" options={(subs.data ?? []).map((s) => ({ id: s.id, label: s.name }))} value={value.subscriptionIds ?? []} onChange={(v) => set({ subscriptionIds: v })} empty="Aún no tienes servicios." />
+      {!accountsOnly && <MultiChoice label="Categorías (ninguna = todas)" options={catOpts} value={value.categoryIds ?? []} onChange={(v) => set({ categoryIds: v })} />}
+      {!accountsOnly && <MultiChoice label="Servicios compartidos a incluir" options={(subs.data ?? []).map((s) => ({ id: s.id, label: s.name }))} value={value.subscriptionIds ?? []} onChange={(v) => set({ subscriptionIds: v })} empty="Aún no tienes servicios." />}
     </>
   );
 }
