@@ -1,5 +1,5 @@
-import { FinanceMenuScreen } from "../src/screens/e3/finance";
+import { Redirect } from "expo-router";
 
-export default function FinanceMenuRoute() {
-  return <FinanceMenuScreen />;
+export default function FinanceRoute() {
+  return <Redirect href="/plan" />;
 }

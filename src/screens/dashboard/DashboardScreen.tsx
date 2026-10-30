@@ -114,10 +114,10 @@ export default function DashboardScreen() {
         {/* Quick Actions */}
         <View className="flex-row justify-between mt-10">
           {[
-            { label: "Cobrar", icon: "cash-outline", color: colors.primary, to: "/contacts" },
+            { label: "Cobrar", icon: "cash-outline", color: colors.primary, to: "/people" },
             { label: "Servicios", icon: "calendar-outline", color: colors.income, to: "/planning" },
-            { label: "Contactos", icon: "people-outline", color: colors.warning, to: "/contacts" },
-            { label: "Más", icon: "grid-outline", color: colors.muted, to: "/add" },
+            { label: "Capturar", icon: "scan-outline", color: colors.warning, to: "/capture/new" },
+            { label: "Análisis", icon: "sparkles-outline", color: colors.muted, to: "/analysis" },
           ].map((action, index) => (
             <View key={index} className="items-center">
               <TouchableOpacity

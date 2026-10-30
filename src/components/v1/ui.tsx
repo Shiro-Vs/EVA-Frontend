@@ -77,9 +77,9 @@ export function Heading({ children, action }: { children: React.ReactNode; actio
   );
 }
 
-export function Txt({ children, bold, size = 15, color, muted, style }: { children: React.ReactNode; bold?: boolean; size?: number; color?: string; muted?: boolean; style?: object }) {
+export function Txt({ children, bold, size = 15, color, muted, style, numberOfLines }: { children: React.ReactNode; bold?: boolean; size?: number; color?: string; muted?: boolean; style?: object; numberOfLines?: number }) {
   const { colors } = useAppTheme();
-  return <Text style={[{ color: color ?? (muted ? colors.textSecondary : colors.text), fontSize: size, fontFamily: bold ? "AsapBold" : "Asap" }, style]}>{children}</Text>;
+  return <Text numberOfLines={numberOfLines} style={[{ color: color ?? (muted ? colors.textSecondary : colors.text), fontSize: size, fontFamily: bold ? "AsapBold" : "Asap" }, style]}>{children}</Text>;
 }
 
 export function KV({ label, value, strong, color }: { label: string; value: string; strong?: boolean; color?: string }) {
@@ -203,5 +203,49 @@ export function RowLink({ onPress, children }: { onPress: () => void; children: 
       style={{ backgroundColor: `${colors.card}80`, borderRadius: 24, borderWidth: 1, borderColor: `${colors.text}10`, padding: 16, flexDirection: "row", alignItems: "center", gap: 16 }}>
       {children}
     </TouchableOpacity>
+  );
+}
+
+/** «Ver todo» junto a un encabezado de sección (se pasa a `Heading action`). */
+export function SeeAll({ onPress, label = "Ver todo" }: { onPress: () => void; label?: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <TouchableOpacity onPress={onPress} accessibilityRole="button" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+      <Text style={{ color: colors.primary, fontSize: 13, fontFamily: "AsapSemiBold" }}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+/** Cifra con su etiqueta, para los resúmenes de la parte alta de cada pestaña. */
+export function SummaryTile({ label, value, tone, icon, onPress }: { label: string; value: string; tone?: "income" | "expense" | "muted"; icon?: IconName; onPress?: () => void }) {
+  const { colors } = useAppTheme();
+  const color = tone === "expense" ? colors.expenseStrong : tone === "income" ? colors.incomeStrong : colors.text;
+  const body = (
+    <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: `${colors.text}08`, padding: 14, gap: 4, minHeight: 78, justifyContent: "center" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        {icon && <Ionicons name={icon} size={14} color={colors.textSecondary} />}
+        <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "AsapMedium", textTransform: "uppercase", letterSpacing: 0.5, flexShrink: 1 }}>{label}</Text>
+      </View>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color, fontSize: 18, fontFamily: "AsapBold" }}>{value}</Text>
+    </View>
+  );
+  return onPress ? <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.75} onPress={onPress} accessibilityRole="button">{body}</TouchableOpacity> : <View style={{ flex: 1 }}>{body}</View>;
+}
+
+/** Fila de menú con ícono, título y descripción: la misma en Dinero, Personas, Planificar y Más. */
+export function MenuRow({ icon, title, text, onPress, badge }: { icon: IconName; title: string; text?: string; onPress: () => void; badge?: string | number | null }) {
+  const { colors } = useAppTheme();
+  return (
+    <RowLink onPress={onPress}>
+      <View style={{ width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}12` }}>
+        <Ionicons name={icon} size={20} color={colors.primary} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{title}</Text>
+        {text ? <Text numberOfLines={2} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{text}</Text> : null}
+      </View>
+      {badge ? <Badge text={String(badge)} color={colors.expenseStrong} /> : null}
+      <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+    </RowLink>
   );
 }

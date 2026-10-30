@@ -39,8 +39,8 @@ export default function PlanningScreen() {
       <ScrollView showsVerticalScrollIndicator={false} className="px-6">
         {/* Header Section */}
         <View className="mt-6 mb-8">
-          <Text className="font-asap-bold text-3xl" style={{ color: colors.text }}>Planificación</Text>
-          <Text className="font-asap text-base" style={{ color: colors.textSecondary }}>Tus compromisos del ciclo</Text>
+          <Text className="font-asap-bold text-2xl" style={{ color: colors.text }}>Servicios</Text>
+          <Text className="font-asap text-base" style={{ color: colors.textSecondary }}>Tus suscripciones y lo que cobras por ellas</Text>
         </View>
 
         {/* Monthly Summary Card - Compact Version */}
@@ -76,7 +76,7 @@ export default function PlanningScreen() {
 
         {/* Community & Contacts Access */}
         <TouchableOpacity
-          onPress={() => router.push("/contacts")}
+          onPress={() => router.push("/people")}
           className="p-4 rounded-3xl border mb-8 flex-row items-center justify-between"
           style={{ backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}15` }}
           activeOpacity={0.7}
@@ -89,8 +89,8 @@ export default function PlanningScreen() {
               <Ionicons name="people" size={20} color={colors.primary} />
             </View>
             <View>
-              <Text className="font-asap-bold text-base" style={{ color: colors.text }}>Mis Contactos</Text>
-              <Text className="font-asap text-xs" style={{ color: colors.textSecondary }}>Gestiona tu comunidad y deudas</Text>
+              <Text className="font-asap-bold text-base" style={{ color: colors.text }}>Personas</Text>
+              <Text className="font-asap text-xs" style={{ color: colors.textSecondary }}>Contactos, deudas y devoluciones</Text>
             </View>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.primary} />

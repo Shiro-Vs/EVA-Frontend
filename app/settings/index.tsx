@@ -1,5 +1,5 @@
-import { SettingsMenuScreen } from "../../src/screens/e5/settings";
+import { Redirect } from "expo-router";
 
-export default function SettingsMenuRoute() {
-  return <SettingsMenuScreen />;
+export default function SettingsIndex() {
+  return <Redirect href="/more" />;
 }

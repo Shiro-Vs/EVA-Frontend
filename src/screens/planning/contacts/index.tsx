@@ -14,6 +14,7 @@ import EVAAlert from "../../../components/common/EVAAlert";
 import { EVALoading } from "../../../components/common/EVALoading";
 import { useAppTheme } from "../../../hooks/useAppTheme";
 import { cmpMoney } from "../../../utils/money";
+import { MenuRow } from "../../../components/v1/ui";
 
 // Importaciones de componentes
 import { ContactsHeader } from "./components/ContactsHeader";
@@ -23,7 +24,7 @@ import { ContactHistory } from "./components/ContactHistory";
 import { RemindModal } from "./components/RemindModal";
 import { AddSubscriberModal } from "./components/AddSubscriberModal";
 
-export default function ContactsScreen() {
+export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = {}) {
   const { fonts } = useAppTheme();
   const {
     loading,
@@ -91,7 +92,7 @@ export default function ContactsScreen() {
       <View className="px-6 flex-1">
         {/* Header */}
         <View className="flex-row items-center mt-6 mb-6">
-          <TouchableOpacity
+          {!asTab && <TouchableOpacity
             onPress={() => router.back()}
             className="w-10 h-10 rounded-full items-center justify-center mr-4"
             style={{
@@ -101,12 +102,12 @@ export default function ContactsScreen() {
             }}
           >
             <Ionicons name="chevron-back" size={24} color={colors.primary} />
-          </TouchableOpacity>
+          </TouchableOpacity>}
           <Text
             className="text-2xl"
             style={{ color: colors.text, fontFamily: fonts.family.bold }}
           >
-            Mis Contactos
+            {asTab ? "Personas" : "Mis Contactos"}
           </Text>
         </View>
 
@@ -200,7 +201,13 @@ export default function ContactsScreen() {
             onDeletePress={handleDeleteContact}
           />
 
-          <View className="h-20" />
+          {asTab && (
+            <View style={{ gap: 12, marginTop: 8 }}>
+              <MenuRow icon="return-down-back-outline" title="Devoluciones" text="Dinero que debes devolver a alguien" onPress={() => router.push("/refunds" as never)} />
+              <MenuRow icon="people-outline" title="Préstamos entre personas" text="Lo que prestaste o te prestaron" onPress={() => router.push("/loans" as never)} />
+            </View>
+          )}
+          <View className="h-32" />
         </ScrollView>
       </View>
 

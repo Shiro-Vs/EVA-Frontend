@@ -1,5 +1,5 @@
-import ContactsScreen from "../src/screens/planning/contacts";
+import { Redirect } from "expo-router";
 
 export default function ContactsRoute() {
-  return <ContactsScreen />;
+  return <Redirect href="/people" />;
 }

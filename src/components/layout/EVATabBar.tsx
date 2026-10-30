@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Platform, StyleSheet } from "react-native
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useAppTheme } from "../../hooks/useAppTheme";
+import { quickAdd } from "../../screens/tabs/quickAdd";
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -78,7 +79,7 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
             }
           };
 
-          // Botón Central (Add)
+          // Botón Central (+): abre la hoja de acciones rápidas, no navega
           if (route.name === "add") {
             return (
                 <View key={route.key} style={styles.centerButtonContainer}>
@@ -87,8 +88,10 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
                   
                   {/* Botón Principal */}
                   <TouchableOpacity
-                    onPress={onPress}
+                    onPress={() => quickAdd.open()}
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Nuevo: registrar o crear"
                   >
                     <Animated.View style={[styles.centerButton, animatedStyle, { backgroundColor: colors.primary, shadowColor: colors.primary }]}>
                       <Ionicons name="add" size={32} color="white" />
@@ -104,11 +107,13 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
             let iconName: any = "help-circle";
 
             if (name === "index") iconName = focused ? "grid" : "grid-outline";
+            if (name === "money") iconName = focused ? "wallet" : "wallet-outline";
             if (name === "planning") iconName = focused ? "receipt" : "receipt-outline";
-            if (name === "goals") iconName = focused ? "pie-chart" : "pie-chart-outline";
-            if (name === "profile") iconName = focused ? "person-circle" : "person-circle-outline";
+            if (name === "people") iconName = focused ? "people" : "people-outline";
+            if (name === "plan") iconName = focused ? "flag" : "flag-outline";
+            if (name === "more") iconName = focused ? "apps" : "apps-outline";
 
-            return <Ionicons name={iconName} size={24} color={color} />;
+            return <Ionicons name={iconName} size={22} color={color} />;
           };
 
           const labelText = typeof label === "string" ? label : route.name;
@@ -121,7 +126,7 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
               activeOpacity={0.7}
             >
               {getIcon(route.name, isFocused)}
-              <Text style={[
+              <Text numberOfLines={1} style={[
                 styles.tabLabel, 
                 { color: isFocused ? colors.primary : colors.textSecondary, fontFamily: fonts.family.medium }
               ]}>
@@ -143,7 +148,7 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
   },
   tabBar: {
     flexDirection: "row",
@@ -151,7 +156,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
@@ -160,30 +165,31 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     flex: 1,
+    minWidth: 0,
     alignItems: "center",
     justifyContent: "center",
   },
   tabLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     marginTop: 4,
   },
   centerButtonContainer: {
     justifyContent: "center",
     alignItems: "center",
-    width: 60,
-    height: 60,
+    width: 56,
+    height: 56,
     top: -20,
   },
   aura: {
     position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   centerButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
     shadowOffset: { width: 0, height: 5 },
