@@ -91,7 +91,7 @@ export default function NewServiceScreen() {
 
   const Chipbtn = ({ on, label, onPress }: { on: boolean; label: string; onPress: () => void }) => (
     <TouchableOpacity onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected: on }}
-      style={{ paddingHorizontal: 14, minHeight: 40, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
+      style={{ paddingHorizontal: 12, minHeight: 32, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
       <Text style={{ color: on ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{label}</Text>
     </TouchableOpacity>
   );
@@ -109,8 +109,8 @@ export default function NewServiceScreen() {
           <Chipbtn on={mode === "personal"} label="Personal" onPress={() => setMode("personal")} />
         </View>
         <View style={{ flexDirection: "row", gap: 10 }}>
-          {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas (contándote)" value={capacity} onChangeText={setCapacity} keyboardType="number-pad" /></View>}
-          <View style={{ flex: 1 }}><Field label="Precio anunciado (S/)" value={price} onChangeText={setPrice} placeholder="45.00" keyboardType="decimal-pad" error={price && !priceNorm ? "Importe inválido" : undefined} /></View>
+          {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas totales" value={capacity} onChangeText={setCapacity} keyboardType="number-pad" /></View>}
+          <View style={{ flex: 1 }}><Field label="Precio (S/)" value={price} onChangeText={setPrice} placeholder="45.00" keyboardType="decimal-pad" error={price && !priceNorm ? "Importe inválido" : undefined} /></View>
         </View>
         <Choice label="Frecuencia de cobro del proveedor" value={unit} onChange={setUnit} options={UNITS} />
         <Field label="Cada cuántas unidades" value={count} onChangeText={setCount} keyboardType="number-pad" />

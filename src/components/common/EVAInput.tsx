@@ -13,10 +13,10 @@ export function EVAInput({ label, error, icon, rightAction, style, ...props }: E
   const { colors, fonts } = useAppTheme();
 
   return (
-    <View className="mb-4 w-full">
+    <View className="mb-3 w-full">
       {label && (
         <Text 
-          className="text-[11px] uppercase tracking-widest mb-2 ml-1"
+          className="text-[11px] uppercase tracking-widest mb-1.5 ml-1"
           style={{ color: colors.textSecondary, fontFamily: fonts.family.semiBold }}
         >
           {label}
@@ -28,12 +28,12 @@ export function EVAInput({ label, error, icon, rightAction, style, ...props }: E
           backgroundColor: colors.card, 
           borderColor: error ? colors.expenseStrong : colors.borderStrong,
           borderWidth: 1,
-          minHeight: 52,
+          minHeight: 44,
         }}
       >
         {icon && <View className="mr-3">{icon}</View>}
         <TextInput
-          className="flex-1 text-base"
+          className="flex-1 text-[15px]"
           placeholderTextColor={colors.muted}
           style={[{ color: colors.text, fontFamily: fonts.family.bold }, style]}
           {...props}

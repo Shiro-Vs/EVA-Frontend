@@ -98,7 +98,7 @@ export default function RegisterScreen() {
               </Text>
               <View
                 className="flex-row items-center rounded-2xl px-4"
-                style={{ minHeight: 52, backgroundColor: colors.card, borderWidth: errors.name ? 1 : 0, borderColor: colors.expense }}
+                style={{ minHeight: 48, backgroundColor: colors.card, borderWidth: errors.name ? 1 : 0, borderColor: colors.expense }}
               >
                 <Ionicons
                   name="person-outline"
@@ -134,7 +134,7 @@ export default function RegisterScreen() {
               </Text>
               <View
                 className="flex-row items-center rounded-2xl px-4"
-                style={{ minHeight: 52, backgroundColor: colors.card, borderWidth: errors.email ? 1 : 0, borderColor: colors.expense }}
+                style={{ minHeight: 48, backgroundColor: colors.card, borderWidth: errors.email ? 1 : 0, borderColor: colors.expense }}
               >
                 <Ionicons
                   name="mail-outline"
@@ -171,7 +171,7 @@ export default function RegisterScreen() {
               </Text>
               <View
                 className="flex-row items-center rounded-2xl px-4"
-                style={{ minHeight: 52, backgroundColor: colors.card, borderWidth: errors.password ? 1 : 0, borderColor: colors.expense }}
+                style={{ minHeight: 48, backgroundColor: colors.card, borderWidth: errors.password ? 1 : 0, borderColor: colors.expense }}
               >
                 <Ionicons
                   name="lock-closed-outline"
@@ -216,7 +216,7 @@ export default function RegisterScreen() {
               </Text>
               <View
                 className="flex-row items-center rounded-2xl px-4"
-                style={{ minHeight: 52, backgroundColor: colors.card, borderWidth: errors.confirmPassword ? 1 : 0, borderColor: colors.expense }}
+                style={{ minHeight: 48, backgroundColor: colors.card, borderWidth: errors.confirmPassword ? 1 : 0, borderColor: colors.expense }}
               >
                 <Ionicons
                   name="shield-checkmark-outline"

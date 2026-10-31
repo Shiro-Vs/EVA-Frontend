@@ -12,22 +12,22 @@ import { Button, Card, Field, Loading, Notice, Txt } from "./ui";
 // exige la API (docs 13); el aspecto se afinará después.
 
 export function Label({ children }: { children: React.ReactNode }) {
-  return <Txt size={11} muted style={{ marginBottom: 8, marginLeft: 4, textTransform: "uppercase", letterSpacing: 1.2, fontFamily: "AsapSemiBold" }}>{children}</Txt>;
+  return <Txt size={11} muted style={{ marginBottom: 6, marginLeft: 4, textTransform: "uppercase", letterSpacing: 1.2, fontFamily: "AsapSemiBold" }}>{children}</Txt>;
 }
 
 /** Selección única con chips. */
 export function Choice<T extends string>({ label, options, value, onChange }: { label?: string; options: Array<{ id: T; label: string; hint?: string }>; value: T | null; onChange: (v: T) => void }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ marginBottom: 14 }}>
+    <View style={{ marginBottom: 12 }}>
       {label && <Label>{label}</Label>}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {options.map((o) => {
           const on = value === o.id;
           return (
             <TouchableOpacity key={o.id} onPress={() => onChange(o.id)} accessibilityRole="radio" accessibilityState={{ selected: on }}
-              style={{ paddingHorizontal: 14, minHeight: 40, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
-              <Text style={{ color: on ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{o.label}</Text>
+              style={{ paddingHorizontal: 12, minHeight: 32, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
+              <Text style={{ color: on ? colors.primary : colors.text, fontFamily: "AsapMedium", fontSize: 13 }}>{o.label}</Text>
               {o.hint ? <Text style={{ color: colors.textSecondary, fontFamily: "Asap", fontSize: 11 }}>{o.hint}</Text> : null}
             </TouchableOpacity>
           );

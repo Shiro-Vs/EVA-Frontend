@@ -54,7 +54,7 @@ export default function AccountNewScreen() {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
           {TYPES.map((t) => (
             <TouchableOpacity key={t.id} onPress={() => { setType(t.id); create.resetKey(); }} accessibilityRole="radio" accessibilityState={{ selected: type === t.id }}
-              style={{ paddingHorizontal: 14, minHeight: 40, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: type === t.id ? colors.primary : colors.border, backgroundColor: type === t.id ? `${colors.primary}1A` : "transparent" }}>
+              style={{ paddingHorizontal: 12, minHeight: 32, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: type === t.id ? colors.primary : colors.border, backgroundColor: type === t.id ? `${colors.primary}1A` : "transparent" }}>
               <Text style={{ color: type === t.id ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{t.label}</Text>
             </TouchableOpacity>
           ))}

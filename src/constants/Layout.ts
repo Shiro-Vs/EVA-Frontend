@@ -13,8 +13,8 @@ export const screenPadding = 24;
 /** Zona táctil mínima (Material 48 dp / Apple 44 pt): si lo visible es más chico, se amplía con hitSlop. */
 export const minTouch = 44;
 
-/** Altura de controles. `compact` = botón en línea o cabecera; `regular` = botón de formulario; `field` = campo de texto. */
-export const control = { compact: 44, regular: 56, field: 52 } as const;
+/** Altura de controles (densidad compacta). `compact` = botón en línea o cabecera; `regular` = botón de formulario; `field` = campo de texto; `chip` = etiqueta de selección. */
+export const control = { compact: 40, regular: 48, field: 44, chip: 32 } as const;
 
 /** Tipografía: nada por debajo de 11 (la barra inferior usa 10 por espacio y es la única excepción). */
 export const fontSize = { micro: 10, caption: 11, small: 12, body: 14, base: 16, title: 20, display: 24 } as const;

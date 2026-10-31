@@ -105,7 +105,7 @@ export default function MoneyScreen() {
 function FilterChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   const { colors } = useAppTheme();
   return (
-    <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: active }} style={{ minHeight: minTouch, paddingHorizontal: 14, justifyContent: "center", borderRadius: radius.sm + 2, backgroundColor: active ? colors.primarySurface : `${colors.primary}12` }}>
+    <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: active }} style={{ minHeight: 32, paddingHorizontal: 12, justifyContent: "center", borderRadius: 99, backgroundColor: active ? colors.primarySurface : `${colors.primary}12` }}>
       <Txt size={12} bold color={active ? colors.onPrimary : colors.primary}>{label}</Txt>
     </TouchableOpacity>
   );

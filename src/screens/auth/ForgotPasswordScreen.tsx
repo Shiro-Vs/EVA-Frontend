@@ -79,7 +79,7 @@ export default function ForgotPasswordScreen() {
               </Text>
               <View
                 className="flex-row items-center rounded-2xl px-4"
-                style={{ minHeight: 52, backgroundColor: colors.card, borderWidth: error ? 1 : 0, borderColor: colors.expense }}
+                style={{ minHeight: 48, backgroundColor: colors.card, borderWidth: error ? 1 : 0, borderColor: colors.expense }}
               >
                 <Ionicons
                   name="mail-outline"

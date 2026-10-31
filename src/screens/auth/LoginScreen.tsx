@@ -79,7 +79,7 @@ export default function LoginScreen() {
               <View
                 className="flex-row items-center rounded-2xl px-4"
                 style={{
-                  minHeight: 52,
+                  minHeight: 48,
                   backgroundColor: colors.card,
                   borderWidth: errors.email ? 1 : 0,
                   borderColor: colors.expenseStrong,
@@ -124,7 +124,7 @@ export default function LoginScreen() {
               <View
                 className="flex-row items-center rounded-2xl px-4"
                 style={{
-                  minHeight: 52,
+                  minHeight: 48,
                   backgroundColor: colors.card,
                   borderWidth: errors.password ? 1 : 0,
                   borderColor: colors.expenseStrong,
@@ -181,7 +181,7 @@ export default function LoginScreen() {
             <TouchableOpacity
               onPress={handleLogin}
               disabled={isAuthenticating}
-              className="rounded-2xl h-14 items-center justify-center shadow-lg mt-4"
+              className="rounded-2xl h-12 items-center justify-center shadow-lg mt-4"
               style={{ backgroundColor: colors.primarySurface, opacity: isAuthenticating ? 0.7 : 1 }}
               activeOpacity={0.8}
             >
@@ -201,7 +201,7 @@ export default function LoginScreen() {
 
             {/* Google Button */}
             <TouchableOpacity
-              className="flex-row items-center justify-center rounded-2xl h-14"
+              className="flex-row items-center justify-center rounded-2xl h-12"
               style={{ backgroundColor: colors.card }}
               activeOpacity={0.7}
               onPress={handleGoogleLogin}
@@ -223,7 +223,7 @@ export default function LoginScreen() {
           <TouchableOpacity
             onPress={handleDevLogin}
             disabled={isAuthenticating}
-            className="flex-row items-center justify-center rounded-2xl h-14 mt-4"
+            className="flex-row items-center justify-center rounded-2xl h-12 mt-4"
             style={{ backgroundColor: `${colors.primary}15`, opacity: isAuthenticating ? 0.7 : 1 }}
             activeOpacity={0.7}
             accessibilityRole="button"

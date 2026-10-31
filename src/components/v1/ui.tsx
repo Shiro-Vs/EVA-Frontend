@@ -20,7 +20,8 @@ export function BackButton({ onPress }: { onPress?: () => void }) {
     <TouchableOpacity
       onPress={onPress ?? (() => (router.canGoBack() ? router.back() : router.replace("/")))}
       accessibilityLabel="Volver" accessibilityRole="button" activeOpacity={0.7}
-      style={{ width: minTouch, height: minTouch, borderRadius: minTouch / 2, alignItems: "center", justifyContent: "center", marginRight: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+      style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", marginRight: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
     >
       <Ionicons name="chevron-back" size={24} color={colors.primary} />
     </TouchableOpacity>
@@ -32,18 +33,18 @@ export function Screen({ title, children, back = true, right, footer, subtitle }
   const { colors } = useAppTheme();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 24, marginTop: 24, marginBottom: 20 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 24, marginTop: 16, marginBottom: 12 }}>
         {back && <BackButton />}
         <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.text, fontSize: 24, fontFamily: "AsapBold" }} accessibilityRole="header" numberOfLines={1}>{title}</Text>
-          {subtitle && <Text style={{ color: colors.textSecondary, fontSize: 14, fontFamily: "Asap" }}>{subtitle}</Text>}
+          <Text style={{ color: colors.text, fontSize: 22, fontFamily: "AsapBold" }} accessibilityRole="header" numberOfLines={1}>{title}</Text>
+          {subtitle && <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>{subtitle}</Text>}
         </View>
         {right}
       </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 14 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {children}
       </ScrollView>
-      {footer && <View style={{ paddingHorizontal: 24, paddingBottom: Platform.OS === "web" ? 16 : 12, paddingTop: 12, backgroundColor: colors.background }}>{footer}</View>}
+      {footer && <View style={{ paddingHorizontal: 24, paddingBottom: Platform.OS === "web" ? 12 : 10, paddingTop: 10, backgroundColor: colors.background }}>{footer}</View>}
     </SafeAreaView>
   );
 }
@@ -51,7 +52,7 @@ export function Screen({ title, children, back = true, right, footer, subtitle }
 export function Card({ children, outlined, style }: { children: React.ReactNode; outlined?: boolean; style?: ViewStyle }) {
   const { colors } = useAppTheme();
   return (
-    <View style={[{ backgroundColor: outlined ? `${colors.card}80` : colors.card, borderRadius: 24, padding: 16, borderWidth: 1, borderColor: outlined ? `${colors.text}10` : `${colors.text}05` }, style]}>
+    <View style={[{ backgroundColor: outlined ? `${colors.card}80` : colors.card, borderRadius: 24, padding: 14, borderWidth: 1, borderColor: outlined ? `${colors.text}10` : `${colors.text}05` }, style]}>
       {children}
     </View>
   );
@@ -118,8 +119,8 @@ export function Button({ title, onPress, variant = "primary", busy, disabled, ic
     >
       {busy ? <ActivityIndicator color={fg} /> : (
         <>
-          {icon && <Ionicons name={icon} size={compact ? 16 : 18} color={fg} />}
-          <Text style={{ color: fg, fontSize: compact ? 14 : 16, fontFamily: "AsapBold" }}>{title}</Text>
+          {icon && <Ionicons name={icon} size={compact ? 15 : 17} color={fg} />}
+          <Text style={{ color: fg, fontSize: compact ? 13 : 15, fontFamily: "AsapBold" }}>{title}</Text>
         </>
       )}
     </TouchableOpacity>

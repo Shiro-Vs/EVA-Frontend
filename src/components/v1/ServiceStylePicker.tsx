@@ -23,14 +23,14 @@ export function ServiceStylePicker({ icon, color, onChange }: { icon: string; co
         ))}
       </ScrollView>
       <Text style={label}>Color</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {PRESET_COLORS.map((c) => (
           <TouchableOpacity
             key={c} onPress={() => onChange({ icon, color: c })} accessibilityRole="radio" accessibilityState={{ selected: color === c }} accessibilityLabel={c}
-            style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: getAdjustedColor(c, isDark),
+            style={{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: getAdjustedColor(c, isDark),
               borderWidth: color === c ? 3 : 0, borderColor: colors.text }}
           >
-            {color === c && <Ionicons name="checkmark" size={18} color="white" />}
+            {color === c && <Ionicons name="checkmark" size={16} color="white" />}
           </TouchableOpacity>
         ))}
       </View>
