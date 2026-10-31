@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "../../hooks/useAppTheme";
+import BottomSheet from "../common/BottomSheet";
 
 export interface SelectOption<T extends string = string> { id: T; label: string; hint?: string }
 
@@ -12,8 +12,7 @@ export function SelectField<T extends string>({ label, value, options, onChange,
   /** Si se indica, la lista incluye una primera fila (p. ej. «Ninguna») que llama a `onClear`. */
   clearLabel?: string; onClear?: () => void;
 }) {
-  const { colors, isDark } = useAppTheme();
-  const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const current = options.find((o) => o.id === value) ?? null;
@@ -32,29 +31,17 @@ export function SelectField<T extends string>({ label, value, options, onChange,
         <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
       </TouchableOpacity>
 
-      <Modal transparent visible={open} animationType="slide" statusBarTranslucent onRequestClose={close}>
-        <Pressable style={{ flex: 1, backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.4)" }} onPress={close} accessibilityLabel="Cerrar" />
-        <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: insets.bottom + 8, maxHeight: "70%" }}>
-          <View style={{ alignItems: "center", paddingTop: 8 }}><View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: `${colors.text}20` }} /></View>
-          <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6 }}>
-            <Text style={{ flex: 1, color: colors.text, fontSize: 17, fontFamily: "AsapBold" }} accessibilityRole="header" numberOfLines={1}>{label ?? "Elegir"}</Text>
-            <TouchableOpacity onPress={close} accessibilityRole="button" accessibilityLabel="Cerrar" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}><Ionicons name="close" size={22} color={colors.textSecondary} /></TouchableOpacity>
+      <BottomSheet visible={open} onClose={close} title={label ?? "Elegir"} maxHeight={0.7}>
+        {searchable && (
+          <View style={{ marginHorizontal: 8, marginBottom: 6, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 40, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.card }}>
+            <Ionicons name="search" size={16} color={colors.muted} />
+            <TextInput value={q} onChangeText={setQ} placeholder="Buscar…" placeholderTextColor={colors.muted} style={{ flex: 1, color: colors.text, fontFamily: "Asap", fontSize: 14 }} />
           </View>
-          {searchable && (
-            <View style={{ marginHorizontal: 20, marginBottom: 6, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 40, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.card }}>
-              <Ionicons name="search" size={16} color={colors.muted} />
-              <TextInput value={q} onChangeText={setQ} placeholder="Buscar…" placeholderTextColor={colors.muted} style={{ flex: 1, color: colors.text, fontFamily: "Asap", fontSize: 14 }} />
-            </View>
-          )}
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 6 }}>
-            {clearLabel && onClear && (
-              <Row label={clearLabel} selected={value === null} onPress={() => pick(onClear)} muted />
-            )}
-            {shown.map((o) => <Row key={o.id} label={o.label} hint={o.hint} selected={o.id === value} onPress={() => pick(() => onChange(o.id))} />)}
-            {shown.length === 0 && <Text style={{ color: colors.textSecondary, fontFamily: "Asap", padding: 16, textAlign: "center" }}>Sin resultados.</Text>}
-          </ScrollView>
-        </View>
-      </Modal>
+        )}
+        {clearLabel && onClear && <Row label={clearLabel} selected={value === null} onPress={() => pick(onClear)} muted />}
+        {shown.map((o) => <Row key={o.id} label={o.label} hint={o.hint} selected={o.id === value} onPress={() => pick(() => onChange(o.id))} />)}
+        {shown.length === 0 && <Text style={{ color: colors.textSecondary, fontFamily: "Asap", padding: 16, textAlign: "center" }}>Sin resultados.</Text>}
+      </BottomSheet>
     </View>
   );
 }

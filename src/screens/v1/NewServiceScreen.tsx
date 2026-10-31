@@ -10,6 +10,7 @@ import { getServiceDefaults } from "../../utils/serviceIcons";
 import { useSubmit } from "../../hooks/useAsync";
 import { Choice, OptionalAccountPicker } from "../../components/v1/forms";
 import { SelectField } from "../../components/v1/Select";
+import { DateInput } from "../../components/v1/DatePicker";
 import { addMonthsIso, humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
 import { normalizeMoneyInput } from "../../utils/money";
 
@@ -131,11 +132,11 @@ export default function NewServiceScreen() {
           </View>
         )}
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1 }}><Field label="Inicio" value={start} onChangeText={setStart} placeholder="2026-10-07" error={start && !isIsoDate(start) ? "Fecha inválida" : undefined} /></View>
-          <View style={{ flex: 1 }}><Field label="Siguiente pago" value={next} onChangeText={(t) => { setNext(t); setNextTouched(true); }} placeholder="2026-11-07" error={next && !isIsoDate(next) ? "Fecha inválida" : undefined} /></View>
+          <View style={{ flex: 1 }}><DateInput label="Inicio" value={start} onChange={setStart} /></View>
+          <View style={{ flex: 1 }}><DateInput label="Siguiente pago" value={next} onChange={(t) => { setNext(t); setNextTouched(true); }} /></View>
         </View>
         <OptionalAccountPicker label="Cuenta de pago (opcional)" value={preferred} onChange={setPreferred} />
-        <Txt size={12} muted>Fechas AAAA-MM-DD. El siguiente pago es el que informa tu proveedor; EVA lo compara con lo calculado.</Txt>
+        <Txt size={12} muted>El siguiente pago es el que informa tu proveedor; EVA lo compara con lo calculado.</Txt>
       </Card>
 
       {previewError && <Notice tone="err">{previewError}</Notice>}

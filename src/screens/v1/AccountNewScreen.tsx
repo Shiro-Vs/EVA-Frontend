@@ -3,6 +3,7 @@ import { Switch, Text, TouchableOpacity, View } from "react-native";
 import { useDone } from "../../hooks/useDone";
 import { DateField } from "../../components/v1/forms";
 import { SelectField } from "../../components/v1/Select";
+import { DateInput } from "../../components/v1/DatePicker";
 import { isIsoDate, todayLocalIso } from "../../utils/dates";
 import { api } from "../../api/client";
 import type { AccountType } from "../../api/types";
@@ -57,7 +58,7 @@ export default function AccountNewScreen() {
         </View>
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}><Field label={isCredit ? "Deuda actual (S/)" : "Saldo actual (S/)"} value={amountText} onChangeText={(t) => { setAmountText(t); create.resetKey(); }} placeholder="0.00" keyboardType="decimal-pad" /></View>
-          <View style={{ flex: 1 }}><Field label="Fecha del saldo" value={openingDate} onChangeText={(t) => { setOpeningDate(t); create.resetKey(); }} placeholder={todayLocalIso()} error={openingDate && !isIsoDate(openingDate) ? "Fecha inválida" : undefined} /></View>
+          <View style={{ flex: 1 }}><DateInput label="Fecha del saldo" value={openingDate} onChange={(t) => { setOpeningDate(t); create.resetKey(); }} /></View>
         </View>
         <SwitchRow label="Usarla como cuenta predeterminada" value={isDefault} onValueChange={(v) => { setIsDefault(v); create.resetKey(); }} />
         <SwitchRow label="Excluir del saldo total" value={exclude} onValueChange={(v) => { setExclude(v); create.resetKey(); }} />

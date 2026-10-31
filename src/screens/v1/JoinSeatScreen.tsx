@@ -4,6 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { api, errorMessage, type SeatBody } from "../../api/client";
 import type { SeatPreview } from "../../api/types";
 import { Button, Card, Chip, ErrorBox, Field, Heading, KV, Loading, Money, Notice, Screen, Txt } from "../../components/v1/ui";
+import { DateInput } from "../../components/v1/DatePicker";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
@@ -100,7 +101,7 @@ export default function JoinSeatScreen() {
         <Field label="Nombre de la plaza" value={label} onChangeText={(t) => { setLabel(t); join.resetKey(); }} placeholder="Cuenta 1" autoCapitalize="sentences" />
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}><Field label="Cuota por ciclo (S/)" value={quota} onChangeText={(t) => { setQuota(t); join.resetKey(); }} placeholder="10.00" keyboardType="decimal-pad" error={quota && !quotaNorm ? "Importe inválido" : undefined} /></View>
-          <View style={{ flex: 1 }}><Field label="Ingreso (AAAA-MM-DD)" value={joinDate} onChangeText={(t) => { setJoinDate(t); join.resetKey(); }} error={joinDate && !isIsoDate(joinDate) ? "Fecha inválida" : undefined} /></View>
+          <View style={{ flex: 1 }}><DateInput label="Ingreso" value={joinDate} onChange={(t) => { setJoinDate(t); join.resetKey(); }} /></View>
         </View>
         <Field label="Días gratis para esta plaza (opcional)" value={threshold} onChangeText={(t) => { setThreshold(t); join.resetKey(); }} placeholder="Usa el de tu perfil" keyboardType="number-pad" error={threshold.trim() !== "" && !(Number.parseInt(threshold, 10) >= 0) ? "Usa un número entero" : undefined} />
       </Card>

@@ -1,3 +1,4 @@
+import { parseIso } from "./calendar";
 const MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 /** "2026-10-07" → "7 oct" (con año si no es el actual). Sin Date: no hay zonas horarias que torcer. */
@@ -17,7 +18,7 @@ export function todayLocalIso(now = new Date()): string {
   return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
 }
 
-export const isIsoDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+export const isIsoDate = (s: string) => parseIso(s) !== null;
 
 const dim = (y: number, m1: number) => new Date(Date.UTC(y, m1, 0)).getUTCDate();
 

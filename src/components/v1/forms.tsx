@@ -8,6 +8,7 @@ import { humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
 import { formatSoles, normalizeMoneyInput } from "../../utils/money";
 import { Button, Card, Field, Loading, Notice, Txt } from "./ui";
 import { SelectField } from "./Select";
+import { DateInput } from "./DatePicker";
 
 // Bloques de formulario compartidos por las pantallas de la Entrega 2. Cada pantalla pide exactamente los campos que
 // exige la API (docs 13); el aspecto se afinará después.
@@ -78,10 +79,9 @@ export function FutureCyclePicker({ subscriptionId, label = "Rige desde el inici
   return <SelectField label={label} options={starts.map((d) => ({ id: d, label: `${humanDate(d)} (${d})` }))} value={value} onChange={onChange} />;
 }
 
-/** Fecha AAAA-MM-DD con validación. */
+/** Fecha: se escribe solo con números (AAAA-MM-DD) o se elige en el calendario. */
 export function DateField({ label, value, onChange, optional }: { label: string; value: string; onChange: (v: string) => void; optional?: boolean }) {
-  const bad = value !== "" && !isIsoDate(value);
-  return <Field label={`${label}${optional ? " (opcional)" : ""} · AAAA-MM-DD`} value={value} onChangeText={onChange} placeholder={todayLocalIso()} error={bad ? "Fecha inválida" : undefined} />;
+  return <DateInput label={label} value={value} onChange={onChange} optional={optional} />;
 }
 
 /** Importe en soles con validación. */

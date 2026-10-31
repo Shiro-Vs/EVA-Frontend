@@ -4,6 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { api, errorMessage, type ReceiptBody } from "../../api/client";
 import type { Charge, ReceiptPreview } from "../../api/types";
 import { Button, Card, Chip, ErrorBox, Field, Heading, KV, Loading, Notice, Screen, Txt } from "../../components/v1/ui";
+import { DateInput } from "../../components/v1/DatePicker";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
@@ -93,7 +94,7 @@ export default function ReceiptScreen() {
           ))}
         </View>
         {activeAccounts.length === 0 && <Notice tone="warn">Primero crea una cuenta desde Inicio.</Notice>}
-        <Field label="Fecha (AAAA-MM-DD)" value={date} onChangeText={(t) => { setDate(t); save.resetKey(); }} />
+        <DateInput label="Fecha" value={date} onChange={(t) => { setDate(t); save.resetKey(); }} />
         <Field label="Nota (opcional)" value={note} onChangeText={(t) => { setNote(t); save.resetKey(); }} autoCapitalize="sentences" maxLength={200} />
       </Card>
 

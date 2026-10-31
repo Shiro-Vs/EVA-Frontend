@@ -3,6 +3,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { api } from "../../api/client";
 import { Button, Card, ErrorBox, Field, Loading, Notice, Screen, Txt } from "../../components/v1/ui";
+import { DateInput } from "../../components/v1/DatePicker";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
@@ -50,7 +51,7 @@ export default function SupplierPayScreen() {
               {list.length === 0 && <Notice tone="warn">Primero crea una cuenta desde Inicio.</Notice>}
             </View>
             <Field label="Importe realmente cobrado (S/)" value={amount} onChangeText={(t) => { setAmount(t); pay.resetKey(); }} keyboardType="decimal-pad" />
-            <Field label="Fecha del pago (AAAA-MM-DD)" value={date} onChangeText={(t) => { setDate(t); pay.resetKey(); }} />
+            <DateInput label="Fecha del pago" value={date} onChange={(t) => { setDate(t); pay.resetKey(); }} />
           </Card>
           <Notice tone="info">Puede diferir del precio anunciado (por ejemplo 47 en vez de 45). Pagar tarde no mueve la renovación del servicio. Si pagas con una tarjeta de crédito, aumenta la deuda de la tarjeta.</Notice>
         </>
