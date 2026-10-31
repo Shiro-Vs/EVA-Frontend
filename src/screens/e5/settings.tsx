@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { CardId, DashboardCard, LeadKind, Preferences } from "../../api/types";
 import { Choice } from "../../components/v1/forms";
-import { Badge, Button, Card, Empty, ErrorBox, Field, Heading, KV, Loading, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import { Badge, Button, Card, Empty, ErrorBox, Field, Heading, KV, Loading, Notice, RowLink, Screen, Txt, SwitchRow } from "../../components/v1/ui";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate } from "../../utils/dates";
@@ -16,12 +16,7 @@ import { permissionStatus, requestPermission, syncReminders, type Permission } f
 const isHHMM = (s: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
 
 function Row({ label, value, onChange, hint }: { label: string; value: boolean; onChange: (v: boolean) => void; hint?: string }) {
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-      <View style={{ flex: 1 }}><Txt size={14}>{label}</Txt>{hint ? <Txt size={11} muted>{hint}</Txt> : null}</View>
-      <Switch value={value} onValueChange={onChange} />
-    </View>
-  );
+  return <SwitchRow label={label} hint={hint} value={value} onValueChange={onChange} />;
 }
 
 // ───────────────────────── Menú de ajustes ─────────────────────────

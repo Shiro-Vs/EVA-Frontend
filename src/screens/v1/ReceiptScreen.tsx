@@ -87,7 +87,7 @@ export default function ReceiptScreen() {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
           {activeAccounts.map((a) => (
             <TouchableOpacity key={a.id} onPress={() => { setAccountId(a.id); save.resetKey(); }} accessibilityRole="radio" accessibilityState={{ selected: accountId === a.id }}
-              style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: accountId === a.id ? colors.primary : colors.border, backgroundColor: accountId === a.id ? `${colors.primary}1A` : "transparent" }}>
+              style={{ paddingHorizontal: 14, minHeight: 40, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: accountId === a.id ? colors.primary : colors.border, backgroundColor: accountId === a.id ? `${colors.primary}1A` : "transparent" }}>
               <Text style={{ color: accountId === a.id ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{a.name}</Text>
             </TouchableOpacity>
           ))}

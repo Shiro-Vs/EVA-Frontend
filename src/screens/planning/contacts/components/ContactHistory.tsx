@@ -163,7 +163,7 @@ export function ContactHistory({
               return (
                 <View 
                   key={service.serviceId} 
-                  className="rounded-[24px] mb-4 shadow-sm overflow-hidden"
+                  className="rounded-3xl mb-4 shadow-sm overflow-hidden"
                   style={{ 
                     backgroundColor: colors.card, 
                     shadowColor: "#000", 

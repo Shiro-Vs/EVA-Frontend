@@ -91,7 +91,7 @@ export function RemindModal({ visible, onClose, debtors }: RemindModalProps) {
       </Text>
 
       <View 
-        className="p-5 pt-10 rounded-[24px] mb-8 relative"
+        className="p-5 pt-10 rounded-3xl mb-8 relative"
         style={{ backgroundColor: colors.card }}
       >
         {!loading && (

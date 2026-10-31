@@ -5,7 +5,7 @@ import { api } from "../../api/client";
 import type { BankChangePreview, BankInstallment, BankLoan, BankPaymentPreview, ChangeKind, LoanFactKey, Preview } from "../../api/types";
 import type { BankChangeBody, BankInstallmentIn, BankPaymentBody } from "../../api/client";
 import { AccountPicker, Choice, DateField, MoneyField, OptionalAccountPicker, ReasonField, usePreviewFlow } from "../../components/v1/forms";
-import { Badge, Button, Card, Chip, Empty, ErrorBox, Field, Heading, KV, Loading, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import { Badge, Button, Card, Chip, Empty, ErrorBox, Field, Heading, KV, Loading, Notice, RowLink, Screen, Txt, SwitchRow } from "../../components/v1/ui";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, isIsoDate } from "../../utils/dates";
@@ -247,7 +247,7 @@ export function BankLoanPayScreen() {
       )}
       {flow.applyError && <Notice tone="err">{flow.applyError}</Notice>}
       {flow.applyError?.toLowerCase().includes("meta") && (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><Switch value={shortfall} onValueChange={setShortfall} /><Txt size={13} style={{ flex: 1 }}>Aceptar aunque deje metas con faltante</Txt></View>
+        <SwitchRow label="Aceptar aunque deje metas con faltante" value={shortfall} onValueChange={setShortfall} />
       )}
     </Screen>
   );

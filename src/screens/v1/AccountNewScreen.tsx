@@ -5,7 +5,7 @@ import { DateField } from "../../components/v1/forms";
 import { isIsoDate } from "../../utils/dates";
 import { api } from "../../api/client";
 import type { AccountType } from "../../api/types";
-import { Button, Card, Field, Notice, Screen, Txt } from "../../components/v1/ui";
+import { Button, Card, Field, Notice, Screen, Txt, SwitchRow } from "../../components/v1/ui";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useSubmit } from "../../hooks/useAsync";
 import { normalizeMoneyInput } from "../../utils/money";
@@ -54,7 +54,7 @@ export default function AccountNewScreen() {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
           {TYPES.map((t) => (
             <TouchableOpacity key={t.id} onPress={() => { setType(t.id); create.resetKey(); }} accessibilityRole="radio" accessibilityState={{ selected: type === t.id }}
-              style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: type === t.id ? colors.primary : colors.border, backgroundColor: type === t.id ? `${colors.primary}1A` : "transparent" }}>
+              style={{ paddingHorizontal: 14, minHeight: 40, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: type === t.id ? colors.primary : colors.border, backgroundColor: type === t.id ? `${colors.primary}1A` : "transparent" }}>
               <Text style={{ color: type === t.id ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{t.label}</Text>
             </TouchableOpacity>
           ))}
@@ -62,8 +62,8 @@ export default function AccountNewScreen() {
         <Field label="Entidad (opcional)" value={institution} onChangeText={(t) => { setInstitution(t); create.resetKey(); }} placeholder="BCP, Interbank, Yape…" autoCapitalize="words" />
         <Field label={isCredit ? "Deuda actual de la tarjeta (S/)" : "Saldo actual (S/)"} value={amountText} onChangeText={(t) => { setAmountText(t); create.resetKey(); }} placeholder="0.00" keyboardType="decimal-pad" />
         <DateField label="Fecha del saldo" value={openingDate} optional onChange={(t) => { setOpeningDate(t); create.resetKey(); }} />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}><Switch value={isDefault} onValueChange={(v) => { setIsDefault(v); create.resetKey(); }} accessibilityLabel="Cuenta predeterminada" /><Txt style={{ flex: 1 }}>Usarla como cuenta predeterminada</Txt></View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><Switch value={exclude} onValueChange={(v) => { setExclude(v); create.resetKey(); }} accessibilityLabel="Excluir del saldo total" /><Txt style={{ flex: 1 }}>Excluir del saldo total</Txt></View>
+        <SwitchRow label="Usarla como cuenta predeterminada" value={isDefault} onValueChange={(v) => { setIsDefault(v); create.resetKey(); }} />
+        <SwitchRow label="Excluir del saldo total" value={exclude} onValueChange={(v) => { setExclude(v); create.resetKey(); }} />
       </Card>
       <Notice tone="info">El saldo inicial no cuenta como ingreso ni gasto del mes: es solo el punto de partida de esta cuenta.</Notice>
       {(formError || create.error) && <Notice tone="err">{formError ?? create.error}</Notice>}

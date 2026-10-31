@@ -145,7 +145,7 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
             >
               <TouchableOpacity
                 onPress={() => setSortBy("name")}
-                className="px-3 py-1.5 rounded-lg flex-row items-center"
+                className="px-3 py-1.5 rounded-lg flex-row items-center" hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
                 style={{
                   backgroundColor:
                     sortBy === "name" ? colors.primary : "transparent",
@@ -169,7 +169,7 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setSortBy("debt")}
-                className="px-3 py-1.5 rounded-lg flex-row items-center"
+                className="px-3 py-1.5 rounded-lg flex-row items-center" hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
                 style={{
                   backgroundColor:
                     sortBy === "debt" ? colors.primary : "transparent",

@@ -82,7 +82,7 @@ export default function JoinSeatScreen() {
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
             {(contacts.data ?? []).filter((c) => c.status === "active").map((c) => (
               <TouchableOpacity key={c.id} onPress={() => { setContactId(c.id); join.resetKey(); }} accessibilityRole="radio" accessibilityState={{ selected: contactId === c.id }}
-                style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: contactId === c.id ? colors.primary : colors.border, backgroundColor: contactId === c.id ? `${colors.primary}1A` : "transparent" }}>
+                style={{ paddingHorizontal: 14, minHeight: 40, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: contactId === c.id ? colors.primary : colors.border, backgroundColor: contactId === c.id ? `${colors.primary}1A` : "transparent" }}>
                 <Text style={{ color: contactId === c.id ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{c.name}</Text>
               </TouchableOpacity>
             ))}

@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, Platform, ScrollView, Text, TouchableOpacity, View, ViewStyle } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, Switch, Text, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -253,5 +253,19 @@ export function MenuRow({ icon, title, text, onPress, badge, section }: { icon: 
       {badge ? <Badge text={String(badge)} tone="danger" /> : null}
       <Ionicons name="chevron-forward" size={18} color={colors.muted} />
     </RowLink>
+  );
+}
+
+/** Fila con interruptor: texto a la izquierda, interruptor a la derecha, altura mínima táctil. Es la única forma de poner un interruptor. */
+export function SwitchRow({ label, hint, value, onValueChange, accessibilityLabel }: { label: string; hint?: string; value: boolean; onValueChange: (v: boolean) => void; accessibilityLabel?: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: minTouch, paddingVertical: 4 }}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: colors.text, fontSize: 14, fontFamily: "Asap" }}>{label}</Text>
+        {hint ? <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{hint}</Text> : null}
+      </View>
+      <Switch value={value} onValueChange={onValueChange} accessibilityLabel={accessibilityLabel ?? label} />
+    </View>
   );
 }

@@ -5,7 +5,7 @@ import { api } from "../../api/client";
 import type { Account } from "../../api/types";
 import { ApiError } from "../../api/http";
 import { AccountPicker, CategoryPicker, Choice, DateField, FlowResult, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
-import { Button, Card, Chip, ErrorBox, Field, Heading, KV, Loading, Money, Notice, Screen, Txt } from "../../components/v1/ui";
+import { Button, Card, Chip, ErrorBox, Field, Heading, KV, Loading, Money, Notice, Screen, Txt, SwitchRow } from "../../components/v1/ui";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -331,7 +331,7 @@ export function ReceiptCorrectScreen() {
           <MoneyField label={`Importe aplicado (pendiente ${formatSoles(l.pending)})`} value={current(l.id)} optional onChange={(v) => { setAlloc({ ...(alloc ?? Object.fromEntries(lines.map((x) => [x.id, current(x.id)]))), [l.id]: v }); flow.invalidate(); }} />
         </Card>
       ))}
-      <Card><View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><Switch value={noReserve} onValueChange={touch(setNoReserve)} /><Txt size={13} style={{ flex: 1 }}>Dejar el sobrante como crédito libre (sin reservarlo para un servicio)</Txt></View></Card>
+      <Card><SwitchRow label="Dejar el sobrante como crédito libre (sin reservarlo para un servicio)" value={noReserve} onValueChange={touch(setNoReserve)} /></Card>
       <Notice tone="info">Se anula el cobro original y se registra uno nuevo con lo que elijas, en una sola operación. Corregir no es devolver dinero.</Notice>
       <FlowResult flow={flow} />
     </Screen>

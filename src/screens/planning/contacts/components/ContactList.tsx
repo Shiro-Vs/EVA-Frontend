@@ -49,7 +49,7 @@ export function ContactList({
         <TouchableOpacity
           key={contact.id}
           onPress={() => onContactPress(contact)}
-          className="p-4 rounded-[24px] flex-row items-center mb-3 shadow-sm"
+          className="p-4 rounded-3xl flex-row items-center mb-3 shadow-sm"
           style={{ 
             backgroundColor: colors.card, 
             shadowColor: "#000", 

@@ -34,7 +34,7 @@ export function MultiChoice({ label, options, value, onChange, empty }: { label?
           const on = value.includes(o.id);
           return (
             <TouchableOpacity key={o.id} onPress={() => onChange(on ? value.filter((x) => x !== o.id) : [...value, o.id])} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
-              style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
+              style={{ paddingHorizontal: 14, minHeight: 40, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
               <Text style={{ color: on ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{on ? "✓ " : ""}{o.label}</Text>
             </TouchableOpacity>
           );

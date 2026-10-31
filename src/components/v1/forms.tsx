@@ -12,7 +12,7 @@ import { Button, Card, Field, Loading, Notice, Txt } from "./ui";
 // exige la API (docs 13); el aspecto se afinará después.
 
 export function Label({ children }: { children: React.ReactNode }) {
-  return <Txt size={12} muted style={{ marginBottom: 6, textTransform: "uppercase" }}>{children}</Txt>;
+  return <Txt size={11} muted style={{ marginBottom: 8, marginLeft: 4, textTransform: "uppercase", letterSpacing: 1.2, fontFamily: "AsapSemiBold" }}>{children}</Txt>;
 }
 
 /** Selección única con chips. */
@@ -26,9 +26,9 @@ export function Choice<T extends string>({ label, options, value, onChange }: { 
           const on = value === o.id;
           return (
             <TouchableOpacity key={o.id} onPress={() => onChange(o.id)} accessibilityRole="radio" accessibilityState={{ selected: on }}
-              style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
+              style={{ paddingHorizontal: 14, minHeight: 40, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
               <Text style={{ color: on ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{o.label}</Text>
-              {o.hint ? <Text style={{ color: colors.textSecondary, fontFamily: "Asap", fontSize: 10 }}>{o.hint}</Text> : null}
+              {o.hint ? <Text style={{ color: colors.textSecondary, fontFamily: "Asap", fontSize: 11 }}>{o.hint}</Text> : null}
             </TouchableOpacity>
           );
         })}
@@ -78,7 +78,7 @@ export function FutureCyclePicker({ subscriptionId, label = "Rige desde el inici
 /** Fecha AAAA-MM-DD con validación. */
 export function DateField({ label, value, onChange, optional }: { label: string; value: string; onChange: (v: string) => void; optional?: boolean }) {
   const bad = value !== "" && !isIsoDate(value);
-  return <Field label={`${label}${optional ? " (opcional)" : ""} · AAAA-MM-DD`} value={value} onChangeText={onChange} placeholder="2026-12-31" error={bad ? "Fecha inválida" : undefined} />;
+  return <Field label={`${label}${optional ? " (opcional)" : ""} · AAAA-MM-DD`} value={value} onChangeText={onChange} placeholder={todayLocalIso()} error={bad ? "Fecha inválida" : undefined} />;
 }
 
 /** Importe en soles con validación. */

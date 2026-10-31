@@ -42,7 +42,7 @@ export default function ForgotPasswordScreen() {
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: colors.background }}
       >
-        <SafeAreaView className="flex-1 px-12 pt-20 pb-12">
+        <SafeAreaView className="flex-1 px-6 pt-20 pb-12">
           {/* Back Button */}
           <TouchableOpacity
             onPress={() => router.back()}
@@ -78,8 +78,8 @@ export default function ForgotPasswordScreen() {
                 Correo Electrónico
               </Text>
               <View
-                className="flex-row items-center rounded-2xl px-5 py-1.5"
-                style={{ backgroundColor: colors.card, borderWidth: error ? 1 : 0, borderColor: colors.expense }}
+                className="flex-row items-center rounded-2xl px-4"
+                style={{ minHeight: 52, backgroundColor: colors.card, borderWidth: error ? 1 : 0, borderColor: colors.expense }}
               >
                 <Ionicons
                   name="mail-outline"

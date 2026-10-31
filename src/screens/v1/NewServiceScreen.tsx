@@ -91,7 +91,7 @@ export default function NewServiceScreen() {
 
   const Chipbtn = ({ on, label, onPress }: { on: boolean; label: string; onPress: () => void }) => (
     <TouchableOpacity onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected: on }}
-      style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
+      style={{ paddingHorizontal: 14, minHeight: 40, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
       <Text style={{ color: on ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{label}</Text>
     </TouchableOpacity>
   );

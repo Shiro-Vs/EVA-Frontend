@@ -3,7 +3,7 @@ import { Switch, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api, errorMessage } from "../../api/client";
 import type { MonthlyData } from "../../api/types";
-import { Button, Card, Chip, Empty, ErrorBox, Heading, KV, Loading, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import { Button, Card, Chip, Empty, ErrorBox, Heading, KV, Loading, Notice, RowLink, Screen, Txt, SwitchRow } from "../../components/v1/ui";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, todayLocalIso } from "../../utils/dates";
@@ -116,7 +116,7 @@ export function MonthlyReportScreen() {
       </View>
       <Card>
         <MultiChoice label="Cuentas (ninguna = todas)" options={(accounts.data ?? []).map((a) => ({ id: a.id, label: a.name }))} value={accountIds} onChange={(v) => { setAccountIds(v); setMsg(null); }} />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><Switch value={detail} onValueChange={setDetail} /><Txt size={13} style={{ flex: 1 }}>Incluir el detalle de movimientos</Txt></View>
+        <SwitchRow label="Incluir el detalle de movimientos" value={detail} onValueChange={setDetail} />
       </Card>
 
       {rep.loading && !d ? <Loading /> : rep.error || !d ? <ErrorBox message={rep.error ?? "No se pudo cargar el resumen."} onRetry={rep.reload} /> : (

@@ -45,7 +45,7 @@ export default function PlanningScreen() {
 
         {/* Monthly Summary Card - Compact Version */}
         <View
-          className="p-5 rounded-[28px] border mb-8 shadow-sm flex-row items-center justify-between"
+          className="p-5 rounded-3xl border mb-8 shadow-sm flex-row items-center justify-between"
           style={{ backgroundColor: colors.card, borderColor: `${colors.text}10` }}
         >
           <View>
@@ -102,7 +102,7 @@ export default function PlanningScreen() {
             <Text className="font-asap-bold text-xl" style={{ color: colors.text }}>Suscripciones</Text>
             <TouchableOpacity
               onPress={() => router.push("/service/new")}
-              className="px-3 py-1.5 rounded-full"
+              className="px-3 py-1.5 rounded-full" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               style={{ backgroundColor: `${colors.primary}15` }}
               accessibilityRole="button"
             >

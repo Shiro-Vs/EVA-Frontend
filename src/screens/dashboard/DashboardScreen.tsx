@@ -208,7 +208,7 @@ function AccountsSection() {
     <View className="mt-10">
       <View className="flex-row justify-between items-center mb-6">
         <Text className="font-asap-bold text-xl" style={{ color: colors.text }}>Mis Cuentas</Text>
-        <TouchableOpacity onPress={() => router.push("/account/new")} className="px-3 py-1.5 rounded-full" style={{ backgroundColor: `${colors.primary}15` }} accessibilityRole="button">
+        <TouchableOpacity onPress={() => router.push("/account/new")} className="px-3 py-1.5 rounded-full" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ backgroundColor: `${colors.primary}15` }} accessibilityRole="button">
           <Text className="font-asap-semibold text-xs" style={{ color: colors.primary }}>+ Añadir</Text>
         </TouchableOpacity>
       </View>

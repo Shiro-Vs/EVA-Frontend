@@ -52,7 +52,7 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: colors.background }}
       >
-        <SafeAreaView className="flex-1 px-12 pt-20 pb-10">
+        <SafeAreaView className="flex-1 px-6 pt-20 pb-10">
           {/* Logo Section */}
           <View className="items-center mb-8">
             <Image

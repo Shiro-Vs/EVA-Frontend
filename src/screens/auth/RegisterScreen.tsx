@@ -60,7 +60,7 @@ export default function RegisterScreen() {
         style={{ backgroundColor: colors.background }}
         scrollEnabled={isKeyboardVisible}
       >
-        <SafeAreaView className="flex-1 px-12 pt-20 pb-12">
+        <SafeAreaView className="flex-1 px-6 pt-20 pb-12">
           {/* Back Button */}
           <TouchableOpacity
             onPress={() => router.back()}
@@ -97,8 +97,8 @@ export default function RegisterScreen() {
                 Nombre Completo
               </Text>
               <View
-                className="flex-row items-center rounded-2xl px-5 py-1.5"
-                style={{ backgroundColor: colors.card, borderWidth: errors.name ? 1 : 0, borderColor: colors.expense }}
+                className="flex-row items-center rounded-2xl px-4"
+                style={{ minHeight: 52, backgroundColor: colors.card, borderWidth: errors.name ? 1 : 0, borderColor: colors.expense }}
               >
                 <Ionicons
                   name="person-outline"
@@ -133,8 +133,8 @@ export default function RegisterScreen() {
                 Correo Electrónico
               </Text>
               <View
-                className="flex-row items-center rounded-2xl px-5 py-1.5"
-                style={{ backgroundColor: colors.card, borderWidth: errors.email ? 1 : 0, borderColor: colors.expense }}
+                className="flex-row items-center rounded-2xl px-4"
+                style={{ minHeight: 52, backgroundColor: colors.card, borderWidth: errors.email ? 1 : 0, borderColor: colors.expense }}
               >
                 <Ionicons
                   name="mail-outline"
@@ -170,8 +170,8 @@ export default function RegisterScreen() {
                 Contraseña
               </Text>
               <View
-                className="flex-row items-center rounded-2xl px-5 py-1.5"
-                style={{ backgroundColor: colors.card, borderWidth: errors.password ? 1 : 0, borderColor: colors.expense }}
+                className="flex-row items-center rounded-2xl px-4"
+                style={{ minHeight: 52, backgroundColor: colors.card, borderWidth: errors.password ? 1 : 0, borderColor: colors.expense }}
               >
                 <Ionicons
                   name="lock-closed-outline"
@@ -215,8 +215,8 @@ export default function RegisterScreen() {
                 Confirmar Contraseña
               </Text>
               <View
-                className="flex-row items-center rounded-2xl px-5 py-1.5"
-                style={{ backgroundColor: colors.card, borderWidth: errors.confirmPassword ? 1 : 0, borderColor: colors.expense }}
+                className="flex-row items-center rounded-2xl px-4"
+                style={{ minHeight: 52, backgroundColor: colors.card, borderWidth: errors.confirmPassword ? 1 : 0, borderColor: colors.expense }}
               >
                 <Ionicons
                   name="shield-checkmark-outline"
