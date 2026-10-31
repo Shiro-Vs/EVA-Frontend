@@ -23,7 +23,7 @@ export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats,
   const full = seats.length >= capacity;
 
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 16 }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>{people} {people === 1 ? "persona" : "personas"} comparten</Text>
@@ -38,7 +38,7 @@ export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats,
           const name = seat.isOwner ? "Tú" : seat.contact?.name ?? "—";
           return (
             <TouchableOpacity key={seat.id} disabled={seat.isOwner} onPress={() => onOpenSeat(seat.id)} activeOpacity={0.7} accessibilityRole="button"
-              style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 16, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
               <EVAAvatar name={name} color={seat.isOwner ? colors.muted : colors.primary} size={38} />
               <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontFamily: "AsapBold" }}>{name}</Text>

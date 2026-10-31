@@ -36,7 +36,7 @@ export const ServicePayments: React.FC<ServicePaymentsProps> = ({ cycles, loadin
 
   return (
     <View>
-      <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap", marginBottom: 4 }}>
+      <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap", marginBottom: 8 }}>
         {shared ? "Tu gasto real es lo que pagaste al proveedor menos lo que te devolvieron." : "Lo que pagaste al proveedor en cada ciclo."}
       </Text>
       {cycles.map((c, i) => {
@@ -47,7 +47,7 @@ export const ServicePayments: React.FC<ServicePaymentsProps> = ({ cycles, loadin
         return (
           <View key={c.id} style={{ borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
             <TouchableOpacity onPress={() => setOpenId(open ? null : c.id)} activeOpacity={0.75} accessibilityRole="button" accessibilityState={{ expanded: open }}
-              style={{ flexDirection: "row", gap: 12, paddingVertical: 12 }}>
+              style={{ flexDirection: "row", gap: 12, paddingVertical: 16 }}>
               <View style={{ width: 4, borderRadius: 2, backgroundColor: paid ? colors.income : colors.warning }} />
               <View style={{ flex: 1, gap: 2 }}>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -66,7 +66,7 @@ export const ServicePayments: React.FC<ServicePaymentsProps> = ({ cycles, loadin
             </TouchableOpacity>
 
             {open && (
-              <View style={{ marginLeft: 16, paddingBottom: 14, gap: 6 }}>
+              <View style={{ marginLeft: 16, paddingBottom: 18, gap: 8 }}>
                 <Line label="Precio del ciclo" value={formatSoles(cost.announcedPrice)} />
                 {paid ? (
                   <>

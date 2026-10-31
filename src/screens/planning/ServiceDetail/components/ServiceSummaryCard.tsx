@@ -36,7 +36,7 @@ export const ServiceSummaryCard: React.FC<ServiceSummaryCardProps> = ({ cycle, s
   const pct = Math.max(0, Math.min(100, pctOf(cost.receivedFromOthers, total)));
 
   return (
-    <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 16, overflow: "hidden", gap: 12 }}>
+    <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 20, overflow: "hidden", gap: 18 }}>
       <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Resumen del ciclo</Text>
@@ -69,7 +69,7 @@ export const ServiceSummaryCard: React.FC<ServiceSummaryCardProps> = ({ cycle, s
       )}
 
       <TouchableOpacity onPress={paid ? onEditPayment : onPayService} accessibilityRole="button" activeOpacity={0.85}
-        style={{ height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, backgroundColor: paid ? "rgba(255,255,255,0.18)" : colors.accent }}>
+        style={{ height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, backgroundColor: paid ? "rgba(255,255,255,0.18)" : colors.accent }}>
         <Ionicons name={paid ? "create-outline" : "cash-outline"} size={18} color={paid ? colors.onPrimary : colors.onAccent} />
         <Text style={{ fontFamily: "AsapBold", fontSize: 14, color: paid ? colors.onPrimary : colors.onAccent }}>{paid ? "Corregir el pago" : "Registrar pago al proveedor"}</Text>
       </TouchableOpacity>

@@ -48,7 +48,7 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 120, gap: 12 }} {...pan.panHandlers}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 120, gap: 22 }} {...pan.panHandlers}>
         <ServiceHeader service={service} accountName={accountName} onBack={back} onMenu={() => setMenu(true)} activeTab={s.activeTab} onSwitchTab={s.switchTab} />
 
         {s.activeTab === "historial" ? (

@@ -37,9 +37,9 @@ export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ 
         const partial = !settled && cmpMoney(c.applied, "0.00") > 0;
         return (
           <TouchableOpacity key={c.obligationId} onPress={() => onPressCharge(c)} activeOpacity={0.75} accessibilityRole="button"
-            style={{ flexDirection: "row", gap: 12, paddingVertical: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
+            style={{ flexDirection: "row", gap: 12, paddingVertical: 16, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
             <View style={{ width: 4, borderRadius: 2, backgroundColor: st.bar }} />
-            <View style={{ flex: 1, gap: 8 }}>
+            <View style={{ flex: 1, gap: 12 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{c.contactName}</Text>
