@@ -1,11 +1,11 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { useAppTheme } from "../../../../hooks/useAppTheme";
+import { Text, TouchableOpacity, View } from "react-native";
 import type { Charge, CycleDetail, CycleRef, Subscription } from "../../../../api/types";
+import { Notice } from "../../../../components/v1/ui";
+import { useAppTheme } from "../../../../hooks/useAppTheme";
 import { CycleCarousel } from "./CycleCarousel";
 import { ServiceSummaryCard } from "./ServiceSummaryCard";
 import { SharedParticipantsList } from "./SharedParticipantsList";
-import { Notice } from "../../../../components/v1/ui";
 
 interface ServiceHistoryProps {
   service: Subscription;
@@ -13,7 +13,6 @@ interface ServiceHistoryProps {
   loading: boolean;
   cycles: CycleRef[];
   selectedIndex: number;
-  screenWidth: number;
   onChangeCycle: (index: number) => void;
   onPayService: () => void;
   onEditPayment: () => void;
@@ -24,43 +23,28 @@ interface ServiceHistoryProps {
   error?: string | null;
 }
 
-export const ServiceHistory: React.FC<ServiceHistoryProps> = ({
-  service, cycle, loading, cycles, selectedIndex, screenWidth, onChangeCycle, onPayService, onEditPayment, onPressCharge, onRemindParticipant, onAdvance, advancing, error,
-}) => {
-  const { colors, fonts } = useAppTheme();
+/** Pestaña de pagos: elegir ciclo, ver su resumen y, si es compartido, el estado de cada participante. */
+export const ServiceHistory: React.FC<ServiceHistoryProps> = ({ service, cycle, loading, cycles, selectedIndex, onChangeCycle, onPayService, onEditPayment, onPressCharge, onRemindParticipant, onAdvance, advancing, error }) => {
+  const { colors } = useAppTheme();
   const shared = service.mode === "shared";
-
   return (
-    <View style={{ flex: 1, paddingHorizontal: 24, width: screenWidth }}>
-      {cycle ? (
-        <ServiceSummaryCard cycle={cycle} service={service} onPayService={onPayService} onEditPayment={onEditPayment} />
-      ) : (
-        <Text style={{ color: colors.textSecondary, fontFamily: fonts.family.regular, textAlign: "center", marginVertical: 24 }}>
-          {loading ? "Cargando ciclo…" : "Este servicio todavía no tiene ciclos."}
-        </Text>
+    <View style={{ gap: 12 }}>
+      <CycleCarousel cycles={cycles} selectedIndex={selectedIndex} currentId={service.currentCycle?.id} onChange={onChangeCycle} />
+      {cycle ? <ServiceSummaryCard cycle={cycle} service={service} onPayService={onPayService} onEditPayment={onEditPayment} /> : (
+        <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", textAlign: "center", paddingVertical: 24 }}>{loading ? "Cargando ciclo…" : "Este servicio todavía no tiene ciclos."}</Text>
       )}
-
-      <View style={{ flex: 1 }}>
-        <View style={{ marginBottom: shared ? 24 : 12 }}>
-          <Text style={{ color: colors.textSecondary, fontFamily: fonts.family.semiBold, fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
-            {shared ? "CONTROL DE PAGO" : "CICLOS"}
-          </Text>
-          <View style={{ backgroundColor: colors.card, borderRadius: 16, paddingVertical: 6 }}>
-            <CycleCarousel cycles={cycles} selectedIndex={selectedIndex} onChange={onChangeCycle} />
-          </View>
-          {shared && (
-            <TouchableOpacity onPress={onAdvance} disabled={advancing} style={{ alignSelf: "flex-end", marginTop: 8, opacity: advancing ? 0.5 : 1 }} accessibilityRole="button">
-              <Text style={{ color: colors.primary, fontFamily: fonts.family.semiBold, fontSize: 11 }}>+ Emitir el próximo ciclo por adelantado</Text>
+      {error && <Notice tone="err">{error}</Notice>}
+      {shared && cycle && (
+        <>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>Quién ha pagado</Text>
+            <TouchableOpacity onPress={onAdvance} disabled={advancing} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ opacity: advancing ? 0.5 : 1 }}>
+              <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>+ Emitir el próximo ciclo</Text>
             </TouchableOpacity>
-          )}
-        </View>
-
-        {error && <View style={{ marginBottom: 12 }}><Notice tone="err">{error}</Notice></View>}
-
-        {shared && cycle && (
+          </View>
           <SharedParticipantsList charges={cycle.charges} onPressCharge={onPressCharge} onRemindParticipant={onRemindParticipant} />
-        )}
-      </View>
+        </>
+      )}
     </View>
   );
 };

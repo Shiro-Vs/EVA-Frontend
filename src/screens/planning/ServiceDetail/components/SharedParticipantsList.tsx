@@ -1,8 +1,8 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppTheme } from "../../../../hooks/useAppTheme";
 import type { Charge } from "../../../../api/types";
+import { useAppTheme } from "../../../../hooks/useAppTheme";
 import { humanDate } from "../../../../utils/dates";
 import { cmpMoney, formatSoles } from "../../../../utils/money";
 
@@ -12,88 +12,55 @@ interface SharedParticipantsListProps {
   onRemindParticipant: (contactId: string) => void;
 }
 
-/** Estado de pago de cada participante en el ciclo seleccionado (misma tarjeta con indicador lateral de antes). */
+/** Estado de pago de cada participante en el ciclo seleccionado: una lista con su estado, lo que debe y el aviso por WhatsApp. */
 export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ charges, onPressCharge, onRemindParticipant }) => {
-  const { colors, fonts } = useAppTheme();
+  const { colors } = useAppTheme();
 
   const statusOf = (c: Charge) => {
-    if (c.paymentStatus === "exempt") return { bg: `${colors.primary}15`, fg: colors.primary, label: "CORTESÍA", icon: "gift", bar: colors.primary };
-    if (c.paymentStatus === "paid") return { bg: `${colors.income}15`, fg: colors.incomeStrong, label: "PAGADO", icon: undefined, bar: colors.income };
-    if (c.paymentStatus === "partial") return { bg: `${colors.warning}15`, fg: colors.warning, label: c.overdue ? "PARCIAL · VENCIDO" : "PARCIAL", icon: undefined, bar: colors.warning };
-    if (c.overdue) return { bg: `${colors.expense}15`, fg: colors.expenseStrong, label: "VENCIDO", icon: undefined, bar: colors.expense };
-    return { bg: `${colors.textSecondary}10`, fg: colors.textSecondary, label: "PENDIENTE", icon: undefined, bar: colors.warning };
+    if (c.paymentStatus === "exempt") return { fg: colors.primary, bg: `${colors.primary}1A`, label: "Cortesía", icon: "gift-outline" as const };
+    if (c.paymentStatus === "paid") return { fg: colors.incomeStrong, bg: `${colors.income}22`, label: "Pagado", icon: "checkmark" as const };
+    if (c.paymentStatus === "partial") return { fg: colors.warningStrong, bg: `${colors.warning}26`, label: c.overdue ? "Parcial · vencido" : "Parcial", icon: "ellipse-outline" as const };
+    if (c.overdue) return { fg: colors.expenseStrong, bg: `${colors.expense}22`, label: "Vencido", icon: "alert-circle-outline" as const };
+    return { fg: colors.textSecondary, bg: `${colors.text}10`, label: "Pendiente", icon: "time-outline" as const };
   };
 
   if (charges.length === 0) {
-    return (
-      <View style={{ alignItems: "center", paddingVertical: 32 }}>
-        <Text style={{ color: colors.textSecondary, fontFamily: fonts.family.regular, fontSize: 13, textAlign: "center" }}>
-          Este ciclo todavía no tiene cargos para los participantes.
-        </Text>
-      </View>
-    );
+    return <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", textAlign: "center", paddingVertical: 24 }}>Este ciclo todavía no tiene cargos para los participantes.</Text>;
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-      {charges.map((c) => {
-        const status = statusOf(c);
+    <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
+      {charges.map((c, i) => {
+        const st = statusOf(c);
         const settled = c.paymentStatus === "paid" || c.paymentStatus === "exempt";
         const hasPending = cmpMoney(c.pending, "0.00") > 0;
         return (
-          <TouchableOpacity
-            key={c.obligationId}
-            onPress={() => onPressCharge(c)}
-            style={{
-              backgroundColor: colors.card, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, marginBottom: 8,
-              flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-              borderLeftWidth: 4, borderLeftColor: status.bar, borderWidth: 1, borderColor: `${colors.text}05`,
-              opacity: c.paymentStatus === "exempt" ? 0.8 : 1,
-            }}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", marginRight: 12, backgroundColor: `${colors.primary}15` }}>
-                <Text style={{ fontFamily: fonts.family.bold, fontSize: 14, color: colors.primary }}>{c.contactName.charAt(0)}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontFamily: fonts.family.bold, fontSize: 14 }} numberOfLines={1}>{c.contactName}</Text>
-                <Text style={{ color: colors.textSecondary, fontFamily: fonts.family.regular, fontSize: 11 }}>
-                  {c.seatLabel} · vence {humanDate(c.dueDate)}
-                </Text>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={{ color: colors.textSecondary, fontFamily: fonts.family.regular, fontSize: 12 }}>
-                    {settled ? formatSoles(c.paymentStatus === "exempt" ? "0.00" : c.applied) : `Debe ${formatSoles(c.pending)}`}
-                  </Text>
-                  {!settled && cmpMoney(c.applied, "0.00") > 0 && (
-                    <Text style={{ color: `${colors.text}50`, fontFamily: fonts.family.regular, fontSize: 9, marginLeft: 8 }}>
-                      (pagó {formatSoles(c.applied)} de {formatSoles(c.net)})
-                    </Text>
-                  )}
-                </View>
-              </View>
+          <TouchableOpacity key={c.obligationId} onPress={() => onPressCharge(c)} activeOpacity={0.7} accessibilityRole="button"
+            style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border, opacity: c.paymentStatus === "exempt" ? 0.85 : 1 }}>
+            <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}1A` }}>
+              <Text style={{ color: colors.primary, fontSize: 15, fontFamily: "AsapBold" }}>{c.contactName.charAt(0)}</Text>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <View style={{ backgroundColor: status.bg, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: hasPending ? 12 : 0, flexDirection: "row", alignItems: "center" }}>
-                {status.icon && <Ionicons name={status.icon as any} size={10} color={status.fg} style={{ marginRight: 4 }} />}
-                <Text style={{ color: status.fg, fontFamily: fonts.family.bold, fontSize: 8, textTransform: "uppercase" }}>{status.label}</Text>
-              </View>
-              {hasPending && (
-                <TouchableOpacity
-                  onPress={() => onRemindParticipant(c.contactId)}
-                  accessibilityLabel={`Preparar mensaje de cobro para ${c.contactName}`}
-                  style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: `${colors.income}15`, alignItems: "center", justifyContent: "center" }}
-                >
-                  <Ionicons name="logo-whatsapp" size={16} color={colors.income} />
-                </TouchableOpacity>
-              )}
+            <View style={{ flex: 1, gap: 1 }}>
+              <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontFamily: "AsapBold" }}>{c.contactName}</Text>
+              <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
+                {settled ? (c.paymentStatus === "exempt" ? "Sin cargo este ciclo" : `Pagó ${formatSoles(c.applied)}`) : `Debe ${formatSoles(c.pending)}`} · vence {humanDate(c.dueDate)}
+              </Text>
+              {!settled && cmpMoney(c.applied, "0.00") > 0 && <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>Pagó {formatSoles(c.applied)} de {formatSoles(c.net)}</Text>}
             </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: st.bg, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }}>
+              <Ionicons name={st.icon} size={12} color={st.fg} />
+              <Text style={{ color: st.fg, fontSize: 11, fontFamily: "AsapBold" }}>{st.label}</Text>
+            </View>
+            {hasPending && (
+              <TouchableOpacity onPress={() => onRemindParticipant(c.contactId)} accessibilityRole="button" accessibilityLabel={`Preparar mensaje de cobro para ${c.contactName}`} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${colors.income}22`, alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="logo-whatsapp" size={18} color={colors.incomeStrong} />
+              </TouchableOpacity>
+            )}
           </TouchableOpacity>
         );
       })}
-      <View style={{ height: 100 }} />
-    </ScrollView>
+    </View>
   );
 };
 

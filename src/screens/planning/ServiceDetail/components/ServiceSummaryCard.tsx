@@ -1,8 +1,8 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppTheme } from "../../../../hooks/useAppTheme";
 import type { CycleDetail, Subscription } from "../../../../api/types";
+import { useAppTheme } from "../../../../hooks/useAppTheme";
 import { humanDate } from "../../../../utils/dates";
 import { cycleLabel } from "../../../../utils/intervals";
 import { cmpMoney, formatSoles, pctOf } from "../../../../utils/money";
@@ -14,77 +14,65 @@ interface ServiceSummaryCardProps {
   onEditPayment: () => void;
 }
 
-/** Tarjeta azul "Resumen de Pago" del ciclo seleccionado. Todos los importes los calcula el servidor. */
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium" }}>{label}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 17, fontFamily: "AsapBold" }}>{value}</Text>
+      {hint ? <Text style={{ color: colors.onPrimaryMuted, fontSize: 10, fontFamily: "Asap" }}>{hint}</Text> : null}
+    </View>
+  );
+}
+
+/** Resumen del ciclo seleccionado, en el color de marca (el mismo de las demás tarjetas destacadas). Los importes los calcula el servidor. */
 export const ServiceSummaryCard: React.FC<ServiceSummaryCardProps> = ({ cycle, service, onPayService, onEditPayment }) => {
-  const { colors, fonts } = useAppTheme();
+  const { colors } = useAppTheme();
   const cost = cycle.costSummary;
   const paid = cycle.supplierPayment;
   const total = cost.actualPaid ?? cost.announcedPrice;
   const shared = service.mode === "shared";
   const hasSurplus = cmpMoney(cost.surplus, "0.00") > 0;
-  const small = { color: "rgba(255,255,255,0.7)", fontFamily: fonts.family.regular, fontSize: 9, textTransform: "uppercase" as const };
+  const pct = Math.max(0, Math.min(100, pctOf(cost.receivedFromOthers, total)));
 
   return (
-    <View style={{ backgroundColor: colors.primary, borderRadius: 24, padding: 16, marginBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 5 }}>
-      <View style={{ marginBottom: 12 }}>
-        <Text style={{ color: "rgba(255,255,255,0.8)", fontFamily: fonts.family.semiBold, fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
-          Resumen de Pago
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-          <Text style={{ color: "white", fontFamily: fonts.family.bold, fontSize: 24, marginRight: 12 }}>
-            {humanDate(cycle.startDate)} → {humanDate(cycle.endDate)}
-          </Text>
-          <View style={{ marginTop: 4 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.2)", alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-              <Ionicons name="repeat" size={12} color="white" style={{ marginRight: 6 }} />
-              <Text style={{ color: "white", fontFamily: fonts.family.semiBold, fontSize: 11 }}>{cycleLabel(service.terms?.interval)}</Text>
-            </View>
-          </View>
+    <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 16, overflow: "hidden", gap: 12 }}>
+      <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Resumen del ciclo</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.16)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+          <Ionicons name="repeat" size={12} color={colors.onPrimary} />
+          <Text style={{ color: colors.onPrimary, fontSize: 11, fontFamily: "AsapBold" }}>{cycleLabel(service.terms?.interval).replace("Ciclo ", "")}</Text>
         </View>
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-        <Ionicons name="card-outline" size={12} color="rgba(255,255,255,0.9)" />
-        <Text style={{ color: "rgba(255,255,255,0.9)", fontFamily: fonts.family.semiBold, fontSize: 10, marginLeft: 4 }}>
-          {paid ? `Pagado con: ${paid.account?.name ?? "—"} el ${humanDate(paid.paidOn)}` : "Sin pago registrado"}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Ionicons name={paid ? "checkmark-circle" : "time-outline"} size={14} color={colors.onPrimaryMuted} />
+        <Text style={{ flex: 1, color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "AsapMedium" }}>
+          {paid ? `Pagado con ${paid.account?.name ?? "—"} el ${humanDate(paid.paidOn)}` : "Aún no registraste el pago al proveedor"}
         </Text>
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
-        <View style={{ flex: 1, marginRight: 16 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-            <View>
-              <Text style={small}>{paid ? "Costo Total" : "Precio anunciado"}</Text>
-              <Text style={{ color: "white", fontFamily: fonts.family.bold, fontSize: 14 }}>{formatSoles(total)}</Text>
-            </View>
-            {shared && (
-              <View>
-                <Text style={small}>Recaudado</Text>
-                <Text style={{ color: "white", fontFamily: fonts.family.bold, fontSize: 14 }}>{formatSoles(cost.receivedFromOthers)}</Text>
-              </View>
-            )}
-            <View style={{ alignItems: "flex-end" }}>
-              <Text style={small}>{!shared ? "Total" : hasSurplus ? "Saldo" : "Tu Gasto"}</Text>
-              <Text style={{ color: "white", fontFamily: fonts.family.bold, fontSize: 14 }}>
-                {formatSoles(!shared ? total : hasSurplus ? cost.surplus : cost.costByCollections)}
-              </Text>
-            </View>
-          </View>
-          {shared && (
-            <View style={{ backgroundColor: "rgba(255,255,255,0.3)", height: 6, borderRadius: 3, overflow: "hidden" }}>
-              <View style={{ backgroundColor: "white", height: "100%", width: `${pctOf(cost.receivedFromOthers, total)}%` }} />
-            </View>
-          )}
-          {shared && !cost.estimated && (
-            <Text style={{ color: "rgba(255,255,255,0.8)", fontFamily: fonts.family.regular, fontSize: 10, marginTop: 6 }}>
-              Previsto {formatSoles(cost.projectedCost)} · Pendiente de cobrar {formatSoles(cost.pendingFromOthers)}
-            </Text>
-          )}
-        </View>
-        <TouchableOpacity onPress={paid ? onEditPayment : onPayService} style={{ backgroundColor: "white", paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16 }} accessibilityRole="button">
-          <Text style={{ fontFamily: fonts.family.bold, fontSize: 12, color: paid ? colors.incomeStrong : colors.expenseStrong }}>{paid ? "EDITAR" : "PAGAR"}</Text>
-        </TouchableOpacity>
+      <View style={{ flexDirection: "row", gap: 12 }}>
+        <Stat label={paid ? "Costo total" : "Precio"} value={formatSoles(total)} />
+        {shared && <Stat label="Recaudado" value={formatSoles(cost.receivedFromOthers)} />}
+        <Stat label={!shared ? "Total" : hasSurplus ? "A tu favor" : "Tu gasto"} value={formatSoles(!shared ? total : hasSurplus ? cost.surplus : cost.costByCollections)} />
       </View>
+
+      {shared && (
+        <View style={{ gap: 6 }}>
+          <View style={{ backgroundColor: "rgba(255,255,255,0.22)", height: 6, borderRadius: 3, overflow: "hidden" }}>
+            <View style={{ backgroundColor: colors.onPrimary, height: "100%", width: `${pct}%` }} />
+          </View>
+          {!cost.estimated && <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "Asap" }}>Previsto {formatSoles(cost.projectedCost)} · Por cobrar {formatSoles(cost.pendingFromOthers)}</Text>}
+        </View>
+      )}
+
+      <TouchableOpacity onPress={paid ? onEditPayment : onPayService} accessibilityRole="button" activeOpacity={0.85}
+        style={{ height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, backgroundColor: paid ? "rgba(255,255,255,0.18)" : colors.accent }}>
+        <Ionicons name={paid ? "create-outline" : "cash-outline"} size={18} color={paid ? colors.onPrimary : colors.onAccent} />
+        <Text style={{ fontFamily: "AsapBold", fontSize: 14, color: paid ? colors.onPrimary : colors.onAccent }}>{paid ? "Corregir el pago" : "Registrar pago al proveedor"}</Text>
+      </TouchableOpacity>
     </View>
   );
 };
