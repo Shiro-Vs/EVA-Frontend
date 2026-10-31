@@ -52,8 +52,6 @@ export function useServiceDetail(serviceId: string) {
 
   const selectCycleAt = (index: number) => { const c = ordered[index]; if (c) setSelectedId(c.id); };
 
-  const selectCycleById = (id: string) => setSelectedId(id);
-
   const advance = useSubmit(async (key: string) => { await api.generateAhead(serviceId, 1, key); reloadAll(); });
 
   const reversePayment = useSubmit(async (key: string) => {
@@ -88,7 +86,7 @@ export function useServiceDetail(serviceId: string) {
   };
 
   return {
-    sub, seats, accounts, detail, history, ordered, selectedIndex, selectCycleAt, selectCycleById,
+    sub, seats, accounts, detail, history, ordered, selectedIndex, selectCycleAt,
     activeTab, switchTab, scrollViewRef, SCREEN_WIDTH,
     isEditVisible, setEditVisible, confirmReverse, setConfirmReverse,
     advance, reversePayment, preferredAccount, remindError,

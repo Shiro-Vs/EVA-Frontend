@@ -40,7 +40,7 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
         <ServiceHeader service={service} accountName={accountName} onBack={back} onMenu={() => setMenu(true)} activeTab={s.activeTab} onSwitchTab={s.switchTab} />
 
         {s.activeTab === "historial" ? (
-          <ServicePayments cycles={s.history.data} loading={s.history.loading} shared={shared} onOpenCycle={(id) => { s.selectCycleById(id); s.switchTab("ciclo"); }} />
+          <ServicePayments cycles={s.history.data} loading={s.history.loading} shared={shared} />
         ) : shared && s.activeTab === "participantes" ? (
           <ServiceParticipants seats={s.seats.data ?? []} shared={shared} capacity={service.capacity} onAddSubscriber={s.goJoin} onOpenSeat={(sid) => s.router.push(`/seat/${sid}` as never)} />
         ) : (
