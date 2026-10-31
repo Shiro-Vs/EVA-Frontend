@@ -24,7 +24,7 @@ export function ContactsHeader({
 
   return (
     <View 
-      className="p-6 rounded-[32px] mb-8 shadow-lg relative overflow-hidden"
+      className="p-5 rounded-[28px] mb-5 shadow-lg relative overflow-hidden"
       style={{ backgroundColor: colors.primary, shadowColor: colors.primary, shadowOpacity: 0.2 }}
     >
       {/* Círculos decorativos */}

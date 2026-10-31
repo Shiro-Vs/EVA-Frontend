@@ -91,7 +91,7 @@ export function RemindModal({ visible, onClose, debtors }: RemindModalProps) {
       </Text>
 
       <View 
-        className="p-5 pt-10 rounded-3xl mb-8 relative"
+        className="p-4 pt-10 rounded-3xl mb-6 relative"
         style={{ backgroundColor: colors.card }}
       >
         {!loading && (
@@ -126,7 +126,7 @@ export function RemindModal({ visible, onClose, debtors }: RemindModalProps) {
       <View className="flex-row gap-3 mb-2">
         <TouchableOpacity
           onPress={onClose}
-          className="flex-1 items-center justify-center h-14 rounded-2xl"
+          className="flex-1 items-center justify-center h-12 rounded-2xl"
           style={{ backgroundColor: colors.card }}
           activeOpacity={0.7}
         >
@@ -140,7 +140,7 @@ export function RemindModal({ visible, onClose, debtors }: RemindModalProps) {
 
         <TouchableOpacity
           onPress={handleWhatsApp}
-          className="flex-[1.5] flex-row items-center justify-center h-14 rounded-2xl shadow-lg"
+          className="flex-[1.5] flex-row items-center justify-center h-12 rounded-2xl shadow-lg"
           style={{ backgroundColor: colors.income, shadowColor: colors.income, shadowOpacity: 0.2 }}
           activeOpacity={0.8}
         >

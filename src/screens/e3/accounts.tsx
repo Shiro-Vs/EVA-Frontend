@@ -159,7 +159,7 @@ export function StatementScreen() {
       </Card>
       <Heading>Pagos vinculados</Heading>
       {s.payments.length === 0 ? <Card><Txt muted>Ningún pago vinculado.</Txt></Card> : s.payments.map((p) => (
-        <Card key={p.id} outlined><View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Txt style={{ flex: 1 }} size={13}>{humanDate(p.occurredOn)} · {formatSoles(p.amount)}</Txt><Button title="Quitar" variant="secondary" busy={unlink.busy} onPress={async () => { if (await unlink.submit(p.id)) void st.reload(); }} /></View></Card>
+        <Card key={p.id} outlined><View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Txt style={{ flex: 1 }} size={13}>{humanDate(p.occurredOn)} · {formatSoles(p.amount)}</Txt><Button title="Quitar" variant="secondary" size="small" busy={unlink.busy} onPress={async () => { if (await unlink.submit(p.id)) void st.reload(); }} /></View></Card>
       ))}
       {s.status !== "void" && (
         <Card>
@@ -302,8 +302,8 @@ export function RecurringDetailScreen() {
             <Txt style={{ flex: 1 }} size={13}>{humanDate(o.dueDate)} · {formatSoles(o.amount)}</Txt>
             <Chip status={o.status === "confirmed" ? (o.operationReversed ? "converted" : "paid") : o.status === "skipped" ? "converted" : "partial"} label={o.status === "confirmed" ? (o.operationReversed ? "Revertido" : "Confirmada") : o.status === "skipped" ? "Omitida" : "Por decidir"} />
           </View>
-          {o.status === "pending" && <Button title="Decidir" variant="secondary" onPress={() => router.push(`/recurring/occurrence/${o.id}` as never)} />}
-          {(o.status === "skipped" || o.operationReversed) && <Button title="Reabrir" variant="secondary" busy={reopen.busy} onPress={async () => { if (await reopen.submit(o.id)) void t.reload(); }} />}
+          {o.status === "pending" && <Button title="Decidir" variant="secondary" size="small" onPress={() => router.push(`/recurring/occurrence/${o.id}` as never)} />}
+          {(o.status === "skipped" || o.operationReversed) && <Button title="Reabrir" variant="secondary" size="small" busy={reopen.busy} onPress={async () => { if (await reopen.submit(o.id)) void t.reload(); }} />}
         </Card>
       ))}
       {reopen.error && <Notice tone="err">{reopen.error}</Notice>}

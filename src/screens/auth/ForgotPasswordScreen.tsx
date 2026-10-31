@@ -56,7 +56,7 @@ export default function ForgotPasswordScreen() {
           </TouchableOpacity>
 
           {/* Logo Section */}
-          <View className="items-center mb-10">
+          <View className="items-center mb-6">
             <Image
               source={isDark ? LOGO_DARK : LOGO_LIGHT}
               style={{ width: 100, height: 100 }}
@@ -109,7 +109,7 @@ export default function ForgotPasswordScreen() {
 
             <TouchableOpacity
               onPress={handleResetPassword}
-              className="rounded-2xl h-16 items-center justify-center shadow-lg mt-10"
+              className="rounded-2xl h-12 items-center justify-center shadow-lg mt-6"
               style={{ backgroundColor: colors.primarySurface }}
               activeOpacity={0.8}
             >

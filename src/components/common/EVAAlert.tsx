@@ -101,7 +101,7 @@ export default function EVAAlert({
         />
 
         <View 
-          className="w-[85%] rounded-[32px] p-8 items-center shadow-2xl border"
+          className="w-[88%] rounded-3xl p-5 items-center shadow-2xl border"
           style={{ 
             backgroundColor: colors.card,
             borderColor: `${colors.text}05`
@@ -126,7 +126,7 @@ export default function EVAAlert({
             {title}
           </Text>
           <Text
-            className="text-center text-base leading-6 mb-8 px-2"
+            className="text-center text-base leading-6 mb-5 px-2"
             style={{ fontFamily: fonts.family.regular, color: colors.textSecondary }}
           >
             {message}
@@ -139,7 +139,7 @@ export default function EVAAlert({
             {secondaryButtonText && (
               <TouchableOpacity
                 onPress={onSecondaryAction}
-                className={`${horizontalButtons ? "flex-1" : "w-full"} h-14 rounded-2xl items-center justify-center`}
+                className={`${horizontalButtons ? "flex-1" : "w-full"} h-12 rounded-2xl items-center justify-center`}
                 style={{ backgroundColor: `${colors.muted}15` }}
                 activeOpacity={0.7}
               >
@@ -154,7 +154,7 @@ export default function EVAAlert({
 
             <TouchableOpacity
               onPress={onClose}
-              className={`${horizontalButtons ? "flex-1" : "w-full"} h-14 rounded-2xl items-center justify-center shadow-lg`}
+              className={`${horizontalButtons ? "flex-1" : "w-full"} h-12 rounded-2xl items-center justify-center shadow-lg`}
               style={{
                 backgroundColor: themeVars.iconColor,
                 shadowColor: themeVars.iconColor,

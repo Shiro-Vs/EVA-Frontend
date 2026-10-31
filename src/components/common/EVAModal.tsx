@@ -62,7 +62,7 @@ export default function EVAModal({
         />
         
         <View 
-          className="w-[85%] max-h-[85%] rounded-[32px] p-8 shadow-2xl flex flex-col"
+          className="w-[88%] max-h-[85%] rounded-3xl p-5 shadow-2xl flex flex-col"
           style={{ backgroundColor: colors.background, borderColor: colors.border, borderWidth: isDark ? 1 : 0 }}
         >
           {/* Header */}
@@ -93,7 +93,7 @@ export default function EVAModal({
             {secondaryButtonText && (
               <TouchableOpacity
                 onPress={onSecondaryAction || onClose}
-                className="flex-1 h-14 rounded-2xl items-center justify-center"
+                className="flex-1 h-12 rounded-2xl items-center justify-center"
                 style={{ backgroundColor: colors.card }}
                 activeOpacity={0.7}
               >
@@ -111,7 +111,7 @@ export default function EVAModal({
                 onPress={onPrimaryAction}
                 style={{
                   flex: 1,
-                  height: 56,
+                  height: 48,
                   borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',

@@ -57,7 +57,7 @@ export function AddSubscriberModal({ visible, onClose, contact }: AddSubscriberM
             <ActivityIndicator color={colors.primary} className="py-4" />
           ) : services.length === 0 ? (
             <View 
-              className="p-6 rounded-2xl items-center"
+              className="p-4 rounded-2xl items-center"
               style={{ backgroundColor: colors.card }}
             >
               <Ionicons name="checkmark-done-circle-outline" size={32} color={colors.income} />

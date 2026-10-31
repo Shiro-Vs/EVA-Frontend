@@ -54,7 +54,7 @@ export default function LoginScreen() {
       >
         <SafeAreaView className="flex-1 px-6 pt-20 pb-10">
           {/* Logo Section */}
-          <View className="items-center mb-8">
+          <View className="items-center mb-5">
             <Image
               source={isDark ? LOGO_DARK : LOGO_LIGHT}
               style={{ width: 110, height: 110 }}
@@ -181,7 +181,7 @@ export default function LoginScreen() {
             <TouchableOpacity
               onPress={handleLogin}
               disabled={isAuthenticating}
-              className="rounded-2xl h-12 items-center justify-center shadow-lg mt-4"
+              className="rounded-2xl h-12 items-center justify-center shadow-lg mt-3"
               style={{ backgroundColor: colors.primarySurface, opacity: isAuthenticating ? 0.7 : 1 }}
               activeOpacity={0.8}
             >

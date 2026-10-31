@@ -74,7 +74,7 @@ export default function RegisterScreen() {
           </TouchableOpacity>
 
           {/* Logo Section */}
-          <View className="items-center mb-10">
+          <View className="items-center mb-6">
             <Image
               source={isDark ? LOGO_DARK : LOGO_LIGHT}
               style={{ width: 100, height: 100 }}
@@ -257,7 +257,7 @@ export default function RegisterScreen() {
             <TouchableOpacity
               onPress={handleRegister}
               disabled={isAuthenticating}
-              className="rounded-2xl h-16 items-center justify-center shadow-lg mt-10"
+              className="rounded-2xl h-12 items-center justify-center shadow-lg mt-6"
               style={{ backgroundColor: colors.primarySurface, opacity: isAuthenticating ? 0.7 : 1 }}
               activeOpacity={0.8}
             >

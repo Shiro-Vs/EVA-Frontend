@@ -53,7 +53,7 @@ export default function DashboardScreen() {
     <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
       <ScrollView showsVerticalScrollIndicator={false} className="px-6">
         {/* Header */}
-        <View className="flex-row justify-between items-center mt-6 mb-8">
+        <View className="flex-row justify-between items-center mt-4 mb-5">
           <View>
             <Text className="font-asap text-base" style={{ color: colors.textSecondary }}>
               Bienvenido de nuevo,
@@ -76,7 +76,7 @@ export default function DashboardScreen() {
 
         {/* Balance Card - Premium Design */}
         <View
-          className="rounded-[32px] p-8 shadow-xl relative overflow-hidden"
+          className="rounded-[28px] p-6 shadow-xl relative overflow-hidden"
           style={{ width: width - 48, backgroundColor: colors.primarySurface }}
         >
           {/* Círculos decorativos de fondo */}
@@ -97,7 +97,7 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          <View className="mt-8 flex-row items-center">
+          <View className="mt-5 flex-row items-center">
             <View className="flex-row items-center px-3 py-1 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
               <Ionicons name={owed ? "people" : "checkmark-circle"} size={16} color={colors.income} />
               <Text className="font-asap-semibold text-xs ml-1" style={{ color: colors.onPrimary }}>
@@ -113,7 +113,7 @@ export default function DashboardScreen() {
         <DailyTipCard />
 
         {/* Quick Actions */}
-        <View className="flex-row justify-between mt-10">
+        <View className="flex-row justify-between mt-6">
           {[
             { label: "Cobrar", icon: "cash-outline", section: "money", to: "/people" },
             { label: "Servicios", icon: "calendar-outline", section: "services", to: "/planning" },
@@ -123,7 +123,7 @@ export default function DashboardScreen() {
             <View key={index} className="items-center">
               <TouchableOpacity
                 onPress={() => router.push(action.to as never)}
-                className="w-16 h-16 rounded-2xl items-center justify-center shadow-sm border"
+                className="w-14 h-14 rounded-2xl items-center justify-center shadow-sm border"
                 style={{ backgroundColor: colors.sections[action.section as SectionKey].tint, borderColor: "transparent" }}
                 activeOpacity={0.7}
                 accessibilityRole="button"
@@ -142,7 +142,7 @@ export default function DashboardScreen() {
         <AccountsSection />
 
         {/* Recent Transactions Section */}
-        <View className="mt-10 mb-10">
+        <View className="mt-6 mb-6">
           <View className="flex-row justify-between items-center mb-6">
             <Text className="font-asap-bold text-xl" style={{ color: colors.text }}>
               Actividad Reciente
@@ -205,7 +205,7 @@ function AccountsSection() {
   const ICON: Record<string, keyof typeof Ionicons.glyphMap> = { bank: "business", savings: "save", cash: "cash", wallet: "phone-portrait", credit: "card" };
 
   return (
-    <View className="mt-10">
+    <View className="mt-6">
       <View className="flex-row justify-between items-center mb-6">
         <Text className="font-asap-bold text-xl" style={{ color: colors.text }}>Mis Cuentas</Text>
         <TouchableOpacity onPress={() => router.push("/account/new")} className="px-3 py-1.5 rounded-full" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ backgroundColor: `${colors.primary}15` }} accessibilityRole="button">

@@ -69,7 +69,7 @@ export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats,
         })}
 
         {!shared && (
-          <View style={{ backgroundColor: `${colors.card}80`, borderRadius: 24, padding: 32, alignItems: "center", borderStyle: "dashed", borderWidth: 1, borderColor: `${colors.border}30`, marginTop: 16 }}>
+          <View style={{ backgroundColor: `${colors.card}80`, borderRadius: 24, padding: 20, alignItems: "center", borderStyle: "dashed", borderWidth: 1, borderColor: `${colors.border}30`, marginTop: 16 }}>
             <Text style={{ color: colors.text, fontFamily: fonts.family.bold, textAlign: "center", marginBottom: 8 }}>Servicio Individual</Text>
             <Text style={{ color: colors.textSecondary, fontFamily: fonts.family.regular, fontSize: 12, textAlign: "center" }}>
               Este servicio no es compartido.

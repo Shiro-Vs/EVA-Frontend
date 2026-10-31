@@ -36,8 +36,8 @@ export function CategoriesScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Txt bold style={{ flex: 1 }}>{c.name}</Txt>
           {c.status === "archived" && <Chip status="converted" label="Archivada" />}
-          <Button title="Renombrar" variant="secondary" onPress={() => setEditing({ id: c.id, name: c.name, version: c.version })} />
-          <Button title={c.status === "active" ? "Archivar" : "Restaurar"} variant="secondary" onPress={async () => { if (await toggle.submit(c)) void cats.reload(); }} />
+          <Button title="Renombrar" variant="secondary" size="small" onPress={() => setEditing({ id: c.id, name: c.name, version: c.version })} />
+          <Button title={c.status === "active" ? "Archivar" : "Restaurar"} variant="secondary" size="small" onPress={async () => { if (await toggle.submit(c)) void cats.reload(); }} />
         </View>
       )}
     </Card>
@@ -76,7 +76,7 @@ export function RulesScreen() {
               <Txt size={12} muted>Prioridad {r.priority} · {r.action === "assign" ? "asigna" : "sugiere"} «{r.category.name}»</Txt>
               <Txt size={12} muted>{[r.direction === "income" ? "ingreso" : r.direction === "expense" ? "gasto" : null, r.textContains ? `contiene «${r.textContains}»` : null, r.amountMin ? `desde S/ ${r.amountMin}` : null, r.amountMax ? `hasta S/ ${r.amountMax}` : null].filter(Boolean).join(" · ")}</Txt>
             </View>
-            <Button title={r.status === "active" ? "Archivar" : "Restaurar"} variant="secondary" onPress={async () => { if (await act.submit(r.id, r.status === "active" ? "archive" : "restore")) void rules.reload(); }} />
+            <Button title={r.status === "active" ? "Archivar" : "Restaurar"} variant="secondary" size="small" onPress={async () => { if (await act.submit(r.id, r.status === "active" ? "archive" : "restore")) void rules.reload(); }} />
           </View>
         </Card>
       ))}

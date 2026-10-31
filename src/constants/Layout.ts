@@ -14,7 +14,7 @@ export const screenPadding = 24;
 export const minTouch = 44;
 
 /** Altura de controles (densidad compacta). `compact` = botón en línea o cabecera; `regular` = botón de formulario; `field` = campo de texto; `chip` = etiqueta de selección. */
-export const control = { compact: 40, regular: 48, field: 44, chip: 32 } as const;
+export const control = { small: 34, compact: 40, regular: 48, field: 44, chip: 32 } as const;
 
 /** Tipografía: nada por debajo de 11 (la barra inferior usa 10 por espacio y es la única excepción). */
 export const fontSize = { micro: 10, caption: 11, small: 12, body: 14, base: 16, title: 20, display: 24 } as const;

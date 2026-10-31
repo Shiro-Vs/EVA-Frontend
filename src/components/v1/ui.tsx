@@ -65,7 +65,7 @@ export function Card({ children, outlined, style }: { children: React.ReactNode;
 export function HeroCard({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
   const { colors } = useAppTheme();
   return (
-    <View style={[{ backgroundColor: colors.primarySurface, borderRadius: 32, padding: 24, overflow: "hidden" }, style]}>
+    <View style={[{ backgroundColor: colors.primarySurface, borderRadius: 28, padding: 20, overflow: "hidden" }, style]}>
       <View style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(255,255,255,0.1)" }} />
       <View style={{ position: "absolute", bottom: -80, left: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(0,0,0,0.1)" }} />
       {children}
@@ -104,10 +104,15 @@ export function Money({ value, size = 16, bold = true, tone }: { value: string; 
   return <Text style={{ color, fontSize: size, fontFamily: bold ? "AsapBold" : "Asap" }}>{formatSoles(value)}</Text>;
 }
 
-/** `regular` (56) para acciones de formulario y pie de pantalla; `compact` (44) para botones en línea o en cabeceras. */
-export function Button({ title, onPress, variant = "primary", busy, disabled, icon, size = "regular" }: { title: string; onPress: () => void; variant?: "primary" | "secondary" | "danger"; busy?: boolean; disabled?: boolean; icon?: IconName; size?: "regular" | "compact" }) {
+/**
+ * Tres tamaños: `regular` (48) acción principal de un formulario o pie de pantalla; `compact` (40) acciones secundarias;
+ * `small` (34) acciones dentro de una fila de lista (Renombrar, Archivar…). Si no se indica, el principal es `regular` y el resto `compact`.
+ */
+export function Button({ title, onPress, variant = "primary", busy, disabled, icon, size }: { title: string; onPress: () => void; variant?: "primary" | "secondary" | "danger"; busy?: boolean; disabled?: boolean; icon?: IconName; size?: "regular" | "compact" | "small" }) {
   const { colors } = useAppTheme();
-  const compact = size === "compact";
+  const kind = size ?? (variant === "primary" ? "regular" : "compact");
+  const compact = kind !== "regular";
+  const small = kind === "small";
   const primary = variant === "primary", danger = variant === "danger";
   const off = disabled || busy;
   const fg = primary || danger ? colors.onPrimary : colors.primary;
@@ -115,15 +120,15 @@ export function Button({ title, onPress, variant = "primary", busy, disabled, ic
     <TouchableOpacity
       onPress={onPress} disabled={off} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ disabled: !!off, busy: !!busy }}
       style={{
-        height: compact ? control.compact : control.regular, paddingHorizontal: compact ? 16 : 0, borderRadius: radius.md, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: off ? 0.55 : 1,
+        height: small ? control.small : compact ? control.compact : control.regular, paddingHorizontal: small ? 12 : compact ? 16 : 0, borderRadius: radius.md, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: off ? 0.55 : 1,
         backgroundColor: primary ? colors.primarySurface : danger ? colors.dangerSurface : `${colors.primary}15`,
         shadowColor: primary ? colors.primary : "transparent", shadowOpacity: primary ? 0.2 : 0, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
       }}
     >
       {busy ? <ActivityIndicator color={fg} /> : (
         <>
-          {icon && <Ionicons name={icon} size={compact ? 15 : 17} color={fg} />}
-          <Text style={{ color: fg, fontSize: compact ? 13 : 15, fontFamily: "AsapBold" }}>{title}</Text>
+          {icon && <Ionicons name={icon} size={small ? 14 : compact ? 15 : 17} color={fg} />}
+          <Text style={{ color: fg, fontSize: small ? 12 : compact ? 13 : 15, fontFamily: "AsapBold" }}>{title}</Text>
         </>
       )}
     </TouchableOpacity>
@@ -194,9 +199,9 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
 export function Empty({ icon, title, text, action }: { icon: IconName; title: string; text: string; action?: React.ReactNode }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ alignItems: "center", padding: 24, gap: 8 }}>
-      <View style={{ width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.muted}15` }}>
-        <Ionicons name={icon} size={32} color={colors.muted} />
+    <View style={{ alignItems: "center", padding: 16, gap: 6 }}>
+      <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.muted}15` }}>
+        <Ionicons name={icon} size={28} color={colors.muted} />
       </View>
       <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold", textAlign: "center" }}>{title}</Text>
       <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", textAlign: "center" }}>{text}</Text>
@@ -209,7 +214,7 @@ export function RowLink({ onPress, children }: { onPress: () => void; children: 
   const { colors } = useAppTheme();
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="button"
-      style={{ backgroundColor: `${colors.card}80`, borderRadius: 24, borderWidth: 1, borderColor: `${colors.text}10`, padding: 16, flexDirection: "row", alignItems: "center", gap: 16 }}>
+      style={{ backgroundColor: `${colors.card}80`, borderRadius: 20, borderWidth: 1, borderColor: `${colors.text}10`, paddingVertical: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
       {children}
     </TouchableOpacity>
   );

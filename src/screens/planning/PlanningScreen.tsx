@@ -38,14 +38,14 @@ export default function PlanningScreen() {
     <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
       <ScrollView showsVerticalScrollIndicator={false} className="px-6">
         {/* Header Section */}
-        <View className="mt-6 mb-8">
+        <View className="mt-4 mb-5">
           <Text className="font-asap-bold text-2xl" style={{ color: colors.text }}>Servicios</Text>
           <Text className="font-asap text-base" style={{ color: colors.textSecondary }}>Tus suscripciones y lo que cobras por ellas</Text>
         </View>
 
         {/* Monthly Summary Card - Compact Version */}
         <View
-          className="p-5 rounded-3xl border mb-8 shadow-sm flex-row items-center justify-between"
+          className="p-4 rounded-3xl border mb-6 shadow-sm flex-row items-center justify-between"
           style={{ backgroundColor: colors.card, borderColor: `${colors.text}10` }}
         >
           <View>
@@ -77,7 +77,7 @@ export default function PlanningScreen() {
         {/* Community & Contacts Access */}
         <TouchableOpacity
           onPress={() => router.push("/people")}
-          className="p-4 rounded-3xl border mb-8 flex-row items-center justify-between"
+          className="p-4 rounded-3xl border mb-5 flex-row items-center justify-between"
           style={{ backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}15` }}
           activeOpacity={0.7}
         >
@@ -97,7 +97,7 @@ export default function PlanningScreen() {
         </TouchableOpacity>
 
         {/* Subscriptions Section */}
-        <View className="mb-10">
+        <View className="mb-6">
           <View className="flex-row justify-between items-center mb-6">
             <Text className="font-asap-bold text-xl" style={{ color: colors.text }}>Suscripciones</Text>
             <TouchableOpacity

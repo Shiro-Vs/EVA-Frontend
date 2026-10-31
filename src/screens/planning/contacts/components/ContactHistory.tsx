@@ -175,7 +175,7 @@ export function ContactHistory({
                   <TouchableOpacity 
                     onPress={() => toggleService(service.serviceId)}
                     activeOpacity={0.7}
-                    className="p-5 flex-row justify-between items-center"
+                    className="p-4 flex-row justify-between items-center"
                   >
                     <View className="flex-row items-center flex-1">
                       <View 
@@ -227,7 +227,7 @@ export function ContactHistory({
 
                   {isExpanded && (
                     <View 
-                      className="px-5 pb-5 pt-0"
+                      className="px-4 pb-4 pt-0"
                       style={{ backgroundColor: `${colors.background}60` }}
                     >
                       <View 

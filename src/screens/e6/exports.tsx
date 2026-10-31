@@ -78,7 +78,7 @@ export function ExportScreen() {
             <Txt style={{ flex: 1 }} bold>{i + 1}. {TITLE[id]}</Txt>
             <Button title="↑" variant="secondary" disabled={i === 0} onPress={() => move(i, -1)} />
             <Button title="↓" variant="secondary" disabled={i === order.length - 1} onPress={() => move(i, 1)} />
-            <Button title="Quitar" variant="secondary" onPress={() => toggle(id)} />
+            <Button title="Quitar" variant="secondary" size="small" onPress={() => toggle(id)} />
           </View>
         </Card>
       ))}

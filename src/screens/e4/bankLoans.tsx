@@ -330,7 +330,7 @@ export function BankLoanChangeScreen() {
             {facts.map((f, i) => (
               <View key={f.key} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <View style={{ flex: 1 }}><KV label={FACT_LABEL[f.key]} value={f.value} /></View>
-                <Button title="Quitar" variant="secondary" onPress={() => { setFacts(facts.filter((_, j) => j !== i)); inv(); }} />
+                <Button title="Quitar" variant="secondary" size="small" onPress={() => { setFacts(facts.filter((_, j) => j !== i)); inv(); }} />
               </View>
             ))}
             <Choice label="Agregar dato" value={newKey} onChange={setNewKey} options={(Object.keys(FACT_LABEL) as LoanFactKey[]).map((k) => ({ id: k, label: FACT_LABEL[k] }))} />
