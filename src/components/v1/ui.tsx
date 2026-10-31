@@ -106,11 +106,12 @@ export function Money({ value, size = 16, bold = true, tone }: { value: string; 
 
 /**
  * Tres tamaños: `regular` (48) acción principal de un formulario o pie de pantalla; `compact` (40) acciones secundarias;
- * `small` (34) acciones dentro de una fila de lista (Renombrar, Archivar…). Si no se indica, el principal es `regular` y el resto `compact`.
+ * `small` (34) acciones dentro de una fila de lista (Renombrar, Archivar…). Si no se indica es `regular` para TODAS las variantes.
  */
 export function Button({ title, onPress, variant = "primary", busy, disabled, icon, size }: { title: string; onPress: () => void; variant?: "primary" | "secondary" | "danger" | "outline" | "outlineDanger"; busy?: boolean; disabled?: boolean; icon?: IconName; size?: "regular" | "compact" | "small" }) {
   const { colors } = useAppTheme();
-  const kind = size ?? (variant === "primary" ? "regular" : "compact");
+  // Todos los botones miden lo mismo (48) salvo que se pida otro tamaño: así dos botones lado a lado nunca quedan desiguales.
+  const kind = size ?? "regular";
   const compact = kind !== "regular";
   const small = kind === "small";
   const primary = variant === "primary", danger = variant === "danger";
