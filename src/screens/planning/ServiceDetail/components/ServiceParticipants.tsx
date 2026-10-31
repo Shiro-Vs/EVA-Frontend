@@ -53,6 +53,18 @@ export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats,
             </TouchableOpacity>
           );
         })}
+        {Array.from({ length: Math.max(0, capacity - seats.length) }).map((_, k) => (
+          <TouchableOpacity key={`free-${k}`} onPress={onAddSubscriber} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Plaza libre, incorporar participante"
+            style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, borderTopWidth: seats.length + k === 0 ? 0 : 1, borderTopColor: colors.border }}>
+            <View style={{ width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.muted, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="add" size={18} color={colors.muted} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.muted, fontSize: 16, fontFamily: "AsapBold", letterSpacing: 2 }}>- - - - - - - -</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, fontFamily: "Asap" }}>Plaza libre</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
       </View>
       {!shared && <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap", textAlign: "center" }}>Este servicio no es compartido.</Text>}
     </View>
