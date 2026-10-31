@@ -25,7 +25,7 @@ export const CycleCarousel: React.FC<CycleCarouselProps> = ({ cycles, selectedIn
     </TouchableOpacity>
   );
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 6 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Arrow icon="chevron-back" enabled={hasPrev} onPress={() => onChange(selectedIndex - 1)} label="Ciclo anterior" />
       <View style={{ flex: 1, alignItems: "center" }}>
         <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "AsapMedium", textTransform: "uppercase", letterSpacing: 0.8 }}>{rel}</Text>

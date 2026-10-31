@@ -47,7 +47,7 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
         </TouchableOpacity>
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: `${tone}14`, borderRadius: 24, borderWidth: 1, borderColor: `${tone}33`, padding: 14 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
         <View style={{ width: 64, height: 64, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: `${tone}26` }}>
           <ServiceIcon name={service.icon || "receipt"} size={32} color={tone} />
         </View>
