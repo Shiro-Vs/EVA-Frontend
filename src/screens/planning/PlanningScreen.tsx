@@ -1,154 +1,194 @@
-import React from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useAppTheme } from "../../hooks/useAppTheme";
-import { EVALoading } from "../../components/common/EVALoading";
-import { ErrorBox } from "../../components/v1/ui";
 import { api } from "../../api/client";
+import type { Interval, Subscription } from "../../api/types";
+import { Button, Empty, ErrorBox, Loading, Screen } from "../../components/v1/ui";
+import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
-import { getAdjustedColor, ServiceIcon } from "../../utils/serviceIcons";
-import { humanDate } from "../../utils/dates";
+import { todayLocalIso } from "../../utils/dates";
 import { formatSoles } from "../../utils/money";
+import { getAdjustedColor, ServiceIcon } from "../../utils/serviceIcons";
+import { daysUntil, whenText } from "../dashboard/attention";
 
+type View_ = "cards" | "list";
+type Filter = "all" | "shared" | "personal";
+const VIEW_KEY = "eva.services.view";
+
+/** «/mes», «/año», «/3 meses»: lo que cuesta cada cobro del proveedor. */
+function per(iv: Interval | null | undefined): string {
+  if (!iv) return "";
+  const { unit, count } = iv;
+  const one = { day: "día", week: "sem", month: "mes", year: "año" }[unit];
+  if (count === 1) return `/${one}`;
+  return `/${count} ${{ day: "días", week: "sem", month: "meses", year: "años" }[unit]}`;
+}
+
+const renewalOf = (s: Subscription) => s.currentCycle?.endDate ?? null;
+
+/** Pantalla de servicios: resumen arriba y las suscripciones como tarjetas o como lista (se recuerda tu elección). */
 export default function PlanningScreen() {
   const { colors, isDark } = useAppTheme();
   const router = useRouter();
-
   const subs = useAsync(() => api.subscriptions(), []);
   const summary = useAsync(() => api.summary(), []);
-  const reload = React.useCallback(() => { void subs.reload(); void summary.reload(); }, [subs.reload, summary.reload]);
+  const reload = useCallback(() => { void subs.reload(); void summary.reload(); }, [subs.reload, summary.reload]);
   useFocusReload(reload);
 
-  if ((subs.loading && !subs.data) || (summary.loading && !summary.data)) {
-    return <EVALoading message="Cargando planificación..." />;
-  }
-  if (subs.error || summary.error) {
-    return (
-      <SafeAreaView className="flex-1 px-6 justify-center" style={{ backgroundColor: colors.background }}>
-        <ErrorBox message={(subs.error ?? summary.error)!} onRetry={reload} />
-      </SafeAreaView>
-    );
-  }
-  const subscriptions = subs.data ?? [];
+  const [view, setView] = useState<View_>("cards");
+  const [filter, setFilter] = useState<Filter>("all");
+  useEffect(() => { AsyncStorage.getItem(VIEW_KEY).then((v) => { if (v === "cards" || v === "list") setView(v); }).catch(() => {}); }, []);
+  const chooseView = (v: View_) => { setView(v); AsyncStorage.setItem(VIEW_KEY, v).catch(() => {}); };
+
+  const today = todayLocalIso();
+  const all = (subs.data ?? []).filter((s) => s.status === "active");
+  const list = useMemo(() => all
+    .filter((s) => filter === "all" || s.mode === filter)
+    .sort((a, b) => (renewalOf(a) ?? "9999").localeCompare(renewalOf(b) ?? "9999") || a.name.localeCompare(b.name)), [all, filter]);
+  const next = useMemo(() => all.filter((s) => renewalOf(s)).sort((a, b) => renewalOf(a)!.localeCompare(renewalOf(b)!))[0], [all]);
+  const nextDays = next ? daysUntil(renewalOf(next)!, today) : null;
+  const sharedCount = all.filter((s) => s.mode === "shared").length;
+
+  if ((subs.loading && !subs.data) || (summary.loading && !summary.data)) return <Screen title="Servicios" back={false}><Loading /></Screen>;
+  if (subs.error || summary.error) return <Screen title="Servicios" back={false}><ErrorBox message={(subs.error ?? summary.error)!} onRetry={reload} /></Screen>;
+  const s = summary.data;
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
-      <ScrollView showsVerticalScrollIndicator={false} className="px-6">
-        {/* Header Section */}
-        <View className="mt-4 mb-5">
-          <Text className="font-asap-bold text-2xl" style={{ color: colors.text }}>Servicios</Text>
-          <Text className="font-asap text-base" style={{ color: colors.textSecondary }}>Tus suscripciones y lo que cobras por ellas</Text>
+    <Screen title="Servicios" back={false} subtitle="Tus suscripciones y lo que cobras por ellas"
+      right={<Button title="Nuevo" icon="add" size="compact" onPress={() => router.push("/service/new" as never)} />}>
+      {/* Resumen */}
+      <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 16, overflow: "hidden" }}>
+        <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
+        <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Comprometido este ciclo</Text>
+        <Text style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold" }}>{formatSoles(s?.subscriptions.currentCycleTotal)}</Text>
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+          <Stat label="Servicios" value={`${all.length}`} sub={sharedCount ? `${sharedCount} compartidos` : "personales"} />
+          <Stat label="Por cobrar" value={formatSoles(s?.receivable.pending)} sub={s && Number(s.receivable.overdue) > 0 ? `${formatSoles(s.receivable.overdue)} vencido` : "al día"} />
         </View>
+        {next && nextDays !== null && (
+          <TouchableOpacity onPress={() => router.push(`/service/${next.id}` as never)} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, backgroundColor: "rgba(255,255,255,0.14)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
+            <Ionicons name="time-outline" size={16} color={colors.onPrimary} />
+            <Text numberOfLines={1} style={{ flex: 1, color: colors.onPrimary, fontSize: 13, fontFamily: "AsapMedium" }}>Próxima renovación: <Text style={{ fontFamily: "AsapBold" }}>{next.name} {whenText(nextDays)}</Text></Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.onPrimaryMuted} />
+          </TouchableOpacity>
+        )}
+      </View>
 
-        {/* Monthly Summary Card - Compact Version */}
-        <View
-          className="p-4 rounded-3xl border mb-6 shadow-sm flex-row items-center justify-between"
-          style={{ backgroundColor: colors.card, borderColor: `${colors.text}10` }}
-        >
-          <View>
-            <Text className="font-asap-medium text-[10px] uppercase tracking-wider" style={{ color: colors.textSecondary }}>Total Comprometido</Text>
-            <Text className="font-asap-bold text-2xl mt-0.5" style={{ color: colors.text }}>{formatSoles(summary.data?.subscriptions.currentCycleTotal)}</Text>
-
-            <View className="flex-row mt-2">
-              <View className="flex-row items-center mr-4">
-                <View className="w-1.5 h-1.5 rounded-full mr-1.5" style={{ backgroundColor: colors.primary }} />
-                <Text className="font-asap text-[10px]" style={{ color: colors.textSecondary }}>
-                  {summary.data?.subscriptions.active ?? 0} {(summary.data?.subscriptions.active ?? 0) === 1 ? "servicio" : "servicios"}
-                </Text>
-              </View>
-              <View className="flex-row items-center">
-                <View className="w-1.5 h-1.5 rounded-full mr-1.5" style={{ backgroundColor: colors.muted }} />
-                <Text className="font-asap text-[10px]" style={{ color: colors.textSecondary }}>Por cobrar: {formatSoles(summary.data?.receivable.pending)}</Text>
-              </View>
-            </View>
-          </View>
-
-          <View
-            className="w-10 h-10 rounded-xl items-center justify-center"
-            style={{ backgroundColor: `${colors.primary}15` }}
-          >
-            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-          </View>
-        </View>
-
-        {/* Subscriptions Section */}
-        <View className="mb-6">
-          <View className="flex-row justify-between items-center mb-6">
-            <Text className="font-asap-bold text-xl" style={{ color: colors.text }}>Suscripciones</Text>
-            <TouchableOpacity
-              onPress={() => router.push("/service/new")}
-              className="px-3 py-1.5 rounded-full" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={{ backgroundColor: `${colors.primary}15` }}
-              accessibilityRole="button"
-            >
-              <Text className="font-asap-semibold text-xs" style={{ color: colors.primary }}>+ Añadir</Text>
-            </TouchableOpacity>
-          </View>
-
-          {subscriptions.length === 0 && (
-            <View className="items-center py-10">
-              <View className="w-16 h-16 rounded-full items-center justify-center mb-4" style={{ backgroundColor: `${colors.muted}15` }}>
-                <Ionicons name="calendar-outline" size={32} color={colors.muted} />
-              </View>
-              <Text className="font-asap-bold text-base" style={{ color: colors.text }}>Crea tu primer servicio</Text>
-              <Text className="font-asap text-xs text-center mt-1" style={{ color: colors.textSecondary }}>
-                Netflix, Spotify… Registra el plan, su calendario y quién participa.
-              </Text>
-            </View>
-          )}
-
-          {subscriptions.map((sub) => {
-            const adjustedColor = getAdjustedColor(sub.color || colors.primary, isDark);
-
+      {/* Filtros y vista */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ flex: 1, flexDirection: "row", gap: 6 }}>
+          {([["all", "Todos"], ["shared", "Compartidos"], ["personal", "Personales"]] as Array<[Filter, string]>).map(([id, label]) => {
+            const on = filter === id;
             return (
-              <TouchableOpacity
-                key={sub.id}
-                onPress={() => router.push(`/service/${sub.id}`)}
-                className="p-4 rounded-3xl border flex-row items-center mb-4"
-                style={{ backgroundColor: `${colors.card}80`, borderColor: `${colors.text}10` }}
-                activeOpacity={0.7}
-              >
-                <View
-                  className="w-12 h-12 rounded-2xl items-center justify-center"
-                  style={{ backgroundColor: `${adjustedColor}15` }}
-                >
-                  <ServiceIcon name={sub.icon || "receipt"} size={22} color={adjustedColor} />
-                </View>
-
-                <View className="flex-1 ml-4">
-                  <View className="flex-row items-center">
-                    <Text className="font-asap-bold text-base" style={{ color: colors.text }}>
-                      {sub.name}
-                    </Text>
-                    {sub.mode === "shared" && (
-                      <View
-                        className="ml-2 px-2 py-0.5 rounded-md"
-                        style={{ backgroundColor: `${colors.primary}15` }}
-                      >
-                        <Text className="font-asap text-[11px] font-bold" style={{ color: colors.primary }}>
-                          COMPARTIDO
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text className="font-asap text-xs" style={{ color: colors.textSecondary }}>
-                    {sub.currentCycle ? `Se renueva el ${humanDate(sub.currentCycle.endDate)}` : "Sin ciclo en curso"}
-                    {sub.mode === "shared" ? ` · ${sub.occupiedSeats}/${sub.capacity} plazas` : ""}
-                  </Text>
-                </View>
-
-                <Text className="font-asap-bold text-base" style={{ color: colors.text }}>
-                  {formatSoles(sub.terms?.announcedPrice)}
-                </Text>
+              <TouchableOpacity key={id} onPress={() => setFilter(id)} accessibilityRole="button" accessibilityState={{ selected: on }} style={{ minHeight: 32, paddingHorizontal: 12, borderRadius: 99, justifyContent: "center", backgroundColor: on ? colors.primarySurface : `${colors.primary}12` }}>
+                <Text style={{ color: on ? colors.onPrimary : colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>{label}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
-        <View className="h-20" />
-      </ScrollView>
-    </SafeAreaView>
+        <View style={{ flexDirection: "row", backgroundColor: colors.card, borderRadius: 12, padding: 3, borderWidth: 1, borderColor: colors.border }}>
+          {([["cards", "grid-outline", "Ver como tarjetas"], ["list", "list-outline", "Ver como lista"]] as Array<[View_, keyof typeof Ionicons.glyphMap, string]>).map(([id, icon, label]) => (
+            <TouchableOpacity key={id} onPress={() => chooseView(id)} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: view === id }} style={{ width: 34, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: view === id ? colors.primarySurface : "transparent" }}>
+              <Ionicons name={icon} size={17} color={view === id ? colors.onPrimary : colors.textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {list.length === 0 ? (
+        <Empty icon="calendar-outline" title={all.length === 0 ? "Crea tu primer servicio" : "Nada con este filtro"} text={all.length === 0 ? "Netflix, Spotify… Registra el plan, su calendario y quién participa." : "Prueba con otro filtro."} action={all.length === 0 ? <Button title="Nuevo servicio" icon="add" onPress={() => router.push("/service/new" as never)} /> : undefined} />
+      ) : view === "cards" ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+          {list.map((sub) => <ServiceCard key={sub.id} sub={sub} today={today} isDark={isDark} onPress={() => router.push(`/service/${sub.id}` as never)} />)}
+        </View>
+      ) : (
+        <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
+          {list.map((sub, i) => <ServiceRow key={sub.id} sub={sub} today={today} isDark={isDark} first={i === 0} onPress={() => router.push(`/service/${sub.id}` as never)} />)}
+        </View>
+      )}
+    </Screen>
+  );
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.14)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
+      <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium" }}>{label}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 17, fontFamily: "AsapBold" }}>{value}</Text>
+      <Text numberOfLines={1} style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "Asap" }}>{sub}</Text>
+    </View>
+  );
+}
+
+/** Cuándo se renueva, dicho corto y con color si es pronto. */
+function useRenewal(sub: Subscription, today: string) {
+  const { colors } = useAppTheme();
+  const end = renewalOf(sub);
+  if (!end) return { text: "Sin ciclo", color: colors.textSecondary, soon: false };
+  const d = daysUntil(end, today);
+  return { text: d < 0 ? whenText(d) : `Renueva ${whenText(d)}`, color: d <= 1 ? colors.warningStrong : d <= 3 ? colors.accentStrong : colors.textSecondary, soon: d <= 3 };
+}
+
+function Seats({ sub, color }: { sub: Subscription; color: string }) {
+  const { colors } = useAppTheme();
+  if (sub.mode !== "shared") return <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>Personal</Text>;
+  const dots = Math.min(sub.capacity, 8);
+  const filled = Math.round((Math.min(sub.occupiedSeats, sub.capacity) / sub.capacity) * dots);
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <View style={{ flexDirection: "row", gap: 3 }}>
+        {Array.from({ length: dots }).map((_, i) => <View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: i < filled ? color : `${colors.text}22` }} />)}
+      </View>
+      <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>{sub.occupiedSeats}/{sub.capacity}</Text>
+    </View>
+  );
+}
+
+function ServiceCard({ sub, today, isDark, onPress }: { sub: Subscription; today: string; isDark: boolean; onPress: () => void }) {
+  const { colors } = useAppTheme();
+  const tone = getAdjustedColor(sub.color || colors.primary, isDark);
+  const r = useRenewal(sub, today);
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`${sub.name}, ${formatSoles(sub.terms?.announcedPrice)}, ${r.text}`}
+      style={{ width: "47.5%", borderRadius: 20, borderWidth: 1, borderColor: `${tone}40`, backgroundColor: `${tone}14`, padding: 12, gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View style={{ width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: `${tone}26` }}><ServiceIcon name={sub.icon || "receipt"} size={20} color={tone} /></View>
+        {r.soon && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color }} />}
+      </View>
+      <View>
+        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{sub.name}</Text>
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 2 }}>
+          <Text style={{ color: colors.text, fontSize: 18, fontFamily: "AsapBold" }}>{formatSoles(sub.terms?.announcedPrice)}</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{per(sub.terms?.interval)}</Text>
+        </View>
+      </View>
+      <View style={{ gap: 4 }}>
+        <Text numberOfLines={1} style={{ color: r.color, fontSize: 12, fontFamily: r.soon ? "AsapBold" : "AsapMedium" }}>{r.text}</Text>
+        <Seats sub={sub} color={tone} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function ServiceRow({ sub, today, isDark, first, onPress }: { sub: Subscription; today: string; isDark: boolean; first: boolean; onPress: () => void }) {
+  const { colors } = useAppTheme();
+  const tone = getAdjustedColor(sub.color || colors.primary, isDark);
+  const r = useRenewal(sub, today);
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderTopWidth: first ? 0 : 1, borderTopColor: colors.border }}>
+      <View style={{ width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: `${tone}22` }}><ServiceIcon name={sub.icon || "receipt"} size={21} color={tone} /></View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{sub.name}</Text>
+        <Text numberOfLines={1} style={{ color: r.color, fontSize: 12, fontFamily: r.soon ? "AsapBold" : "Asap" }}>{r.text}</Text>
+      </View>
+      <View style={{ alignItems: "flex-end", gap: 3 }}>
+        <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{formatSoles(sub.terms?.announcedPrice)}<Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>{per(sub.terms?.interval)}</Text></Text>
+        <Seats sub={sub} color={tone} />
+      </View>
+    </TouchableOpacity>
   );
 }
