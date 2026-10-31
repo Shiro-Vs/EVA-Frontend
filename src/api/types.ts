@@ -110,6 +110,8 @@ export interface Summary {
   balance: { net: Money; accounts: number };
   receivable: { pending: Money; overdue: Money; debtors: number; creditFree: Money; creditReserved: Money };
   subscriptions: { active: number; currentCycleTotal: Money };
+  recurring: { pending: number };
+  loans: { lentPending: Money; borrowedPending: Money };
   recent: Array<{ id: string; operationId: string; kind: "income" | "expense" | "transfer" | "adjustment" | "reversal"; status: string; occurredOn: IsoDate; description: string; account: { id: string; name: string }; amount: Money }>;
 }
 

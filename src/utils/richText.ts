@@ -25,6 +25,11 @@ export function parseInline(src: string): Span[] {
   return out.length ? out : [{ text: "", bold: false, italic: false }];
 }
 
+/** El texto sin formato Markdown (para mostrar un resumen en pocas líneas). */
+export function plainText(input: string): string {
+  return parseRichText(input).map((b) => (b.kind === "gap" ? " " : b.spans.map((s) => s.text).join(""))).join(" ").replace(/\s+/g, " ").trim();
+}
+
 export function parseRichText(input: string): Block[] {
   const blocks: Block[] = [];
   for (const raw of input.replace(/\r\n/g, "\n").split("\n")) {
