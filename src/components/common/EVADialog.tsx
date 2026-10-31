@@ -70,10 +70,10 @@ export default function EVADialog({ spec, onResult }: { spec: DialogSpec | null;
           ) : null}
           {spec.autoCloseMs ? null : (
             <View style={{ alignSelf: "stretch", flexDirection: asks ? "row" : "column", gap: 8, marginTop: 16 }}>
-              {/* Regla de seguridad: en lo destructivo la opción protagonista es CANCELAR (sólida) y la acción de riesgo va con contorno rojo y sin relleno. */}
-              {asks && <View style={{ flex: 1 }}><Button title={spec.cancelLabel ?? "Cancelar"} variant={spec.kind === "danger" ? "primary" : "outline"} onPress={() => onResult(false)} /></View>}
+              {/* Los dos botones miden lo mismo y van rellenos: Cancelar en el color de marca y la acción de riesgo en rojo, así se distinguen por color y no por tamaño. */}
+              {asks && <View style={{ flex: 1 }}><Button title={spec.cancelLabel ?? "Cancelar"} variant={spec.kind === "danger" ? "primary" : "secondary"} onPress={() => onResult(false)} /></View>}
               <View style={{ flex: asks ? 1 : undefined }}>
-                <Button title={spec.confirmLabel ?? (asks ? "Confirmar" : "Entendido")} variant={spec.kind === "danger" ? "outlineDanger" : "primary"} onPress={() => onResult(true)} />
+                <Button title={spec.confirmLabel ?? (asks ? "Confirmar" : "Entendido")} variant={spec.kind === "danger" ? "danger" : "primary"} onPress={() => onResult(true)} />
               </View>
             </View>
           )}
