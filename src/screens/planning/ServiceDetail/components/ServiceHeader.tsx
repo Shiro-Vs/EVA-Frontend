@@ -38,7 +38,7 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
   const soon = d !== null && d <= 3;
 
   return (
-    <View style={{ gap: 18 }}>
+    <View style={{ gap: 14 }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <TouchableOpacity onPress={onBack} accessibilityRole="button" accessibilityLabel="Volver" hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }} style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
           <Ionicons name="chevron-back" size={22} color={colors.primary} />
@@ -57,7 +57,7 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
           <Text style={{ color: colors.textSecondary, fontSize: 14, fontFamily: "AsapMedium" }}>
             <Text style={{ color: colors.text, fontFamily: "AsapBold" }}>{formatSoles(service.terms?.announcedPrice)}</Text> · {intervalLabel(service.terms?.interval)}
           </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
             <Chip icon={shared ? "people-outline" : "person-outline"} text={shared ? `Compartido · ${service.occupiedSeats}/${service.capacity}` : "Personal"} color={colors.primary} bg={`${colors.primary}1A`} />
             {end && d !== null && <Chip icon="calendar-outline" text={`Renueva ${whenText(d)}`} color={soon ? colors.warningStrong : colors.textSecondary} bg={soon ? `${colors.warning}26` : `${colors.text}10`} />}
             <Chip icon="card-outline" text={accountName || "Sin cuenta"} color={colors.textSecondary} bg={`${colors.text}10`} />
@@ -70,7 +70,7 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
           const on = activeTab === tab;
           const meta = tab === "ciclo" ? { label: "Ciclo", icon: "sync-outline" } : tab === "historial" ? { label: "Historial", icon: "time-outline" } : { label: "Personas", icon: "people-outline" };
           return (
-            <TouchableOpacity key={tab} onPress={() => onSwitchTab(tab)} accessibilityRole="tab" accessibilityState={{ selected: on }} activeOpacity={0.7} style={{ flex: 1, alignItems: "center", paddingTop: 10 }}>
+            <TouchableOpacity key={tab} onPress={() => onSwitchTab(tab)} accessibilityRole="tab" accessibilityState={{ selected: on }} activeOpacity={0.7} style={{ flex: 1, alignItems: "center", paddingTop: 8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingBottom: 10 }}>
                 <Ionicons name={meta.icon as keyof typeof Ionicons.glyphMap} size={17} color={on ? colors.primary : colors.muted} />
                 <Text style={{ fontFamily: on ? "AsapBold" : "AsapMedium", fontSize: 14, color: on ? colors.text : colors.textSecondary }}>{meta.label}</Text>

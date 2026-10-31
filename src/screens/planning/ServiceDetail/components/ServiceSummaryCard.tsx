@@ -36,7 +36,7 @@ export const ServiceSummaryCard: React.FC<ServiceSummaryCardProps> = ({ cycle, s
   const pct = Math.max(0, Math.min(100, pctOf(cost.receivedFromOthers, total)));
 
   return (
-    <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 20, overflow: "hidden", gap: 18 }}>
+    <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 18, overflow: "hidden", gap: 14 }}>
       <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Resumen del ciclo</Text>

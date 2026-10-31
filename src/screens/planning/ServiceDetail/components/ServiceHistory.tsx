@@ -28,7 +28,7 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({ service, cycle, 
   const { colors } = useAppTheme();
   const shared = service.mode === "shared";
   return (
-    <View style={{ gap: 20 }}>
+    <View style={{ gap: 14 }}>
       <CycleCarousel cycles={cycles} selectedIndex={selectedIndex} currentId={service.currentCycle?.id} onChange={onChangeCycle} />
       {cycle ? <ServiceSummaryCard cycle={cycle} service={service} onPayService={onPayService} onEditPayment={onEditPayment} /> : (
         <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", textAlign: "center", paddingVertical: 24 }}>{loading ? "Cargando ciclo…" : "Este servicio todavía no tiene ciclos."}</Text>
