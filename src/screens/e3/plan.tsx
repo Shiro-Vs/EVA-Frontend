@@ -204,7 +204,7 @@ export function GoalDetailScreen() {
             </>
           ) : (
             <>
-              <Choice label="Transferencia" value={opId} onChange={(v) => { setOpId(v); link.resetKey(); }}
+              <Choice select label="Transferencia" value={opId} onChange={(v) => { setOpId(v); link.resetKey(); }}
                 options={(transfers.data?.items ?? []).filter((o) => o.status === "confirmed").map((o) => ({ id: o.id, label: `${humanDate(o.occurredOn)} · ${formatSoles(o.amount)}`, hint: o.description || undefined }))} />
               <Button title="Vincular" busy={link.busy} disabled={!opId} onPress={async () => { if (await link.submit()) void g.reload(); }} />
               {link.error && <Notice tone="err">{link.error}</Notice>}

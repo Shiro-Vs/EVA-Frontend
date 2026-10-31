@@ -51,7 +51,7 @@ export function LoanNewScreen() {
     <Screen title="Nuevo préstamo" footer={<PreviewFooter flow={flow} disabled={!ready} previewLabel="Ver cronograma" confirmLabel="Registrar préstamo" onConfirm={async () => { const r = await flow.confirm(); if (r) router.replace(`/loan/${(r as { id: string }).id}` as never); }} />}>
       <Card>
         <Choice label="Tipo" value={direction} onChange={touch(setDirection)} options={[{ id: "lent", label: "Presté dinero" }, { id: "borrowed", label: "Me prestaron" }]} />
-        <Choice label={direction === "lent" ? "A quién" : "Quién me prestó"} value={contactId} onChange={(v) => touch(setContactId)(v === contactId ? null : v)} options={people.map((c) => ({ id: c.id, label: c.name }))} />
+        <Choice select label={direction === "lent" ? "A quién" : "Quién me prestó"} value={contactId} onChange={(v) => touch(setContactId)(v === contactId ? null : v)} options={people.map((c) => ({ id: c.id, label: c.name }))} />
         {direction === "borrowed" && !contactId && <Field label="O el nombre de la entidad o persona" value={party} onChangeText={touch(setParty)} placeholder="Banco X" autoCapitalize="words" />}
         <MoneyField label="Capital" value={principal} onChange={touch(setPrincipal)} />
         <DateField label="Fecha del préstamo" value={openedOn} optional onChange={touch(setOpenedOn)} />

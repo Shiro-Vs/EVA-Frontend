@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Switch, Text, TouchableOpacity, View } from "react-native";
 import { useDone } from "../../hooks/useDone";
 import { DateField } from "../../components/v1/forms";
-import { isIsoDate } from "../../utils/dates";
+import { SelectField } from "../../components/v1/Select";
+import { isIsoDate, todayLocalIso } from "../../utils/dates";
 import { api } from "../../api/client";
 import type { AccountType } from "../../api/types";
 import { Button, Card, Field, Notice, Screen, Txt, SwitchRow } from "../../components/v1/ui";
@@ -50,18 +51,14 @@ export default function AccountNewScreen() {
     <Screen title="Nueva cuenta" footer={<Button title="Crear cuenta" onPress={save} busy={create.busy} />}>
       <Card>
         <Field label="Nombre" value={name} onChangeText={(t) => { setName(t); create.resetKey(); }} placeholder="BCP, Efectivo, Yape…" autoCapitalize="words" />
-        <Txt size={12} muted style={{ marginBottom: 6 }}>TIPO</Txt>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-          {TYPES.map((t) => (
-            <TouchableOpacity key={t.id} onPress={() => { setType(t.id); create.resetKey(); }} accessibilityRole="radio" accessibilityState={{ selected: type === t.id }}
-              style={{ paddingHorizontal: 12, minHeight: 32, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: type === t.id ? colors.primary : colors.border, backgroundColor: type === t.id ? `${colors.primary}1A` : "transparent" }}>
-              <Text style={{ color: type === t.id ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{t.label}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flex: 1 }}><SelectField label="Tipo" value={type} onChange={(v) => { setType(v); create.resetKey(); }} options={TYPES} /></View>
+          <View style={{ flex: 1 }}><Field label="Entidad" value={institution} onChangeText={(t) => { setInstitution(t); create.resetKey(); }} placeholder="BCP, Yape…" autoCapitalize="words" /></View>
         </View>
-        <Field label="Entidad (opcional)" value={institution} onChangeText={(t) => { setInstitution(t); create.resetKey(); }} placeholder="BCP, Interbank, Yape…" autoCapitalize="words" />
-        <Field label={isCredit ? "Deuda actual de la tarjeta (S/)" : "Saldo actual (S/)"} value={amountText} onChangeText={(t) => { setAmountText(t); create.resetKey(); }} placeholder="0.00" keyboardType="decimal-pad" />
-        <DateField label="Fecha del saldo" value={openingDate} optional onChange={(t) => { setOpeningDate(t); create.resetKey(); }} />
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flex: 1 }}><Field label={isCredit ? "Deuda actual (S/)" : "Saldo actual (S/)"} value={amountText} onChangeText={(t) => { setAmountText(t); create.resetKey(); }} placeholder="0.00" keyboardType="decimal-pad" /></View>
+          <View style={{ flex: 1 }}><Field label="Fecha del saldo" value={openingDate} onChangeText={(t) => { setOpeningDate(t); create.resetKey(); }} placeholder={todayLocalIso()} error={openingDate && !isIsoDate(openingDate) ? "Fecha inválida" : undefined} /></View>
+        </View>
         <SwitchRow label="Usarla como cuenta predeterminada" value={isDefault} onValueChange={(v) => { setIsDefault(v); create.resetKey(); }} />
         <SwitchRow label="Excluir del saldo total" value={exclude} onValueChange={(v) => { setExclude(v); create.resetKey(); }} />
       </Card>

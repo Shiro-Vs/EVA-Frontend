@@ -182,7 +182,7 @@ export function OperationNewScreen() {
         <Field label="Descripción (opcional)" value={description} onChangeText={touch(setDescription)} autoCapitalize="sentences" maxLength={200} />
         {kind !== "transfer" && <CategoryPicker value={categoryId} onChange={touch(setCategoryId)} />}
         {kind !== "transfer" && (contacts.data ?? []).length > 0 && (
-          <Choice label="Persona (opcional)" value={contactId} onChange={(v) => touch(setContactId)(v === contactId ? null : v)}
+          <Choice select label="Persona (opcional)" value={contactId} onChange={(v) => touch(setContactId)(v === contactId ? null : v)}
             options={(contacts.data ?? []).filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }))} />
         )}
       </Card>

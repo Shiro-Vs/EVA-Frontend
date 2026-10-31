@@ -9,11 +9,23 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 import { getServiceDefaults } from "../../utils/serviceIcons";
 import { useSubmit } from "../../hooks/useAsync";
 import { Choice, OptionalAccountPicker } from "../../components/v1/forms";
+import { SelectField } from "../../components/v1/Select";
 import { addMonthsIso, humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
 import { normalizeMoneyInput } from "../../utils/money";
 
 type Unit = "day" | "week" | "month" | "year";
 const UNITS: Array<{ id: Unit; label: string }> = [{ id: "day", label: "Días" }, { id: "week", label: "Semanas" }, { id: "month", label: "Meses" }, { id: "year", label: "Años" }];
+
+/** Frecuencias habituales de cobro del proveedor. «Otra» pide el detalle (cada cuántos días, semanas, meses o años). */
+const FREQUENCIES: Array<{ id: string; label: string; unit?: Unit; count?: number }> = [
+  { id: "m1", label: "Mensual", unit: "month", count: 1 },
+  { id: "y1", label: "Anual", unit: "year", count: 1 },
+  { id: "w1", label: "Semanal", unit: "week", count: 1 },
+  { id: "m2", label: "Cada 2 meses", unit: "month", count: 2 },
+  { id: "m3", label: "Trimestral (cada 3 meses)", unit: "month", count: 3 },
+  { id: "m6", label: "Semestral (cada 6 meses)", unit: "month", count: 6 },
+  { id: "custom", label: "Otra frecuencia…" },
+];
 
 /** Propone la fecha del siguiente pago (inicio + frecuencia); el proveedor tiene la última palabra y la API la compara. */
 function suggestNext(start: string, unit: Unit, count: number): string {
@@ -32,9 +44,9 @@ export default function NewServiceScreen() {
   const [mode, setMode] = useState<"shared" | "personal">("shared");
   const [capacity, setCapacity] = useState("4");
   const [price, setPrice] = useState("");
-  const [unit, setUnit] = useState<Unit>("month");
+  const [freq, setFreq] = useState("m1");
+  const [customUnit, setCustomUnit] = useState<Unit>("month");
   const [count, setCount] = useState("1");
-  const [provider, setProvider] = useState("");
   const [preferred, setPreferred] = useState<string | null>(null);
   const [start, setStart] = useState(todayLocalIso());
   const [next, setNext] = useState(suggestNext(todayLocalIso(), "month", 1));
@@ -47,7 +59,9 @@ export default function NewServiceScreen() {
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   const cap = Math.max(1, Number.parseInt(capacity, 10) || 1);
-  const cnt = Math.max(1, Number.parseInt(count, 10) || 1);
+  const preset = FREQUENCIES.find((f) => f.id === freq)!;
+  const unit: Unit = preset.unit ?? customUnit;
+  const cnt = preset.count ?? Math.max(1, Number.parseInt(count, 10) || 1);
   const priceNorm = normalizeMoneyInput(price);
 
   // Sugiere ícono y color según el nombre (Netflix, Spotify…) mientras no se elijan a mano.
@@ -62,8 +76,8 @@ export default function NewServiceScreen() {
 
   const body = useMemo<SubscriptionBody | null>(() => {
     if (!name.trim() || !priceNorm || !isIsoDate(start) || !isIsoDate(next)) return null;
-    return { name: name.trim(), mode, capacity: mode === "personal" ? 1 : cap, announcedPrice: priceNorm, interval: { unit, count: cnt }, startDate: start, nextPaymentDate: next, ...(provider.trim() ? { provider: provider.trim() } : {}), ...(preferred ? { preferredAccountId: preferred } : {}) };
-  }, [name, mode, cap, priceNorm, unit, cnt, start, next, provider, preferred]);
+    return { name: name.trim(), mode, capacity: mode === "personal" ? 1 : cap, announcedPrice: priceNorm, interval: { unit, count: cnt }, startDate: start, nextPaymentDate: next, ...(preferred ? { preferredAccountId: preferred } : {}) };
+  }, [name, mode, cap, priceNorm, unit, cnt, start, next, preferred]);
 
   // Vista previa en vivo (con espera breve para no consultar en cada tecla).
   const seq = useRef(0);
@@ -101,24 +115,27 @@ export default function NewServiceScreen() {
       <Card>
         <Field label="Nombre" value={name} onChangeText={(t) => { setName(t); create.resetKey(); }} placeholder="Netflix" autoCapitalize="words" />
         <ServiceStylePicker icon={style.icon} color={style.color} onChange={(v) => { setStyle(v); setStyleTouched(true); }} />
-        <View style={{ height: 16 }} />
-        <Field label="Proveedor (opcional)" value={provider} onChangeText={setProvider} placeholder="Netflix Inc." autoCapitalize="words" />
-        <OptionalAccountPicker label="Cuenta con la que sueles pagarlo (opcional)" value={preferred} onChange={setPreferred} />
-        <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 4, marginBottom: 12 }}>
           <Chipbtn on={mode === "shared"} label="Compartido" onPress={() => setMode("shared")} />
           <Chipbtn on={mode === "personal"} label="Personal" onPress={() => setMode("personal")} />
         </View>
         <View style={{ flexDirection: "row", gap: 10 }}>
-          {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas totales" value={capacity} onChangeText={setCapacity} keyboardType="number-pad" /></View>}
+          {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas" value={capacity} onChangeText={setCapacity} keyboardType="number-pad" /></View>}
           <View style={{ flex: 1 }}><Field label="Precio (S/)" value={price} onChangeText={setPrice} placeholder="45.00" keyboardType="decimal-pad" error={price && !priceNorm ? "Importe inválido" : undefined} /></View>
         </View>
-        <Choice label="Frecuencia de cobro del proveedor" value={unit} onChange={setUnit} options={UNITS} />
-        <Field label="Cada cuántas unidades" value={count} onChangeText={setCount} keyboardType="number-pad" />
+        <SelectField label="Cada cuánto cobra el proveedor" value={freq} onChange={setFreq} options={FREQUENCIES.map((f) => ({ id: f.id, label: f.label }))} />
+        {freq === "custom" && (
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flex: 1 }}><Field label="Cada" value={count} onChangeText={setCount} keyboardType="number-pad" /></View>
+            <View style={{ flex: 1.4 }}><SelectField label="Unidad" value={customUnit} onChange={setCustomUnit} options={UNITS} /></View>
+          </View>
+        )}
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1 }}><Field label="Inicio (AAAA-MM-DD)" value={start} onChangeText={setStart} placeholder="2026-10-07" error={start && !isIsoDate(start) ? "Fecha inválida" : undefined} /></View>
+          <View style={{ flex: 1 }}><Field label="Inicio" value={start} onChangeText={setStart} placeholder="2026-10-07" error={start && !isIsoDate(start) ? "Fecha inválida" : undefined} /></View>
           <View style={{ flex: 1 }}><Field label="Siguiente pago" value={next} onChangeText={(t) => { setNext(t); setNextTouched(true); }} placeholder="2026-11-07" error={next && !isIsoDate(next) ? "Fecha inválida" : undefined} /></View>
         </View>
-        <Txt size={12} muted>La fecha del siguiente pago es la que informa tu proveedor; EVA la compara con lo calculado.</Txt>
+        <OptionalAccountPicker label="Cuenta de pago (opcional)" value={preferred} onChange={setPreferred} />
+        <Txt size={12} muted>Fechas AAAA-MM-DD. El siguiente pago es el que informa tu proveedor; EVA lo compara con lo calculado.</Txt>
       </Card>
 
       {previewError && <Notice tone="err">{previewError}</Notice>}

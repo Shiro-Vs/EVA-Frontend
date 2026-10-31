@@ -224,7 +224,7 @@ export function BankLoanPayScreen() {
         <AccountPicker label="Sale de la cuenta" value={accountId} onChange={t(setAccountId)} />
         <MoneyField label="Importe pagado" value={amount} onChange={t(setAmount)} />
         <DateField label="Fecha real del pago (hoy si queda vacía)" value={paidOn} optional onChange={t(setPaidOn)} />
-        <Choice label="¿A qué cuota corresponde?" value={inst} onChange={t(setInst)} options={[{ id: "none", label: "Sin cuota" }, ...open.map((i) => ({ id: String(i.number), label: `Cuota ${i.number}`, hint: `${humanDate(i.dueDate)} · resta ${formatSoles(i.remaining)}` }))]} />
+        <Choice select label="¿A qué cuota corresponde?" value={inst} onChange={t(setInst)} options={[{ id: "none", label: "Sin cuota" }, ...open.map((i) => ({ id: String(i.number), label: `Cuota ${i.number}`, hint: `${humanDate(i.dueDate)} · resta ${formatSoles(i.remaining)}` }))]} />
         <Field label="Nota (opcional)" value={note} onChangeText={t(setNote)} autoCapitalize="sentences" maxLength={200} />
       </Card>
       <Card>

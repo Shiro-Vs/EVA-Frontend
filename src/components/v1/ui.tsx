@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, Platform, ScrollView, Switch, Text, TouchableOpacity, View, ViewStyle } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -33,6 +33,8 @@ export function Screen({ title, children, back = true, right, footer, subtitle }
   const { colors } = useAppTheme();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+     {/* El teclado empuja la pantalla (con la barra de abajo de Android a pantalla completa no se redimensiona sola): así el campo enfocado nunca queda tapado. */}
+     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 24, marginTop: 16, marginBottom: 12 }}>
         {back && <BackButton />}
         <View style={{ flex: 1 }}>
@@ -41,10 +43,11 @@ export function Screen({ title, children, back = true, right, footer, subtitle }
         </View>
         {right}
       </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         {children}
       </ScrollView>
       {footer && <View style={{ paddingHorizontal: 24, paddingBottom: Platform.OS === "web" ? 12 : 10, paddingTop: 10, backgroundColor: colors.background }}>{footer}</View>}
+     </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

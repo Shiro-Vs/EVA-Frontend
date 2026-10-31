@@ -7,23 +7,23 @@ import { POPULAR_ICONS, PRESET_COLORS, ServiceIcon, getAdjustedColor } from "../
 /** Selector de ícono y color del servicio, con tus listas `POPULAR_ICONS` y `PRESET_COLORS`. */
 export function ServiceStylePicker({ icon, color, onChange }: { icon: string; color: string; onChange: (v: { icon: string; color: string }) => void }) {
   const { colors, fonts, isDark } = useAppTheme();
-  const label = { fontFamily: fonts.family.semiBold, color: colors.textSecondary, fontSize: 10, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 8, marginLeft: 4 };
+  const label = { fontFamily: fonts.family.semiBold, color: colors.textSecondary, fontSize: 11, textTransform: "uppercase" as const, letterSpacing: 1.2, marginBottom: 6, marginLeft: 4 };
   return (
     <View>
       <Text style={label}>Ícono</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
         {POPULAR_ICONS.map((i) => (
           <TouchableOpacity
             key={i} onPress={() => onChange({ icon: i, color })} accessibilityRole="radio" accessibilityState={{ selected: icon === i }} accessibilityLabel={i}
-            style={{ width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center", marginRight: 8, borderWidth: 1,
+            style={{ width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", marginRight: 6, borderWidth: 1,
               backgroundColor: icon === i ? colors.primary : colors.card, borderColor: icon === i ? colors.primary : `${colors.text}05` }}
           >
-            <ServiceIcon name={i} size={22} color={icon === i ? "white" : colors.muted} />
+            <ServiceIcon name={i} size={20} color={icon === i ? "white" : colors.muted} />
           </TouchableOpacity>
         ))}
       </ScrollView>
       <Text style={label}>Color</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
         {PRESET_COLORS.map((c) => (
           <TouchableOpacity
             key={c} onPress={() => onChange({ icon, color: c })} accessibilityRole="radio" accessibilityState={{ selected: color === c }} accessibilityLabel={c}
@@ -33,7 +33,7 @@ export function ServiceStylePicker({ icon, color, onChange }: { icon: string; co
             {color === c && <Ionicons name="checkmark" size={16} color="white" />}
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 }

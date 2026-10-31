@@ -47,7 +47,7 @@ export function CategoriesScreen() {
     <Screen title="Categorías" subtitle="Categoría y subcategoría">
       <Card>
         <Field label="Nueva categoría" value={name} onChangeText={(v) => { setName(v); create.resetKey(); }} placeholder="Restaurantes" autoCapitalize="words" />
-        <Choice label="Dentro de" value={parentId ?? "__root__"} onChange={(v) => setParentId(v === "__root__" ? null : v)}
+        <Choice select label="Dentro de" value={parentId ?? "__root__"} onChange={(v) => setParentId(v === "__root__" ? null : v)}
           options={[{ id: "__root__", label: "Ninguna (categoría principal)" }, ...roots.filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }))]} />
         <Button title="Crear" disabled={!name.trim()} busy={create.busy} onPress={async () => { if (await create.submit()) { setName(""); void cats.reload(); } }} />
         {create.error && <Notice tone="err">{create.error}</Notice>}

@@ -7,6 +7,7 @@ import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
 import { formatSoles, normalizeMoneyInput } from "../../utils/money";
 import { Button, Card, Field, Loading, Notice, Txt } from "./ui";
+import { SelectField } from "./Select";
 
 // Bloques de formulario compartidos por las pantallas de la Entrega 2. Cada pantalla pide exactamente los campos que
 // exige la API (docs 13); el aspecto se afinará después.
@@ -16,8 +17,10 @@ export function Label({ children }: { children: React.ReactNode }) {
 }
 
 /** Selección única con chips. */
-export function Choice<T extends string>({ label, options, value, onChange }: { label?: string; options: Array<{ id: T; label: string; hint?: string }>; value: T | null; onChange: (v: T) => void }) {
+/** Hasta 4 opciones se muestran como etiquetas; con más (o con `select`) se usa un selector que no crece con la lista. */
+export function Choice<T extends string>({ label, options, value, onChange, select }: { label?: string; options: Array<{ id: T; label: string; hint?: string }>; value: T | null; onChange: (v: T) => void; select?: boolean }) {
   const { colors } = useAppTheme();
+  if (select || options.length > 4) return <SelectField label={label} options={options} value={value} onChange={onChange} />;
   return (
     <View style={{ marginBottom: 12 }}>
       {label && <Label>{label}</Label>}
@@ -48,7 +51,7 @@ export function AccountPicker({ label = "Cuenta", value, onChange, exclude }: { 
   if (accounts.loading && !accounts.data) return <Loading />;
   if (accounts.error) return <Notice tone="err">{accounts.error}</Notice>;
   if (list.length === 0) return <Notice tone="warn">Primero crea una cuenta desde Inicio.</Notice>;
-  return <Choice label={label} options={list.map((a) => ({ id: a.id, label: a.name, hint: formatSoles(a.balance) }))} value={value} onChange={onChange} />;
+  return <SelectField label={label} options={list.map((a) => ({ id: a.id, label: a.name, hint: formatSoles(a.balance) }))} value={value} onChange={onChange} />;
 }
 
 /** Cuenta opcional (p. ej. la cuenta con la que se suele pagar un servicio): permite elegir «Ninguna». */
@@ -58,8 +61,8 @@ export function OptionalAccountPicker({ label = "Cuenta", value, onChange }: { l
   if (accounts.loading && !accounts.data) return <Loading />;
   if (accounts.error) return <Notice tone="err">{accounts.error}</Notice>;
   return (
-    <Choice label={label} value={value ?? "__none__"} onChange={(v) => onChange(v === "__none__" ? null : v)}
-      options={[{ id: "__none__", label: "Ninguna" }, ...list.map((a) => ({ id: a.id, label: a.name }))]} />
+    <SelectField label={label} value={value} onChange={(v) => onChange(v)} placeholder="Ninguna" clearLabel="Ninguna" onClear={() => onChange(null)}
+      options={list.map((a) => ({ id: a.id, label: a.name, hint: formatSoles(a.balance) }))} />
   );
 }
 
@@ -72,7 +75,7 @@ export function FutureCyclePicker({ subscriptionId, label = "Rige desde el inici
   if (cycles.loading && !cycles.data) return <Loading />;
   if (cycles.error) return <Notice tone="err">{cycles.error}</Notice>;
   if (starts.length === 0) return <Notice tone="warn">Todavía no hay un ciclo futuro generado. Genera el siguiente ciclo desde el servicio.</Notice>;
-  return <Choice label={label} options={starts.map((d) => ({ id: d, label: `${humanDate(d)} (${d})` }))} value={value} onChange={onChange} />;
+  return <SelectField label={label} options={starts.map((d) => ({ id: d, label: `${humanDate(d)} (${d})` }))} value={value} onChange={onChange} />;
 }
 
 /** Fecha AAAA-MM-DD con validación. */

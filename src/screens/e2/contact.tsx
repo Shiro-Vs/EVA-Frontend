@@ -214,11 +214,11 @@ export function RefundNewScreen() {
     <Screen title="Nueva devolución" footer={<Button title="Programar devolución" busy={create.busy} disabled={!ready} onPress={async () => { if (await create.submit()) done("/refunds"); }} />}>
       <Card>
         {contacts.loading && !contacts.data ? <Loading /> : (
-          <Choice label="Persona" value={contactId} onChange={(v) => { setContactId(v); setReceiptId(null); create.resetKey(); }}
+          <Choice select label="Persona" value={contactId} onChange={(v) => { setContactId(v); setReceiptId(null); create.resetKey(); }}
             options={(contacts.data ?? []).filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name, hint: cmpMoney(c.totals.creditFree, "0.00") > 0 ? `libre ${formatSoles(c.totals.creditFree)}` : undefined }))} />
         )}
         {contactId && (receipts.loading ? <Loading /> : free.length === 0 ? <Notice tone="warn">Esta persona no tiene crédito libre para devolver.</Notice> : (
-          <Choice label="De qué cobro" value={receiptId} onChange={(v) => { setReceiptId(v); create.resetKey(); }}
+          <Choice select label="De qué cobro" value={receiptId} onChange={(v) => { setReceiptId(v); create.resetKey(); }}
             options={free.map((r) => ({ id: r.id, label: `${humanDate(r.receivedOn)} · ${formatSoles(r.amount)}`, hint: `libre ${formatSoles(r.free!)}` }))} />
         ))}
         <MoneyField label="Importe a devolver" value={amount} onChange={(v) => { setAmount(v); create.resetKey(); }} />

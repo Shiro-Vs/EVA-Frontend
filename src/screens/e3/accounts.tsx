@@ -163,7 +163,7 @@ export function StatementScreen() {
       ))}
       {s.status !== "void" && (
         <Card>
-          <Choice label="Vincular una transferencia a esta tarjeta" value={opId} onChange={(v) => { setOpId(v); link.resetKey(); }} options={hereTo.map((o) => ({ id: o.id, label: `${humanDate(o.occurredOn)} · ${formatSoles(o.amount)}`, hint: o.description || undefined }))} />
+          <Choice select label="Vincular una transferencia a esta tarjeta" value={opId} onChange={(v) => { setOpId(v); link.resetKey(); }} options={hereTo.map((o) => ({ id: o.id, label: `${humanDate(o.occurredOn)} · ${formatSoles(o.amount)}`, hint: o.description || undefined }))} />
           {hereTo.length === 0 && <Txt size={12} muted>No hay transferencias hacia esta tarjeta por vincular.</Txt>}
           <Button title="Vincular pago" busy={link.busy} disabled={!opId} onPress={async () => { if (await link.submit()) { setOpId(null); void st.reload(); } }} />
           {(link.error || unlink.error) && <Notice tone="err">{link.error ?? unlink.error}</Notice>}
@@ -345,7 +345,7 @@ export function OccurrenceScreen() {
         </Card>
       ) : (
         <Card>
-          <Choice label="Movimiento ya registrado" value={opId} onChange={setOpId} options={(ops.data?.items ?? []).filter((o) => o.kind === occ.kind && o.status === "confirmed").map((o) => ({ id: o.id, label: `${humanDate(o.occurredOn)} · ${formatSoles(o.amount.replace("-", ""))}`, hint: o.description || undefined }))} />
+          <Choice select label="Movimiento ya registrado" value={opId} onChange={setOpId} options={(ops.data?.items ?? []).filter((o) => o.kind === occ.kind && o.status === "confirmed").map((o) => ({ id: o.id, label: `${humanDate(o.occurredOn)} · ${formatSoles(o.amount.replace("-", ""))}`, hint: o.description || undefined }))} />
           <Button title="Vincular" busy={link.busy} disabled={!opId} onPress={async () => { if (await link.submit()) done("/recurring"); }} />
           {link.error && <Notice tone="err">{link.error}</Notice>}
           <Txt size={12} muted>No se crea otro movimiento; si el importe o la fecha difieren, se informa.</Txt>
