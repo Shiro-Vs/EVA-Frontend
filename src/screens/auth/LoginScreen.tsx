@@ -256,10 +256,8 @@ export default function LoginScreen() {
         type={alertConfig.type}
         iconName={alertConfig.iconName}
         onClose={() => {
+          // Con sesión iniciada, el guardián (Stack.Protected) abre la app; navegar a mano aquí provoca el aviso «REPLACE no manejado».
           setAlertConfig({ ...alertConfig, visible: false });
-          if (alertConfig.type === "success") {
-            router.replace("/(main)");
-          }
         }}
       />
     </KeyboardAvoidingView>
