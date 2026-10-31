@@ -116,16 +116,18 @@ export function Button({ title, onPress, variant = "primary", busy, disabled, ic
   const small = kind === "small";
   const primary = variant === "primary", danger = variant === "danger";
   const off = disabled || busy;
+  // Deshabilitado = claramente distinto de habilitado: fondo gris neutro, texto apagado, sin sombra ni color de marca. (Cargando conserva su color.)
+  const dim = !!disabled && !busy;
   const outline = variant === "outline" || variant === "outlineDanger";
-  const fg = primary || danger ? colors.onPrimary : variant === "outline" ? colors.text : variant === "outlineDanger" ? colors.expenseStrong : colors.primary;
+  const fg = dim ? colors.muted : primary || danger ? colors.onPrimary : variant === "outline" ? colors.text : variant === "outlineDanger" ? colors.expenseStrong : colors.primary;
   return (
     <TouchableOpacity
       onPress={onPress} disabled={off} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ disabled: !!off, busy: !!busy }}
       style={{
-        height: small ? control.small : compact ? control.compact : control.regular, paddingHorizontal: small ? 12 : compact ? 16 : 0, borderRadius: radius.md, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: off ? 0.55 : 1,
-        backgroundColor: primary ? colors.primarySurface : danger ? colors.dangerSurface : outline ? "transparent" : `${colors.primary}15`,
-        ...(outline ? { borderWidth: 1.5, borderColor: variant === "outlineDanger" ? colors.expenseStrong : colors.borderStrong } : {}),
-        shadowColor: primary ? colors.primary : "transparent", shadowOpacity: primary ? 0.2 : 0, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+        height: small ? control.small : compact ? control.compact : control.regular, paddingHorizontal: small ? 12 : compact ? 16 : 0, borderRadius: radius.md, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: busy ? 0.85 : 1,
+        backgroundColor: dim ? `${colors.text}12` : primary ? colors.primarySurface : danger ? colors.dangerSurface : outline ? "transparent" : `${colors.primary}15`,
+        ...(dim ? { borderWidth: 1, borderColor: `${colors.text}1F`, borderStyle: "dashed" as const } : outline ? { borderWidth: 1.5, borderColor: variant === "outlineDanger" ? colors.expenseStrong : colors.borderStrong } : {}),
+        shadowColor: primary && !dim ? colors.primary : "transparent", shadowOpacity: primary && !dim ? 0.2 : 0, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
       }}
     >
       {busy ? <ActivityIndicator color={fg} /> : (
