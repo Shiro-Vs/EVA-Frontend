@@ -1,59 +1,138 @@
 import React, { useState } from "react";
-import { View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { Category, OperationItem } from "../../api/types";
 import { AccountPicker, CategoryPicker, Choice, FlowResult, MoneyField, PreviewFooter, usePreviewFlow } from "../../components/v1/forms";
-import { Button, Card, Chip, Empty, ErrorBox, Field, Heading, Loading, Money, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import { Button, Card, Chip, Empty, ErrorBox, Field, Heading, Loading, MenuRow, Money, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import BottomSheet from "../../components/common/BottomSheet";
+import { useDialog } from "../../context/DialogContext";
+import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate } from "../../utils/dates";
 import { normalizeMoneyInput } from "../../utils/money";
 
-/** Categorías (dos niveles): crear, renombrar, archivar y restaurar. */
+/** Categorías (dos niveles): árbol con líneas, renombrar, archivar, restaurar y eliminar (solo si no tiene uso). */
 export function CategoriesScreen() {
+  const { colors } = useAppTheme();
+  const dialog = useDialog();
   const cats = useAsync(() => api.categories(), []);
   useFocusReload(cats.reload);
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; name: string; version: number } | null>(null);
-  const create = useSubmit(async () => api.createCategory({ name: name.trim(), parentId }));
-  const rename = useSubmit(async () => api.patchCategory(editing!.id, { name: editing!.name.trim() }, editing!.version));
-  const toggle = useSubmit(async (_k: string, c: Category) => (c.status === "active" ? api.archiveCategory(c.id) : api.restoreCategory(c.id)));
+  const [menu, setMenu] = useState<Category | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const row = (c: Category, depth: number) => (
-    <Card key={c.id} outlined style={{ marginLeft: depth * 16, opacity: c.status === "archived" ? 0.6 : 1 }}>
+  const create = async () => {
+    setBusy(true);
+    try { await api.createCategory({ name: name.trim(), parentId }); setName(""); await cats.reload(); }
+    catch (e) { await dialog.fail(e, "No se pudo crear la categoría"); }
+    finally { setBusy(false); }
+  };
+  const rename = async () => {
+    if (!editing) return;
+    setBusy(true);
+    try { await api.patchCategory(editing.id, { name: editing.name.trim() }, editing.version); setEditing(null); await cats.reload(); }
+    catch (e) { await dialog.fail(e, "No se pudo renombrar"); }
+    finally { setBusy(false); }
+  };
+  const archive = async (c: Category) => {
+    setMenu(null);
+    const kids = (c.children ?? []).filter((k) => k.status === "active").length;
+    const ok = await dialog.confirm({ title: `¿Archivar «${c.name}»?`, message: `Dejará de ofrecerse al clasificar${kids ? `, junto con sus ${kids} subcategorías` : ""}. Tu historial no cambia y puedes restaurarla cuando quieras.`, confirmLabel: "Archivar" });
+    if (!ok) return;
+    try { await api.archiveCategory(c.id); await cats.reload(); await dialog.success("Categoría archivada"); }
+    catch (e) { await dialog.fail(e, "No se pudo archivar"); }
+  };
+  const restore = async (c: Category) => {
+    setMenu(null);
+    try { await api.restoreCategory(c.id); await cats.reload(); await dialog.success("Categoría restaurada"); }
+    catch (e) { await dialog.fail(e, "No se pudo restaurar"); }
+  };
+  const remove = async (c: Category) => {
+    setMenu(null);
+    const ok = await dialog.confirm({ title: `¿Eliminar «${c.name}»?`, message: "Se borra para siempre y no se puede deshacer. Solo se puede si no tiene subcategorías ni se usó en ningún movimiento, regla o presupuesto.", confirmLabel: "Eliminar", danger: true });
+    if (!ok) return;
+    try { await api.deleteCategory(c.id); await cats.reload(); await dialog.success("Categoría eliminada"); }
+    catch (e) { await dialog.fail(e, "No se pudo eliminar"); }
+  };
+
+  const LINE = colors.borderStrong;
+  const header = (c: Category, child: boolean) => (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, opacity: c.status === "archived" ? 0.6 : 1 }}>
       {editing?.id === c.id ? (
-        <View>
+        <View style={{ flex: 1 }}>
           <Field label="Nombre" value={editing.name} onChangeText={(v) => setEditing({ ...editing, name: v })} autoCapitalize="words" />
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1 }}><Button title="Guardar" busy={rename.busy} disabled={!editing.name.trim()} onPress={async () => { if (await rename.submit()) { setEditing(null); void cats.reload(); } }} /></View>
-            <View style={{ flex: 1 }}><Button title="Cancelar" variant="secondary" onPress={() => setEditing(null)} /></View>
+            <View style={{ flex: 1 }}><Button title="Guardar" size="compact" busy={busy} disabled={!editing.name.trim()} onPress={rename} /></View>
+            <View style={{ flex: 1 }}><Button title="Cancelar" size="compact" variant="secondary" onPress={() => setEditing(null)} /></View>
           </View>
-          {rename.error && <Notice tone="err">{rename.error}</Notice>}
         </View>
       ) : (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Txt bold style={{ flex: 1 }}>{c.name}</Txt>
+        <>
+          <Ionicons name={child ? "return-down-forward-outline" : "folder-outline"} size={18} color={colors.primary} />
+          <Txt bold style={{ flex: 1 }} numberOfLines={1}>{c.name}</Txt>
           {c.status === "archived" && <Chip status="converted" label="Archivada" />}
-          <Button title="Renombrar" variant="secondary" size="small" onPress={() => setEditing({ id: c.id, name: c.name, version: c.version })} />
-          <Button title={c.status === "active" ? "Archivar" : "Restaurar"} variant="secondary" size="small" onPress={async () => { if (await toggle.submit(c)) void cats.reload(); }} />
-        </View>
+          <TouchableOpacity onPress={() => setMenu(c)} accessibilityRole="button" accessibilityLabel={`Acciones de ${c.name}`} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}12` }}>
+            <Ionicons name="ellipsis-horizontal" size={18} color={colors.primary} />
+          </TouchableOpacity>
+        </>
       )}
-    </Card>
+    </View>
   );
+
   const roots = cats.data ?? [];
+  const tree = roots.map((c) => {
+    const kids = c.children ?? [];
+    return (
+      <View key={c.id}>
+        <Card outlined style={{ paddingVertical: 10 }}>{header(c, false)}</Card>
+        {kids.map((k, i) => {
+          const last = i === kids.length - 1;
+          return (
+            <View key={k.id} style={{ flexDirection: "row", marginTop: 6 }}>
+              {/* Líneas del árbol: una vertical continua del padre a sus hijas y un ramal horizontal a cada una */}
+              <View style={{ width: 28 }}>
+                <View style={{ position: "absolute", left: 13, top: -6, bottom: last ? "50%" : 0, width: 2, backgroundColor: LINE, borderRadius: 1 }} />
+                <View style={{ position: "absolute", left: 13, top: "50%", width: 15, height: 2, marginTop: -1, backgroundColor: LINE, borderRadius: 1 }} />
+              </View>
+              <View style={{ flex: 1 }}><Card outlined style={{ paddingVertical: 8 }}>{header(k, true)}</Card></View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  });
+
   return (
     <Screen title="Categorías" subtitle="Categoría y subcategoría">
       <Card>
-        <Field label="Nueva categoría" value={name} onChangeText={(v) => { setName(v); create.resetKey(); }} placeholder="Restaurantes" autoCapitalize="words" />
+        <Field label="Nueva categoría" value={name} onChangeText={setName} placeholder="Restaurantes" autoCapitalize="words" />
         <Choice select label="Dentro de" value={parentId ?? "__root__"} onChange={(v) => setParentId(v === "__root__" ? null : v)}
           options={[{ id: "__root__", label: "Ninguna (categoría principal)" }, ...roots.filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }))]} />
-        <Button title="Crear" disabled={!name.trim()} busy={create.busy} onPress={async () => { if (await create.submit()) { setName(""); void cats.reload(); } }} />
-        {create.error && <Notice tone="err">{create.error}</Notice>}
+        <Button title="Crear" disabled={!name.trim()} busy={busy} onPress={create} />
       </Card>
-      {toggle.error && <Notice tone="err">{toggle.error}</Notice>}
-      {cats.loading && !cats.data ? <Loading /> : cats.error ? <ErrorBox message={cats.error} onRetry={cats.reload} /> : roots.flatMap((c) => [row(c, 0), ...(c.children ?? []).map((k) => row(k, 1))])}
+      {cats.loading && !cats.data ? <Loading /> : cats.error ? <ErrorBox message={cats.error} onRetry={cats.reload} /> : <View style={{ gap: 8 }}>{tree}</View>}
+
+      <BottomSheet visible={!!menu} onClose={() => setMenu(null)} title={menu?.name ?? ""} maxHeight={0.6}>
+        {menu && (
+          <View style={{ paddingHorizontal: 4, paddingBottom: 4 }}>
+            <MenuRow icon="create-outline" title="Renombrar" onPress={() => { setEditing({ id: menu.id, name: menu.name, version: menu.version }); setMenu(null); }} />
+            {!menu.parentId && menu.status === "active" && <View style={{ height: 6 }} />}
+            {!menu.parentId && menu.status === "active" && <MenuRow icon="add-circle-outline" title="Agregar subcategoría" text="Se crea dentro de esta categoría" onPress={() => { setParentId(menu.id); setMenu(null); dialog.notify({ kind: "info", title: "Elige el nombre arriba", message: `La nueva categoría se creará dentro de «${menu.name}».` }); }} />}
+            <View style={{ height: 6 }} />
+            {menu.status === "active"
+              ? <MenuRow icon="archive-outline" title="Archivar" text="Deja de ofrecerse al clasificar; el historial se conserva" onPress={() => archive(menu)} />
+              : <MenuRow icon="arrow-undo-outline" title="Restaurar" onPress={() => restore(menu)} />}
+            <View style={{ height: 6 }} />
+            <MenuRow icon="trash-outline" title="Eliminar" text="Solo si no tiene subcategorías ni uso" onPress={() => remove(menu)} />
+          </View>
+        )}
+      </BottomSheet>
     </Screen>
   );
 }

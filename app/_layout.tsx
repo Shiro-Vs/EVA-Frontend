@@ -11,6 +11,7 @@ import { useFonts } from 'expo-font';
 import { ThemeProvider, useAppThemeContext } from "../src/context/ThemeContext";
 import { useAppTheme } from "../src/hooks/useAppTheme";
 import { AuthProvider, useAuth } from "../src/context/AuthContext";
+import { DialogProvider } from "../src/context/DialogContext";
 import { LockProvider } from "../src/security/LockGate";
 import { useReminderSync } from "../src/notifications/useReminderSync";
 
@@ -105,7 +106,9 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <LockProvider>
-          <RootLayoutContent />
+          <DialogProvider>
+            <RootLayoutContent />
+          </DialogProvider>
         </LockProvider>
       </AuthProvider>
     </ThemeProvider>

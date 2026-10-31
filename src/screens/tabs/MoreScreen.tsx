@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useAppThemeContext } from "../../context/ThemeContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import AppearanceCard from "./AppearanceCard";
+import { useDialog } from "../../context/DialogContext";
 
 type Row = { icon: keyof typeof Ionicons.glyphMap; title: string; text: string; to: string };
 const GROUPS: Array<{ title: string; section: SectionKey; rows: Row[] }> = [
@@ -42,6 +43,7 @@ export default function MoreScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const { profile, logout } = useAuth();
+  const dialog = useDialog();
   const { theme, toggleTheme } = useAppThemeContext();
 
   return (
@@ -69,7 +71,7 @@ export default function MoreScreen() {
         </React.Fragment>
       ))}
 
-      <TouchableOpacity onPress={async () => { await logout(); /* el guardián de sesión (Stack.Protected) lleva solo al inicio de sesión */ }} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 16, marginTop: 8 }}>
+      <TouchableOpacity onPress={async () => { if (await dialog.confirm({ title: "¿Cerrar sesión?", message: "Tendrás que volver a iniciar sesión para ver tus datos.", confirmLabel: "Cerrar sesión", danger: true })) await logout(); /* el guardián de sesión (Stack.Protected) lleva solo al inicio de sesión */ }} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 16, marginTop: 8 }}>
         <Ionicons name="log-out-outline" size={20} color={colors.expenseStrong} />
         <Text style={{ color: colors.expenseStrong, fontSize: 15, fontFamily: "AsapBold" }}>Cerrar sesión</Text>
       </TouchableOpacity>
