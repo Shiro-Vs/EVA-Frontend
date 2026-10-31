@@ -202,6 +202,7 @@ export function AnalysisScreen() {
 
       <BottomSheet visible={sheet} onClose={() => setSheet(false)} title="¿Qué analizar?" maxHeight={0.85}>
         <View style={{ paddingHorizontal: 8 }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", marginBottom: 12, marginLeft: 4 }}>La IA solo verá lo que elijas aquí. Si no filtras nada, analiza todo el periodo.</Text>
           <ScopeForm value={scope} onChange={change} />
           <Button title="Ver qué datos usaría la IA" variant="secondary" busy={peek.busy} disabled={!ok} onPress={peek.submit} />
           <View style={{ height: 8 }} />
@@ -275,6 +276,7 @@ export function ChatsScreen() {
 
       <BottomSheet visible={sheet} onClose={() => setSheet(false)} title="¿Qué analizar?" maxHeight={0.85}>
         <View style={{ paddingHorizontal: 8 }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", marginBottom: 12, marginLeft: 4 }}>La IA solo verá lo que elijas aquí. Si no filtras nada, analiza todo el periodo.</Text>
           <ScopeForm value={scope} onChange={setScope} />
           <Button title="Listo" onPress={() => setSheet(false)} disabled={!scopeOk(scope)} />
           <View style={{ height: 6 }} />
