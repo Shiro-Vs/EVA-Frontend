@@ -14,7 +14,7 @@ type Row = { icon: keyof typeof Ionicons.glyphMap; title: string; text: string; 
 const GROUPS: Array<{ title: string; section: SectionKey; rows: Row[] }> = [
   { title: "Inteligencia", section: "plan", rows: [
     { icon: "sparkles-outline", title: "Análisis con IA", text: "Pregunta sobre tus gastos por periodo, cuentas o servicios", to: "/analysis" },
-    { icon: "chatbubbles-outline", title: "Chats guardados", text: "Conversaciones sobre tus datos", to: "/analysis/chats" },
+    { icon: "chatbubbles-outline", title: "Conversaciones guardadas", text: "Tus conversaciones y respuestas con la IA", to: "/analysis/chats" },
   ] },
   { title: "Captura", section: "people", rows: [
     { icon: "scan-outline", title: "Bandeja de captura", text: "Comprobantes y correos por revisar", to: "/capture" },

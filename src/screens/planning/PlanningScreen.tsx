@@ -74,28 +74,6 @@ export default function PlanningScreen() {
           </View>
         </View>
 
-        {/* Community & Contacts Access */}
-        <TouchableOpacity
-          onPress={() => router.push("/people")}
-          className="p-4 rounded-3xl border mb-5 flex-row items-center justify-between"
-          style={{ backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}15` }}
-          activeOpacity={0.7}
-        >
-          <View className="flex-row items-center">
-            <View
-              className="w-10 h-10 rounded-full items-center justify-center mr-4"
-              style={{ backgroundColor: `${colors.primary}15` }}
-            >
-              <Ionicons name="people" size={20} color={colors.primary} />
-            </View>
-            <View>
-              <Text className="font-asap-bold text-base" style={{ color: colors.text }}>Personas</Text>
-              <Text className="font-asap text-xs" style={{ color: colors.textSecondary }}>Contactos, deudas y devoluciones</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.primary} />
-        </TouchableOpacity>
-
         {/* Subscriptions Section */}
         <View className="mb-6">
           <View className="flex-row justify-between items-center mb-6">
