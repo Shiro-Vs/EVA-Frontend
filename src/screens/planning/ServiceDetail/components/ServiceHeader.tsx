@@ -65,18 +65,21 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
         </View>
       </View>
 
-      {(
-        <View style={{ flexDirection: "row", backgroundColor: colors.card, borderRadius: 14, padding: 4, borderWidth: 1, borderColor: colors.border }}>
-          {((shared ? ["ciclo", "participantes", "historial"] : ["ciclo", "historial"]) as ServiceTab[]).map((tab) => {
-            const on = activeTab === tab;
-            return (
-              <TouchableOpacity key={tab} onPress={() => onSwitchTab(tab)} accessibilityRole="tab" accessibilityState={{ selected: on }} style={{ flex: 1, minHeight: 38, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: on ? colors.primarySurface : "transparent" }}>
-                <Text style={{ fontFamily: "AsapBold", fontSize: 12, color: on ? colors.onPrimary : colors.textSecondary }}>{tab === "ciclo" ? "Ciclo" : tab === "historial" ? "Historial" : "Participantes"}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
+      <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        {((shared ? ["ciclo", "participantes", "historial"] : ["ciclo", "historial"]) as ServiceTab[]).map((tab) => {
+          const on = activeTab === tab;
+          const meta = tab === "ciclo" ? { label: "Ciclo", icon: "sync-outline" } : tab === "historial" ? { label: "Historial", icon: "time-outline" } : { label: "Personas", icon: "people-outline" };
+          return (
+            <TouchableOpacity key={tab} onPress={() => onSwitchTab(tab)} accessibilityRole="tab" accessibilityState={{ selected: on }} activeOpacity={0.7} style={{ flex: 1, alignItems: "center", paddingTop: 6 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingBottom: 10 }}>
+                <Ionicons name={meta.icon as keyof typeof Ionicons.glyphMap} size={17} color={on ? colors.primary : colors.muted} />
+                <Text style={{ fontFamily: on ? "AsapBold" : "AsapMedium", fontSize: 14, color: on ? colors.text : colors.textSecondary }}>{meta.label}</Text>
+              </View>
+              <View style={{ height: 3, width: "60%", borderTopLeftRadius: 3, borderTopRightRadius: 3, backgroundColor: on ? colors.primary : "transparent", marginBottom: -1 }} />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 };
