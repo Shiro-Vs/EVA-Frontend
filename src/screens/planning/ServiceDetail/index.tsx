@@ -10,6 +10,7 @@ import EditServiceModal from "./components/EditServiceModal";
 import ServiceHeader from "./components/ServiceHeader";
 import ServiceHistory from "./components/ServiceHistory";
 import ServiceParticipants from "./components/ServiceParticipants";
+import ServicePayments from "./components/ServicePayments";
 
 /** Detalle de un servicio: cabecera con sus datos, pestaña de pagos por ciclo y (si es compartido) la de participantes. */
 export default function ServiceDetailScreen({ serviceId }: { serviceId: string }) {
@@ -36,9 +37,11 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 120, gap: 12 }}>
-        <ServiceHeader service={service} accountName={accountName} onBack={back} onMenu={() => setMenu(true)} activeTab={shared ? s.activeTab : "historial"} onSwitchTab={s.switchTab} />
+        <ServiceHeader service={service} accountName={accountName} onBack={back} onMenu={() => setMenu(true)} activeTab={s.activeTab} onSwitchTab={s.switchTab} />
 
-        {shared && s.activeTab === "participantes" ? (
+        {s.activeTab === "historial" ? (
+          <ServicePayments cycles={s.history.data} loading={s.history.loading} shared={shared} onOpenCycle={(id) => { s.selectCycleById(id); s.switchTab("ciclo"); }} />
+        ) : shared && s.activeTab === "participantes" ? (
           <ServiceParticipants seats={s.seats.data ?? []} shared={shared} capacity={service.capacity} onAddSubscriber={s.goJoin} onOpenSeat={(sid) => s.router.push(`/seat/${sid}` as never)} />
         ) : (
           <ServiceHistory

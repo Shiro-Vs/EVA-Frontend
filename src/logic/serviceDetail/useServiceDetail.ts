@@ -5,10 +5,11 @@ import { api } from "../../api/client";
 import type { Charge } from "../../api/types";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
+import { todayLocalIso } from "../../utils/dates";
 import { shareText } from "../../utils/share";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-export type ServiceTab = "participantes" | "historial";
+export type ServiceTab = "ciclo" | "participantes" | "historial";
 
 /**
  * Datos y acciones de la pantalla de detalle del servicio, con la API real.
@@ -21,7 +22,7 @@ export function useServiceDetail(serviceId: string) {
   const seats = useAsync(() => api.seats(serviceId), [serviceId]);
   const accounts = useAsync(() => api.accounts(), []);
 
-  const [activeTab, setActiveTab] = useState<ServiceTab>("historial");
+  const [activeTab, setActiveTab] = useState<ServiceTab>("ciclo");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isEditVisible, setEditVisible] = useState(false);
   const [confirmReverse, setConfirmReverse] = useState(false);
@@ -35,9 +36,13 @@ export function useServiceDetail(serviceId: string) {
   const selectedIndex = Math.max(0, ordered.findIndex((c) => c.id === activeId));
   const detail = useAsync(async () => (activeId ? api.cycle(activeId) : null), [activeId]);
 
+  // Historial: el detalle de los ciclos ya iniciados (del más reciente al más antiguo); solo se pide al abrir esa pestaña.
+  const pastIds = useMemo(() => ordered.filter((c) => c.startDate <= todayLocalIso()).reverse().slice(0, 12).map((c) => c.id), [ordered]);
+  const history = useAsync(async () => (activeTab === "historial" ? Promise.all(pastIds.map((id) => api.cycle(id))) : null), [activeTab, pastIds.join(",")]);
+
   const reloadAll = useCallback(() => {
-    void sub.reload(); void cycles.reload(); void seats.reload(); void detail.reload(); void accounts.reload();
-  }, [sub.reload, cycles.reload, seats.reload, detail.reload, accounts.reload]);
+    void sub.reload(); void cycles.reload(); void seats.reload(); void detail.reload(); void accounts.reload(); void history.reload();
+  }, [sub.reload, cycles.reload, seats.reload, detail.reload, accounts.reload, history.reload]);
   useFocusReload(reloadAll);
 
   const switchTab = (tab: ServiceTab) => {
@@ -46,6 +51,8 @@ export function useServiceDetail(serviceId: string) {
   };
 
   const selectCycleAt = (index: number) => { const c = ordered[index]; if (c) setSelectedId(c.id); };
+
+  const selectCycleById = (id: string) => setSelectedId(id);
 
   const advance = useSubmit(async (key: string) => { await api.generateAhead(serviceId, 1, key); reloadAll(); });
 
@@ -81,7 +88,7 @@ export function useServiceDetail(serviceId: string) {
   };
 
   return {
-    sub, seats, accounts, detail, ordered, selectedIndex, selectCycleAt,
+    sub, seats, accounts, detail, history, ordered, selectedIndex, selectCycleAt, selectCycleById,
     activeTab, switchTab, scrollViewRef, SCREEN_WIDTH,
     isEditVisible, setEditVisible, confirmReverse, setConfirmReverse,
     advance, reversePayment, preferredAccount, remindError,

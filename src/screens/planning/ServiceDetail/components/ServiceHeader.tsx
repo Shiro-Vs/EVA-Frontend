@@ -7,6 +7,7 @@ import { daysUntil, whenText } from "../../../dashboard/attention";
 import { todayLocalIso } from "../../../../utils/dates";
 import { intervalLabel } from "../../../../utils/intervals";
 import { formatSoles } from "../../../../utils/money";
+import type { ServiceTab } from "../../../../logic/serviceDetail/useServiceDetail";
 import { getAdjustedColor, ServiceIcon } from "../../../../utils/serviceIcons";
 
 interface ServiceHeaderProps {
@@ -14,8 +15,8 @@ interface ServiceHeaderProps {
   accountName: string | null;
   onBack: () => void;
   onMenu: () => void;
-  activeTab: "participantes" | "historial";
-  onSwitchTab: (tab: "participantes" | "historial") => void;
+  activeTab: ServiceTab;
+  onSwitchTab: (tab: ServiceTab) => void;
 }
 
 function Chip({ icon, text, color, bg }: { icon: keyof typeof Ionicons.glyphMap; text: string; color: string; bg: string }) {
@@ -64,13 +65,13 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
         </View>
       </View>
 
-      {shared && (
+      {(
         <View style={{ flexDirection: "row", backgroundColor: colors.card, borderRadius: 14, padding: 4, borderWidth: 1, borderColor: colors.border }}>
-          {(["historial", "participantes"] as const).map((tab) => {
+          {((shared ? ["ciclo", "participantes", "historial"] : ["ciclo", "historial"]) as ServiceTab[]).map((tab) => {
             const on = activeTab === tab;
             return (
               <TouchableOpacity key={tab} onPress={() => onSwitchTab(tab)} accessibilityRole="tab" accessibilityState={{ selected: on }} style={{ flex: 1, minHeight: 38, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: on ? colors.primarySurface : "transparent" }}>
-                <Text style={{ fontFamily: "AsapBold", fontSize: 13, color: on ? colors.onPrimary : colors.textSecondary }}>{tab === "historial" ? "Pagos" : "Participantes"}</Text>
+                <Text style={{ fontFamily: "AsapBold", fontSize: 12, color: on ? colors.onPrimary : colors.textSecondary }}>{tab === "ciclo" ? "Ciclo" : tab === "historial" ? "Historial" : "Participantes"}</Text>
               </TouchableOpacity>
             );
           })}

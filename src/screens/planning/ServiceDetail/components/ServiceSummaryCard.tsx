@@ -54,9 +54,9 @@ export const ServiceSummaryCard: React.FC<ServiceSummaryCardProps> = ({ cycle, s
       </View>
 
       <View style={{ flexDirection: "row", gap: 12 }}>
-        <Stat label={paid ? "Costo total" : "Precio"} value={formatSoles(total)} />
-        {shared && <Stat label="Recaudado" value={formatSoles(cost.receivedFromOthers)} />}
-        <Stat label={!shared ? "Total" : hasSurplus ? "A tu favor" : "Tu gasto"} value={formatSoles(!shared ? total : hasSurplus ? cost.surplus : cost.costByCollections)} />
+        <Stat label={paid ? (shared ? "Pagaste" : "Pagaste") : "Precio"} value={formatSoles(total)} />
+        {shared && <Stat label="Te devolvieron" value={formatSoles(cost.receivedFromOthers)} />}
+        <Stat label={!shared ? "Tu gasto" : hasSurplus ? "A tu favor" : "Tu gasto real"} value={formatSoles(!shared ? total : hasSurplus ? cost.surplus : cost.costByCollections)} />
       </View>
 
       {shared && (

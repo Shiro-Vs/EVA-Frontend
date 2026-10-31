@@ -12,7 +12,7 @@ interface SharedParticipantsListProps {
   onRemindParticipant: (contactId: string) => void;
 }
 
-/** Una tarjeta por participante: su estado de pago en el ciclo, lo que debe y el aviso por WhatsApp. */
+/** Lista plana de participantes: la barra de la izquierda indica si pagó, lo que debe y el aviso por WhatsApp. */
 export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ charges, onPressCharge, onRemindParticipant }) => {
   const { colors } = useAppTheme();
 
@@ -29,21 +29,18 @@ export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ 
   }
 
   return (
-    <View style={{ gap: 10 }}>
-      {charges.map((c) => {
+    <View>
+      {charges.map((c, i) => {
         const st = statusOf(c);
         const settled = c.paymentStatus === "paid" || c.paymentStatus === "exempt";
         const hasPending = cmpMoney(c.pending, "0.00") > 0;
         const partial = !settled && cmpMoney(c.applied, "0.00") > 0;
         return (
           <TouchableOpacity key={c.obligationId} onPress={() => onPressCharge(c)} activeOpacity={0.75} accessibilityRole="button"
-            style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, flexDirection: "row", overflow: "hidden" }}>
-            <View style={{ width: 5, backgroundColor: st.bar }} />
-            <View style={{ flex: 1, padding: 12, gap: 10 }}>
+            style={{ flexDirection: "row", gap: 12, paddingVertical: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
+            <View style={{ width: 4, borderRadius: 2, backgroundColor: st.bar }} />
+            <View style={{ flex: 1, gap: 8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}1A` }}>
-                  <Text style={{ color: colors.primary, fontSize: 15, fontFamily: "AsapBold" }}>{c.contactName.charAt(0)}</Text>
-                </View>
                 <View style={{ flex: 1 }}>
                   <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{c.contactName}</Text>
                   <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>Vence {humanDate(c.dueDate)}</Text>

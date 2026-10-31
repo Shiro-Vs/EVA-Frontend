@@ -32,13 +32,13 @@ export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats,
         <Button title="Incorporar" icon="person-add-outline" size="compact" disabled={full} onPress={onAddSubscriber} />
       </View>
 
-      <View style={{ gap: 8 }}>
-        {seats.map((seat) => {
+      <View>
+        {seats.map((seat, i) => {
           const owes = cmpMoney(seat.pending, "0.00") > 0;
           const name = seat.isOwner ? "Tú" : seat.contact?.name ?? "—";
           return (
             <TouchableOpacity key={seat.id} disabled={seat.isOwner} onPress={() => onOpenSeat(seat.id)} activeOpacity={0.7} accessibilityRole="button"
-              style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border }}>
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
               <EVAAvatar name={name} color={seat.isOwner ? colors.muted : colors.primary} size={38} />
               <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontFamily: "AsapBold" }}>{name}</Text>
