@@ -1,11 +1,11 @@
-import React, { useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import React, { useRef, useState } from "react";
+import { ActivityIndicator, PanResponder, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomSheet from "../../../components/common/BottomSheet";
 import { ErrorBox, MenuRow } from "../../../components/v1/ui";
 import { useDialog } from "../../../context/DialogContext";
 import { useAppTheme } from "../../../hooks/useAppTheme";
-import { useServiceDetail } from "../../../logic/serviceDetail/useServiceDetail";
+import { useServiceDetail, type ServiceTab } from "../../../logic/serviceDetail/useServiceDetail";
 import EditServiceModal from "./components/EditServiceModal";
 import ServiceHeader from "./components/ServiceHeader";
 import ServiceHistory from "./components/ServiceHistory";
@@ -19,6 +19,18 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
   const s = useServiceDetail(serviceId);
   const [menu, setMenu] = useState(false);
   const service = s.sub.data;
+
+  // Deslizar a los lados cambia de pestaña (solo si el gesto es claramente horizontal, para no chocar con el scroll vertical).
+  const swipe = useRef({ tabs: [] as ServiceTab[], tab: "ciclo" as ServiceTab, go: (_t: ServiceTab) => {} });
+  swipe.current = { tabs: service?.mode === "shared" ? ["ciclo", "participantes", "historial"] : ["ciclo", "historial"], tab: s.activeTab, go: s.switchTab };
+  const pan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+    onPanResponderRelease: (_e, g) => {
+      const { tabs, tab, go } = swipe.current;
+      const next = tabs[tabs.indexOf(tab) + (g.dx < -50 ? 1 : g.dx > 50 ? -1 : 0)];
+      if (next && next !== tab) go(next);
+    },
+  })).current;
 
   if (s.sub.error) return <View style={{ flex: 1, backgroundColor: colors.background, padding: 24, justifyContent: "center" }}><ErrorBox message={s.sub.error} onRetry={s.reloadAll} /></View>;
   if (!service) return <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center" }}><ActivityIndicator color={colors.primary} /></View>;
@@ -36,7 +48,7 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 120, gap: 12 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 120, gap: 12 }} {...pan.panHandlers}>
         <ServiceHeader service={service} accountName={accountName} onBack={back} onMenu={() => setMenu(true)} activeTab={s.activeTab} onSwitchTab={s.switchTab} />
 
         {s.activeTab === "historial" ? (
