@@ -44,6 +44,9 @@ const slateLight = {
   expense: "#CC1E32",
   expenseStrong: "#B91D2A",
   dangerSurface: "#B91D2A",
+  successSurface: "#047029",
+  warningSurface: "#A64A02",
+  onWarning: "#FFFFFF",
   tabIconDefault: "#5A6A7E",
   tabIconSelected: "#0369B2",
   sections: {
@@ -88,7 +91,10 @@ const slateDark: typeof slateLight = {
   warningStrong: "#FBBF24",
   expense: "#FF7E87",
   expenseStrong: "#FF979D",
-  dangerSurface: "#CF3F4F",
+  dangerSurface: "#C42D40",
+  successSurface: "#1F7A3A",
+  warningSurface: "#FBBF24",
+  onWarning: "#06141B",
   tabIconDefault: "#9BA8AB",
   tabIconSelected: "#68BCFB",
   sections: {
@@ -135,6 +141,9 @@ const violetLight: typeof slateLight = {
   expense: "#D11F35",
   expenseStrong: "#C21F2C",
   dangerSurface: "#C21F2C",
+  successSurface: "#007D2F",
+  warningSurface: "#B04F01",
+  onWarning: "#FFFFFF",
   tabIconDefault: "#6A5C8E",
   tabIconSelected: "#9839DE",
   sections: {
@@ -179,7 +188,10 @@ const violetDark: typeof slateLight = {
   warningStrong: "#FBBF24",
   expense: "#FE8189",
   expenseStrong: "#FD9BA1",
-  dangerSurface: "#D24151",
+  dangerSurface: "#C42D40",
+  successSurface: "#1F7A3A",
+  warningSurface: "#FBBF24",
+  onWarning: "#1F0B44",
   tabIconDefault: "#B3A3D3",
   tabIconSelected: "#D0A4FE",
   sections: {

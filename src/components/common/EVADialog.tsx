@@ -21,15 +21,15 @@ export interface DialogSpec {
   autoCloseMs?: number;
 }
 
-/** Ficha de cada tipo: ícono de estado sobre el logo y color. */
+/** Ficha de cada tipo: ícono, color de realce, fondo sólido de la insignia y color del ícono sobre ella (todos con contraste verificado). */
 function look(kind: DialogKind, c: ReturnType<typeof useAppTheme>["colors"]) {
   switch (kind) {
-    case "success": return { icon: "checkmark" as const, color: c.incomeStrong, tint: `${c.income}22` };
-    case "error": return { icon: "close" as const, color: c.expenseStrong, tint: `${c.expense}22` };
-    case "blocked": return { icon: "hand-left" as const, color: c.warningStrong, tint: `${c.warning}26` };
-    case "danger": return { icon: "trash" as const, color: c.expenseStrong, tint: `${c.expense}22` };
-    case "info": return { icon: "information" as const, color: c.primary, tint: `${c.primary}1F` };
-    default: return { icon: "help" as const, color: c.primary, tint: `${c.primary}1F` };
+    case "success": return { icon: "checkmark" as const, accent: c.incomeStrong, badge: c.successSurface, onBadge: "#FFFFFF" };
+    case "error": return { icon: "close" as const, accent: c.expenseStrong, badge: c.dangerSurface, onBadge: "#FFFFFF" };
+    case "blocked": return { icon: "hand-left" as const, accent: c.warningStrong, badge: c.warningSurface, onBadge: c.onWarning };
+    case "danger": return { icon: "trash" as const, accent: c.expenseStrong, badge: c.dangerSurface, onBadge: "#FFFFFF" };
+    case "info": return { icon: "information" as const, accent: c.primary, badge: c.primarySurface, onBadge: c.onPrimary };
+    default: return { icon: "help" as const, accent: c.primary, badge: c.primarySurface, onBadge: c.onPrimary };
   }
 }
 
@@ -48,12 +48,12 @@ export default function EVADialog({ spec, onResult }: { spec: DialogSpec | null;
   return (
     <Modal transparent visible animationType="fade" statusBarTranslucent onRequestClose={() => onResult(false)}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <Pressable style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDark ? "rgba(0,0,0,0.75)" : "rgba(15,8,35,0.5)" }} onPress={() => (asks ? onResult(false) : onResult(true))} accessibilityLabel="Cerrar" />
-        <View accessibilityViewIsModal style={{ width: "100%", maxWidth: 380, borderRadius: 28, backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 20, paddingTop: 22, paddingBottom: 16, alignItems: "center" }}>
-          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: l.tint, alignItems: "center", justifyContent: "center" }}>
+        <Pressable style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(15,8,35,0.6)" }} onPress={() => (asks ? onResult(false) : onResult(true))} accessibilityLabel="Cerrar" />
+        <View accessibilityViewIsModal style={{ width: "100%", maxWidth: 380, borderRadius: 28, backgroundColor: isDark ? colors.card : colors.elevated, borderWidth: 1, borderColor: colors.borderStrong, paddingHorizontal: 20, paddingTop: 22, paddingBottom: 16, alignItems: "center", shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 16 }}>
+          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: `${l.accent}26`, borderWidth: 2, borderColor: `${l.accent}66`, alignItems: "center", justifyContent: "center" }}>
             <Image source={isDark ? LOGO_DARK : LOGO_LIGHT} style={{ width: 52, height: 52 }} resizeMode="contain" accessibilityIgnoresInvertColors />
-            <View style={{ position: "absolute", right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: l.color, borderWidth: 3, borderColor: colors.elevated, alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name={l.icon} size={15} color="#FFFFFF" />
+            <View style={{ position: "absolute", right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: l.badge, borderWidth: 3, borderColor: isDark ? colors.card : colors.elevated, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name={l.icon} size={15} color={l.onBadge} />
             </View>
           </View>
           <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 19, fontFamily: "AsapBold", textAlign: "center", marginTop: 14 }}>{spec.title}</Text>
@@ -62,7 +62,7 @@ export default function EVADialog({ spec, onResult }: { spec: DialogSpec | null;
             <View style={{ alignSelf: "stretch", marginTop: 12, padding: 12, borderRadius: 16, backgroundColor: colors.card, gap: 4 }}>
               {spec.details.map((d, i) => (
                 <View key={i} style={{ flexDirection: "row", gap: 8 }}>
-                  <Text style={{ color: l.color, fontSize: 14, fontFamily: "AsapBold" }}>•</Text>
+                  <Text style={{ color: l.accent, fontSize: 14, fontFamily: "AsapBold" }}>•</Text>
                   <Text style={{ flex: 1, color: colors.text, fontSize: 13, fontFamily: "Asap", lineHeight: 18 }}>{d}</Text>
                 </View>
               ))}
@@ -70,9 +70,10 @@ export default function EVADialog({ spec, onResult }: { spec: DialogSpec | null;
           ) : null}
           {spec.autoCloseMs ? null : (
             <View style={{ alignSelf: "stretch", flexDirection: asks ? "row" : "column", gap: 8, marginTop: 16 }}>
-              {asks && <View style={{ flex: 1 }}><Button title={spec.cancelLabel ?? "Cancelar"} variant="secondary" onPress={() => onResult(false)} /></View>}
+              {/* Regla de seguridad: en lo destructivo la opción protagonista es CANCELAR (sólida) y la acción de riesgo va con contorno rojo y sin relleno. */}
+              {asks && <View style={{ flex: 1 }}><Button title={spec.cancelLabel ?? "Cancelar"} variant={spec.kind === "danger" ? "primary" : "outline"} onPress={() => onResult(false)} /></View>}
               <View style={{ flex: asks ? 1 : undefined }}>
-                <Button title={spec.confirmLabel ?? (asks ? "Confirmar" : "Entendido")} variant={spec.kind === "danger" ? "danger" : "primary"} onPress={() => onResult(true)} />
+                <Button title={spec.confirmLabel ?? (asks ? "Confirmar" : "Entendido")} variant={spec.kind === "danger" ? "outlineDanger" : "primary"} onPress={() => onResult(true)} />
               </View>
             </View>
           )}

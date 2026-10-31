@@ -108,20 +108,22 @@ export function Money({ value, size = 16, bold = true, tone }: { value: string; 
  * Tres tamaños: `regular` (48) acción principal de un formulario o pie de pantalla; `compact` (40) acciones secundarias;
  * `small` (34) acciones dentro de una fila de lista (Renombrar, Archivar…). Si no se indica, el principal es `regular` y el resto `compact`.
  */
-export function Button({ title, onPress, variant = "primary", busy, disabled, icon, size }: { title: string; onPress: () => void; variant?: "primary" | "secondary" | "danger"; busy?: boolean; disabled?: boolean; icon?: IconName; size?: "regular" | "compact" | "small" }) {
+export function Button({ title, onPress, variant = "primary", busy, disabled, icon, size }: { title: string; onPress: () => void; variant?: "primary" | "secondary" | "danger" | "outline" | "outlineDanger"; busy?: boolean; disabled?: boolean; icon?: IconName; size?: "regular" | "compact" | "small" }) {
   const { colors } = useAppTheme();
   const kind = size ?? (variant === "primary" ? "regular" : "compact");
   const compact = kind !== "regular";
   const small = kind === "small";
   const primary = variant === "primary", danger = variant === "danger";
   const off = disabled || busy;
-  const fg = primary || danger ? colors.onPrimary : colors.primary;
+  const outline = variant === "outline" || variant === "outlineDanger";
+  const fg = primary || danger ? colors.onPrimary : variant === "outline" ? colors.text : variant === "outlineDanger" ? colors.expenseStrong : colors.primary;
   return (
     <TouchableOpacity
       onPress={onPress} disabled={off} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ disabled: !!off, busy: !!busy }}
       style={{
         height: small ? control.small : compact ? control.compact : control.regular, paddingHorizontal: small ? 12 : compact ? 16 : 0, borderRadius: radius.md, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: off ? 0.55 : 1,
-        backgroundColor: primary ? colors.primarySurface : danger ? colors.dangerSurface : `${colors.primary}15`,
+        backgroundColor: primary ? colors.primarySurface : danger ? colors.dangerSurface : outline ? "transparent" : `${colors.primary}15`,
+        ...(outline ? { borderWidth: 1.5, borderColor: variant === "outlineDanger" ? colors.expenseStrong : colors.borderStrong } : {}),
         shadowColor: primary ? colors.primary : "transparent", shadowOpacity: primary ? 0.2 : 0, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
       }}
     >
@@ -247,16 +249,16 @@ export function SummaryTile({ label, value, tone, icon, onPress }: { label: stri
 }
 
 /** Fila de menú con ícono, título y descripción: la misma en Dinero, Personas, Planificar y Más. */
-export function MenuRow({ icon, title, text, onPress, badge, section }: { icon: IconName; title: string; text?: string; onPress: () => void; badge?: string | number | null; section?: SectionKey }) {
+export function MenuRow({ icon, title, text, onPress, badge, section, danger }: { icon: IconName; title: string; text?: string; onPress: () => void; badge?: string | number | null; section?: SectionKey; danger?: boolean }) {
   const { colors } = useAppTheme();
-  const accent = section ? colors.sections[section] : { ink: colors.primary, tint: `${colors.primary}12` };
+  const accent = danger ? { ink: colors.expenseStrong, tint: `${colors.expense}22` } : section ? colors.sections[section] : { ink: colors.primary, tint: `${colors.primary}12` };
   return (
     <RowLink onPress={onPress}>
       <View style={{ width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: accent.tint }}>
         <Ionicons name={icon} size={20} color={accent.ink} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{title}</Text>
+        <Text numberOfLines={1} style={{ color: danger ? colors.expenseStrong : colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{title}</Text>
         {text ? <Text numberOfLines={2} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{text}</Text> : null}
       </View>
       {badge ? <Badge text={String(badge)} tone="danger" /> : null}

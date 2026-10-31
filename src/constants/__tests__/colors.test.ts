@@ -42,6 +42,8 @@ describe.each(themes)("Contraste: %s", (_name, c, minLc) => {
     expect(wcag(c.onPrimaryTint, c.primary)).toBeGreaterThanOrEqual(4.5);
     expect(wcag(c.onFab, c.fab)).toBeGreaterThanOrEqual(4.5);
     expect(wcag(c.onAccent, c.accent)).toBeGreaterThanOrEqual(4.5);
+    expect(wcag("#FFFFFF", c.successSurface)).toBeGreaterThanOrEqual(4.5);
+    expect(wcag(c.onWarning, c.warningSurface)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("los íconos de la barra y los bordes fuertes cumplen 3:1", () => {

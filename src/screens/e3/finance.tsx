@@ -128,8 +128,8 @@ export function CategoriesScreen() {
             {menu.status === "active"
               ? <MenuRow icon="archive-outline" title="Archivar" text="Deja de ofrecerse al clasificar; el historial se conserva" onPress={() => archive(menu)} />
               : <MenuRow icon="arrow-undo-outline" title="Restaurar" onPress={() => restore(menu)} />}
-            <View style={{ height: 6 }} />
-            <MenuRow icon="trash-outline" title="Eliminar" text="Solo si no tiene subcategorías ni uso" onPress={() => remove(menu)} />
+            <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 12, marginHorizontal: 8 }} />
+            <MenuRow danger icon="trash-outline" title="Eliminar" text="Solo si no tiene subcategorías ni uso" onPress={() => remove(menu)} />
           </View>
         )}
       </BottomSheet>
