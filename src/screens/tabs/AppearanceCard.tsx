@@ -7,12 +7,12 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 const MODES: Array<["light" | "dark" | "system", string]> = [["light", "Claro"], ["dark", "Oscuro"], ["system", "Sistema"]];
 
 /** Elige la paleta (1 o 2) y el modo (claro, oscuro o el del teléfono). Cada paleta trae su tema claro y su tema oscuro. */
-export default function AppearanceCard() {
+export default function AppearanceCard({ bare }: { bare?: boolean }) {
   const { colors } = useAppTheme();
   const { palette, setPalette, themePreference, setTheme, theme } = useAppThemeContext();
 
   return (
-    <View style={{ backgroundColor: colors.card, borderRadius: 24, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 14 }}>
+    <View style={bare ? { gap: 14, paddingBottom: 8 } : { backgroundColor: colors.card, borderRadius: 24, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 14 }}>
       <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>Paleta de color</Text>
       <View style={{ flexDirection: "row", gap: 10 }}>
         {(Object.keys(PALETTE_INFO) as PaletteId[]).map((id) => {
