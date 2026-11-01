@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api, errorMessage } from "../../api/client";
@@ -15,11 +15,14 @@ import { cmpMoney, formatSoles } from "../../utils/money";
 const ICON: Record<string, keyof typeof Ionicons.glyphMap> = { bank: "business", savings: "save", cash: "cash", wallet: "phone-portrait", credit: "card" };
 const KINDS: Array<[string | undefined, string]> = [[undefined, "Todos"], ["income", "Ingresos"], ["expense", "Gastos"], ["transfer", "Traspasos"]];
 const PAGE = 12;
+const CARD_H = 124;
+const CARD_GAP = 12;
 
 /** Pestaña Dinero: tu saldo, tus cuentas, tus movimientos y el acceso a los préstamos. */
 export default function MoneyScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
+  const cardW = Math.min(280, Math.round(useWindowDimensions().width * 0.68));
   const accounts = useAsync(() => api.accounts(), []);
   const summary = useAsync(() => api.summary(), []);
   const [kind, setKind] = useState<string | undefined>(undefined);
@@ -72,25 +75,14 @@ export default function MoneyScreen() {
       {accounts.loading && !accounts.data ? <Loading /> : accounts.error ? <ErrorBox message={accounts.error} onRetry={accounts.reload} /> : list.length === 0 ? (
         <Empty icon="wallet-outline" title="Aún no tienes cuentas" text="Crea tu primera cuenta con su saldo actual. No cuenta como ingreso del mes." action={<Button title="Crear cuenta" icon="add" onPress={() => router.push("/account/new" as never)} />} />
       ) : (
-        <View style={{ marginTop: -6 }}>
-          {list.map((a: Account, i) => {
-            const debt = a.type === "credit";
-            return (
-              <TouchableOpacity key={a.id} onPress={() => router.push(`/account/${a.id}` as never)} activeOpacity={0.75} accessibilityRole="button"
-                style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
-                <View style={{ width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: colors.sections.money.tint }}>
-                  <Ionicons name={ICON[a.type] ?? "wallet"} size={19} color={colors.sections.money.ink} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{a.name}</Text>
-                  <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{debt ? "Tarjeta · deuda" : a.institution ?? "Saldo disponible"}</Text>
-                </View>
-                <Money value={a.balance} tone={cmpMoney(a.balance, "0.00") < 0 ? "expense" : undefined} />
-                <Ionicons name="chevron-forward" size={16} color={colors.muted} />
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardW + CARD_GAP} decelerationRate="fast" style={{ marginHorizontal: -24, marginTop: -4 }} contentContainerStyle={{ paddingHorizontal: 24, gap: CARD_GAP }}>
+          {list.map((a: Account) => <AccountCard key={a.id} width={cardW} account={a} onPress={() => router.push(`/account/${a.id}` as never)} />)}
+          <TouchableOpacity onPress={() => router.push("/account/new" as never)} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel="Nueva cuenta"
+            style={{ width: 130, height: CARD_H, borderRadius: 22, borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.muted, alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Ionicons name="add" size={26} color={colors.muted} />
+            <Text style={{ color: colors.muted, fontSize: 13, fontFamily: "AsapBold" }}>Nueva cuenta</Text>
+          </TouchableOpacity>
+        </ScrollView>
       )}
 
       <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold", marginTop: 4 }}>Movimientos</Text>
@@ -112,6 +104,31 @@ export default function MoneyScreen() {
       {moreError && <ErrorBox message={moreError} onRetry={loadMore} />}
       {cursor && <Button title="Ver más movimientos" variant="secondary" size="compact" busy={loadingMore} onPress={loadMore} />}
     </Screen>
+  );
+}
+
+/** Tarjeta de una cuenta, con aspecto de tarjeta bancaria: bancos en violeta, efectivo y billeteras en naranja, tarjetas de crédito en neutro con la deuda en rojo. */
+function AccountCard({ account: a, width, onPress }: { account: Account; width: number; onPress: () => void }) {
+  const { colors } = useAppTheme();
+  const credit = a.type === "credit";
+  const wallet = a.type === "cash" || a.type === "wallet";
+  const bg = credit ? colors.card : wallet ? colors.accent : colors.primarySurface;
+  const ink = credit ? colors.text : wallet ? colors.onAccent : colors.onPrimary;
+  const soft = credit ? colors.textSecondary : wallet ? colors.onAccent : colors.onPrimaryMuted;
+  const owes = cmpMoney(a.balance, "0.00") < 0;
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={`${a.name}, ${formatSoles(a.balance)}`}
+      style={{ width, height: CARD_H, borderRadius: 22, padding: 16, overflow: "hidden", justifyContent: "space-between", backgroundColor: bg, borderWidth: credit ? 1 : 0, borderColor: colors.borderStrong }}>
+      <View style={{ position: "absolute", top: -34, right: -26, width: 120, height: 120, borderRadius: 60, backgroundColor: credit ? `${colors.text}08` : "rgba(255,255,255,0.12)" }} />
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Ionicons name={ICON[a.type] ?? "wallet"} size={22} color={ink} />
+        <Text numberOfLines={1} style={{ color: soft, fontSize: 12, fontFamily: "AsapMedium", maxWidth: "60%" }}>{credit ? "Tarjeta de crédito" : a.institution ?? "Saldo disponible"}</Text>
+      </View>
+      <View>
+        <Text numberOfLines={1} style={{ color: soft, fontSize: 12, fontFamily: "AsapMedium" }}>{a.name}{credit ? " · deuda" : ""}</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: credit && owes ? colors.expenseStrong : ink, fontSize: 24, fontFamily: "AsapBold" }}>{formatSoles(a.balance)}</Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
