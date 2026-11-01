@@ -8,6 +8,7 @@ import { isIsoDate, todayLocalIso } from "../../utils/dates";
 import { api } from "../../api/client";
 import type { AccountType } from "../../api/types";
 import { Button, Card, Field, Notice, Screen, Txt, SwitchRow } from "../../components/v1/ui";
+import { BANK_PRESETS, bankPreset } from "../../constants/banks";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useSubmit } from "../../hooks/useAsync";
 import { normalizeMoneyInput } from "../../utils/money";
@@ -23,6 +24,16 @@ export default function AccountNewScreen() {
   const [type, setType] = useState<AccountType>("bank");
   const [amountText, setAmountText] = useState("");
   const [institution, setInstitution] = useState("");
+  const [other, setOther] = useState(false);
+  const preset = bankPreset(institution);
+  const pickEntity = (id: string) => {
+    create.resetKey();
+    if (id === "other") { setOther(true); setInstitution(""); return; }
+    const b = BANK_PRESETS.find((x) => x.id === id);
+    if (!b) return;
+    setOther(false); setInstitution(b.label); setType(b.type);
+    if (!name.trim()) setName(b.label);
+  };
   const [openingDate, setOpeningDate] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [exclude, setExclude] = useState(false);
@@ -54,8 +65,9 @@ export default function AccountNewScreen() {
         <Field label="Nombre" value={name} onChangeText={(t) => { setName(t); create.resetKey(); }} placeholder="BCP, Efectivo, Yape…" autoCapitalize="words" />
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}><SelectField label="Tipo" value={type} onChange={(v) => { setType(v); create.resetKey(); }} options={TYPES} /></View>
-          <View style={{ flex: 1 }}><Field label="Entidad" value={institution} onChangeText={(t) => { setInstitution(t); create.resetKey(); }} placeholder="BCP, Yape…" autoCapitalize="words" /></View>
+          <View style={{ flex: 1 }}><SelectField label="Entidad" value={other ? "other" : preset?.id ?? null} onChange={pickEntity} placeholder="Elegir" options={[...BANK_PRESETS.map((b) => ({ id: b.id, label: b.label })), { id: "other", label: "Otra o ninguna" }]} /></View>
         </View>
+        {other && <Field label="Nombre de la entidad (opcional)" value={institution} onChangeText={(t) => { setInstitution(t); create.resetKey(); }} placeholder="Banco, billetera…" autoCapitalize="words" />}
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}><Field label={isCredit ? "Deuda actual (S/)" : "Saldo actual (S/)"} value={amountText} onChangeText={(t) => { setAmountText(t); create.resetKey(); }} placeholder="0.00" keyboardType="decimal-pad" /></View>
           <View style={{ flex: 1 }}><DateInput label="Fecha del saldo" value={openingDate} onChange={(t) => { setOpeningDate(t); create.resetKey(); }} /></View>
