@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { BackHandler } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { api, errorMessage } from "../../api/client";
 import { Contact } from "../../interfaces/Contact";
@@ -59,13 +59,14 @@ export const useContacts = () => {
     void loadContacts();
   }, [loadContacts]);
 
-  useEffect(() => {
+  // El «atrás» del teléfono solo cierra el historial mientras esta pantalla está al frente; si hay otra vista encima, retrocede esa.
+  useFocusEffect(useCallback(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
       if (showHistory) { closeHistory(); return true; }
       return false;
     });
     return () => sub.remove();
-  }, [showHistory, closeHistory]);
+  }, [showHistory, closeHistory]));
 
   const handleSaveContact = async () => {
     if (!contactDraft.nombre.trim()) {
