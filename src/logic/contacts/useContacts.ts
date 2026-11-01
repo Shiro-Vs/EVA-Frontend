@@ -4,7 +4,8 @@ import { useRouter } from "expo-router";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { api, errorMessage } from "../../api/client";
 import { Contact } from "../../interfaces/Contact";
-import { cmpMoney } from "../../utils/money";
+import { useDialog } from "../../context/DialogContext";
+import { cmpMoney, formatSoles } from "../../utils/money";
 import { toUiContact } from "./adapt";
 
 const ZERO = "0.00";
@@ -13,6 +14,7 @@ const owes = (c: Contact) => cmpMoney(c.deuda ?? ZERO, ZERO) > 0;
 export const useContacts = () => {
   const router = useRouter();
   const { colors } = useAppTheme();
+  const dialog = useDialog();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [totalPending, setTotalPending] = useState(ZERO);
@@ -96,21 +98,14 @@ export const useContacts = () => {
     setIsModalVisible(true);
   };
 
-  const handleDeleteContact = (contact: Contact) => {
+  const handleDeleteContact = async (contact: Contact) => {
     if (owes(contact)) {
-      setAlertConfig({ visible: true, title: "No se puede archivar", message: "Este contacto tiene deudas pendientes. Cóbrale o ajusta primero.", type: "error" });
+      await dialog.notify({ kind: "blocked", title: "No se puede archivar", message: `${contact.nombre} todavía te debe ${formatSoles(contact.deuda)}. Cóbrale o ajusta la deuda primero.` });
       return;
     }
-    setAlertConfig({
-      visible: true,
-      title: "¿Archivar contacto?",
-      message: `${contact.nombre} dejará de aparecer en tu lista. Su historial se conserva.`,
-      type: "error",
-      onConfirm: async () => {
-        setAlertConfig((prev) => ({ ...prev, visible: false }));
-        try { await api.archiveContact(contact.id); await loadContacts(); } catch (e) { fail(e); }
-      },
-    });
+    const ok = await dialog.confirm({ title: `¿Archivar a ${contact.nombre}?`, message: "Dejará de aparecer en tu lista. Su historial se conserva.", confirmLabel: "Archivar", cancelLabel: "Mantener", danger: true });
+    if (!ok) return;
+    try { await api.archiveContact(contact.id); await loadContacts(); } catch (e) { await dialog.fail(e, "No se pudo archivar"); }
   };
 
   const filteredContacts = useMemo(() => {

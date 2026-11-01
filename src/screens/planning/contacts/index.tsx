@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,9 @@ import EVAAlert from "../../../components/common/EVAAlert";
 import { EVALoading } from "../../../components/common/EVALoading";
 import { useAppTheme } from "../../../hooks/useAppTheme";
 import { cmpMoney } from "../../../utils/money";
-import { MenuRow } from "../../../components/v1/ui";
+import BottomSheet from "../../../components/common/BottomSheet";
+import { Button, MenuRow } from "../../../components/v1/ui";
+import type { Contact } from "../../../interfaces/Contact";
 
 // Importaciones de componentes
 import { ContactsHeader } from "./components/ContactsHeader";
@@ -60,6 +62,9 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
     setHistoryRefreshKey,
   } = useContacts();
 
+  const [menuFor, setMenuFor] = useState<Contact | null>(null);
+  const pick = (fn: (c: Contact) => void) => { const c = menuFor; setMenuFor(null); if (c) setTimeout(() => fn(c), 0); };
+
   if (loading && filteredContacts.length === 0) {
     return <EVALoading message="Cargando contactos..." />;
   }
@@ -85,131 +90,51 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
   }
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      style={{ backgroundColor: colors.background }}
-    >
-      <View className="px-6 flex-1">
-        {/* Header */}
-        <View className="flex-row items-center mt-6 mb-6">
-          {!asTab && <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-10 h-10 rounded-full items-center justify-center mr-4"
-            style={{
-              backgroundColor: colors.card,
-              borderWidth: 1,
-              borderColor: `${colors.text}05`,
-            }}
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.primary} />
-          </TouchableOpacity>}
-          <Text
-            className="text-2xl"
-            style={{ color: colors.text, fontFamily: fonts.family.bold }}
-          >
-            {asTab ? "Personas" : "Mis Contactos"}
-          </Text>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+      <View style={{ flex: 1, paddingHorizontal: 24 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 20, marginBottom: 14 }}>
+          {!asTab && (
+            <TouchableOpacity onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Volver" style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+              <Ionicons name="chevron-back" size={22} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+          <Text style={{ flex: 1, color: colors.text, fontSize: 24, fontFamily: fonts.family.bold }}>{asTab ? "Personas" : "Mis contactos"}</Text>
+          <View style={{ minWidth: 104 }}><Button title="Nueva" icon="add" size="compact" onPress={handleNewContact} /></View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <ContactsHeader
-            totalDeuda={stats.totalDeudaGlobal}
-            count={stats.totalCount}
-            debtorCount={stats.debtorCount}
-            onAddPress={handleNewContact}
-            onRemindPress={() => setIsRemindModalVisible(true)}
-          />
+        <ScrollView showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never" contentContainerStyle={{ gap: 14, paddingBottom: asTab ? 120 : 24 }}>
+          <ContactsHeader totalDeuda={stats.totalDeudaGlobal} count={stats.totalCount} debtorCount={stats.debtorCount} onRemindPress={() => setIsRemindModalVisible(true)} />
 
-          {/* Buscador y Filtros */}
-          <View className="flex-row items-center gap-3 mb-6">
-            <View
-              className="flex-1 flex-row items-center px-4 h-12 rounded-2xl border"
-              style={{
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-              }}
-            >
-              <Ionicons name="search" size={20} color={colors.muted} />
-              <TextInput
-                placeholder="Buscar contacto..."
-                placeholderTextColor={colors.muted}
-                className="flex-1 ml-2"
-                style={{ color: colors.text, fontFamily: fonts.family.regular }}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, height: 44, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.card }}>
+              <Ionicons name="search" size={18} color={colors.muted} />
+              <TextInput placeholder="Buscar persona…" placeholderTextColor={colors.muted} style={{ flex: 1, color: colors.text, fontFamily: fonts.family.regular, fontSize: 15 }} value={searchQuery} onChangeText={setSearchQuery} />
             </View>
-            <View
-              className="flex-row p-1 rounded-xl"
-              style={{ backgroundColor: colors.card }}
-            >
-              <TouchableOpacity
-                onPress={() => setSortBy("name")}
-                className="px-3 py-1.5 rounded-lg flex-row items-center" hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                style={{
-                  backgroundColor:
-                    sortBy === "name" ? colors.primary : "transparent",
-                }}
-              >
-                <Ionicons
-                  name="text"
-                  size={14}
-                  color={sortBy === "name" ? "white" : colors.primary}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  className="text-[10px]"
-                  style={{
-                    color: sortBy === "name" ? "white" : colors.primary,
-                    fontFamily: fonts.family.bold
-                  }}
-                >
-                  A-Z
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setSortBy("debt")}
-                className="px-3 py-1.5 rounded-lg flex-row items-center" hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                style={{
-                  backgroundColor:
-                    sortBy === "debt" ? colors.primary : "transparent",
-                }}
-              >
-                <Ionicons
-                  name="trending-down"
-                  size={14}
-                  color={sortBy === "debt" ? "white" : colors.primary}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  className="text-[10px]"
-                  style={{
-                    color: sortBy === "debt" ? "white" : colors.primary,
-                    fontFamily: fonts.family.bold
-                  }}
-                >
-                  Deuda
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={() => setSortBy(sortBy === "name" ? "debt" : "name")} accessibilityRole="button" accessibilityLabel={sortBy === "name" ? "Ordenado de la A a la Z; cambiar a deuda" : "Ordenado por deuda; cambiar a A-Z"}
+              style={{ height: 44, paddingHorizontal: 12, borderRadius: 16, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: `${colors.primary}1A` }}>
+              <Ionicons name={sortBy === "name" ? "text" : "trending-down"} size={16} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontSize: 13, fontFamily: fonts.family.bold }}>{sortBy === "name" ? "A-Z" : "Deuda"}</Text>
+            </TouchableOpacity>
           </View>
 
-          <ContactList
-            contacts={filteredContacts}
-            onContactPress={openHistory}
-            onEditPress={handleEditContact}
-            onDeletePress={handleDeleteContact}
-          />
+          <ContactList contacts={filteredContacts} onContactPress={openHistory} onMenuPress={setMenuFor} />
 
           {asTab && (
-            <View style={{ gap: 12, marginTop: 8 }}>
+            <View style={{ gap: 10, marginTop: 4 }}>
               <MenuRow section="people" icon="return-down-back-outline" title="Devoluciones" text="Dinero que debes devolver a alguien" onPress={() => router.push("/refunds" as never)} />
               <MenuRow section="people" icon="people-outline" title="Préstamos entre personas" text="Lo que prestaste o te prestaron" onPress={() => router.push("/loans" as never)} />
             </View>
           )}
-          <View className="h-32" />
         </ScrollView>
       </View>
+
+      <BottomSheet visible={!!menuFor} onClose={() => setMenuFor(null)} title={menuFor?.nombre} maxHeight={0.5}>
+        <View style={{ paddingHorizontal: 4, paddingBottom: 4, gap: 6 }}>
+          <MenuRow icon="time-outline" title="Ver historial" onPress={() => pick((c) => openHistory(c))} />
+          <MenuRow icon="create-outline" title="Editar" onPress={() => pick(handleEditContact)} />
+          <MenuRow icon="archive-outline" title="Archivar" text="Deja de aparecer en tu lista" danger onPress={() => pick(handleDeleteContact)} />
+        </View>
+      </BottomSheet>
 
       {/* Modales */}
       <ContactModal
