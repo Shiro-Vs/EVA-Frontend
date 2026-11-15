@@ -33,6 +33,7 @@ export const api = {
 
   contacts: async () => (await get<{ items: T.Contact[] }>("/contacts")).items,
   contact: (id: string) => get<T.Contact>(`/contacts/${id}`),
+  sendSuggestion: (body: { kind: "idea" | "problem" | "other"; message: string; appVersion?: string; platform?: string }) => post<{ sent: boolean }>("/suggestions", body),
   createContact: (body: { name: string; phone?: string | null; email?: string | null; color?: string | null; notes?: string | null }) => post<T.Contact>("/contacts", body),
   patchContact: (id: string, body: { name?: string; phone?: string | null; email?: string | null; color?: string | null; notes?: string | null }, version: number) => patch<T.Contact>(`/contacts/${id}`, body, version),
   archiveContact: (id: string) => post<T.Contact>(`/contacts/${id}/archive`),

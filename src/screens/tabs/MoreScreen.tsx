@@ -9,6 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useAppThemeContext } from "../../context/ThemeContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import AppearanceCard from "./AppearanceCard";
+import { SuggestionSheet } from "../../components/v1/SuggestionSheet";
 import { useDialog } from "../../context/DialogContext";
 
 type Row = { icon: keyof typeof Ionicons.glyphMap; title: string; text: string; to: string };
@@ -67,6 +68,7 @@ export default function MoreScreen() {
   const dialog = useDialog();
   const { palette, themePreference } = useAppThemeContext();
   const [look, setLook] = useState(false);
+  const [suggest, setSuggest] = useState(false);
   const name = profile?.displayName ?? "Mi cuenta";
 
   return (
@@ -96,8 +98,15 @@ export default function MoreScreen() {
         );
       })}
 
+      <View style={{ gap: 2 }}>
+        <Label>Ayuda</Label>
+        <FlatRow icon="chatbubble-ellipses-outline" title="Sugerencias" text="Cuéntame qué mejorar o qué falla" tint={`${colors.primary}12`} ink={colors.primary} last onPress={() => setSuggest(true)} />
+      </View>
+
       <FlatRow icon="log-out-outline" title="Cerrar sesión" tint={`${colors.expense}22`} ink={colors.expenseStrong} danger last
         onPress={async () => { if (await dialog.confirm({ title: "¿Cerrar sesión?", message: "Tendrás que volver a iniciar sesión para ver tus datos.", confirmLabel: "Cerrar sesión", cancelLabel: "Quedarme", danger: true })) await logout(); /* el guardián de sesión (Stack.Protected) lleva solo al inicio de sesión */ }} />
+
+      <SuggestionSheet visible={suggest} onClose={() => setSuggest(false)} />
 
       <BottomSheet visible={look} onClose={() => setLook(false)} title="Apariencia" maxHeight={0.8}>
         <AppearanceCard bare />

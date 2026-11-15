@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from "../src/context/AuthContext";
 import { DialogProvider } from "../src/context/DialogContext";
 import { LockProvider } from "../src/security/LockGate";
 import { useReminderSync } from "../src/notifications/useReminderSync";
+import { UpdatePrompt } from "../src/updates/UpdatePrompt";
 
 // Prevenir que el splash screen nativo se oculte automáticamente
 SplashScreen.preventAutoHideAsync();
@@ -79,6 +80,7 @@ function RootLayoutContent() {
           pantalla protegida visible sin sesion. Ver docs/06-auditoria-tecnica.md.
         */}
         <OfflineBanner />
+        <UpdatePrompt />
         {/* Fondo del tema en cada pantalla: sin esto, durante la transición se ve un fondo blanco/negro que «parpadea». */}
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: "slide_from_right", animationDuration: 200 }}>
           <Stack.Protected guard={!user}>

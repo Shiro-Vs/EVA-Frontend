@@ -7,6 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "publicar": "node scripts/publicar.mjs preview",
+    "publicar:produccion": "node scripts/publicar.mjs production",
     "test": "jest",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit"
@@ -34,6 +36,7 @@
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.20",
     "expo-web-browser": "~15.0.11",
     "nativewind": "4.2.2",
     "react": "19.1.0",

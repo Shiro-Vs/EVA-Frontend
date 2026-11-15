@@ -5,6 +5,7 @@
   },
   "build": {
     "preview": {
+      "channel": "preview",
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
@@ -14,6 +15,7 @@
       }
     },
     "production": {
+      "channel": "production",
       "autoIncrement": true,
       "android": { "buildType": "app-bundle" },
       "env": {

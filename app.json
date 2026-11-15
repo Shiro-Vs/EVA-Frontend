@@ -35,6 +35,8 @@
       "expo-notifications",
       "expo-local-authentication"
     ],
-    "scheme": "eva"
+    "scheme": "eva",
+    "runtimeVersion": { "policy": "appVersion" },
+    "updates": { "checkAutomatically": "ON_LOAD", "fallbackToCacheTimeout": 0 }
   }
 }
