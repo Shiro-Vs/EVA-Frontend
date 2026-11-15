@@ -4,7 +4,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Button, Field, Notice, Screen, Txt } from "../../components/v1/ui";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAuth } from "../../context/AuthContext";
-import { recoverPassword, updatePassword, verifyRecoveryCode } from "../../api/supabaseAuth";
+import { AuthError, recoverPassword, updatePassword, verifyRecoveryCode } from "../../api/supabaseAuth";
+import { markCodeCooldown, markCodeSent, useCodeCooldown } from "../../logic/auth/codeCooldown";
 import { passwordProblem } from "../../logic/auth/passwordRules";
 
 /** Segundo paso de «Olvidé mi contraseña»: el código de 6 dígitos del correo + la contraseña nueva. Al terminar entra con ella. */
@@ -19,6 +20,7 @@ export default function ResetPasswordScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const cooldown = useCodeCooldown(email);
 
   const submit = async () => {
     setError(""); setInfo("");
@@ -42,7 +44,16 @@ export default function ResetPasswordScreen() {
 
   const resend = async () => {
     setError(""); setInfo("");
-    try { await recoverPassword(email); setInfo("Te enviamos un código nuevo."); } catch (e) { setError((e as Error).message); }
+    if (cooldown.left > 0) return;
+    try {
+      await recoverPassword(email);
+      markCodeSent(email);
+      cooldown.refresh();
+      setInfo("Te enviamos un código nuevo.");
+    } catch (e) {
+      if (e instanceof AuthError && e.retryAfter) { markCodeCooldown(email, e.retryAfter); cooldown.refresh(); }
+      setError((e as Error).message);
+    }
   };
 
   return (
@@ -53,8 +64,8 @@ export default function ResetPasswordScreen() {
       <Field label="Código del correo" value={code} onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 10))} keyboardType="number-pad" placeholder="123456" />
       <Field label="Contraseña nueva" value={password} onChangeText={setPassword} secureTextEntry placeholder="Mínimo 8, una mayúscula y un número" />
       <Field label="Repite la contraseña" value={repeat} onChangeText={setRepeat} secureTextEntry onSubmitEditing={submit} />
-      <TouchableOpacity onPress={resend} accessibilityRole="button" style={{ paddingVertical: 8 }}>
-        <Text style={{ color: colors.primary, fontSize: 14, fontFamily: "AsapSemiBold", textAlign: "center" }}>¿No llegó? Enviar otro código</Text>
+      <TouchableOpacity onPress={resend} disabled={cooldown.left > 0} accessibilityRole="button" style={{ paddingVertical: 8, opacity: cooldown.left > 0 ? 0.5 : 1 }}>
+        <Text style={{ color: colors.primary, fontSize: 14, fontFamily: "AsapSemiBold", textAlign: "center" }}>{cooldown.left > 0 ? `Podrás pedir otro código en ${cooldown.left} s` : "¿No llegó? Enviar otro código"}</Text>
       </TouchableOpacity>
     </Screen>
   );

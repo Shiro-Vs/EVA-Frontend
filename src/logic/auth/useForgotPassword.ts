@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { recoverPassword, supabaseConfigured } from "../../api/supabaseAuth";
+import { AuthError, recoverPassword, supabaseConfigured } from "../../api/supabaseAuth";
+import { markCodeCooldown, markCodeSent, useCodeCooldown } from "./codeCooldown";
 
 export function useForgotPassword() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const cooldown = useCodeCooldown(email);
   
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
@@ -19,6 +21,7 @@ export function useForgotPassword() {
   };
 
   const handleResetPassword = async () => {
+    if (cooldown.left > 0) return;
     if (!email.trim()) {
       setError("El correo es obligatorio");
       return;
@@ -34,7 +37,10 @@ export function useForgotPassword() {
     }
     try {
       await recoverPassword(email);
+      markCodeSent(email);
+      cooldown.refresh();
     } catch (e) {
+      if (e instanceof AuthError && e.retryAfter) { markCodeCooldown(email, e.retryAfter); cooldown.refresh(); }
       setAlertConfig({ visible: true, title: "No se pudo enviar", message: (e as Error).message, type: "error", iconName: "warning-outline" });
       return;
     }
@@ -56,5 +62,6 @@ export function useForgotPassword() {
     alertConfig,
     setAlertConfig,
     handleResetPassword,
+    secondsLeft: cooldown.left,
   };
 }

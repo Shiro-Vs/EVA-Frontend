@@ -109,3 +109,15 @@ describe("Supabase Auth (REST)", () => {
     await expect(updatePassword("AT", "Igual1234")).rejects.toThrow(/distinta a la actual/);
   });
 });
+
+describe("límite de correos de Supabase", () => {
+  it("convierte «after N seconds» en una espera clara para la persona", async () => {
+    process.env.EXPO_PUBLIC_SUPABASE_URL = "https://proyecto.supabase.co";
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = "anon-publica";
+    (global as unknown as { fetch: unknown }).fetch = jest.fn().mockResolvedValue({ ok: false, status: 429, text: async () => JSON.stringify({ error_code: "over_email_send_rate_limit", msg: "For security purposes, you can only request this after 17 seconds." }) });
+    const err = await recoverPassword("a@b.co").catch((e: AuthError) => e);
+    expect(err).toBeInstanceOf(AuthError);
+    expect((err as AuthError).retryAfter).toBe(17);
+    expect((err as AuthError).message).toBe("Espera 17 segundos antes de pedir otro código.");
+  });
+});

@@ -11,7 +11,7 @@ export const supabaseConfigured = () => { const c = config(); return c.url !== "
 export interface AuthSession { accessToken: string; refreshToken: string | null; /** Epoch en segundos. */ expiresAt: number | null }
 
 export class AuthError extends Error {
-  constructor(public readonly code: string, message: string, public readonly status = 0) { super(message); this.name = "AuthError"; }
+  constructor(public readonly code: string, message: string, public readonly status = 0, /** Segundos de espera que pide el servidor (límite de correos). */ public readonly retryAfter?: number) { super(message); this.name = "AuthError"; }
 }
 
 const TEXT: Record<string, string> = {
@@ -45,6 +45,10 @@ async function call<T>(path: string, body: unknown, query = "", o: { method?: "P
   try { json = text ? JSON.parse(text) : {}; } catch { json = {}; }
   if (!res.ok) {
     const code = String(json.error_code ?? json.code ?? json.error ?? "unknown");
+    if (code === "over_email_send_rate_limit") {
+      const wait = Number(/(\d+)\s*seconds?/i.exec(String(json.msg ?? json.message ?? ""))?.[1]);
+      if (wait > 0) throw new AuthError(code, `Espera ${wait} ${wait === 1 ? "segundo" : "segundos"} antes de pedir otro código.`, res.status, wait);
+    }
     // El mensaje original de Supabase está en inglés: se traduce lo conocido y lo demás se muestra genérico.
     throw new AuthError(code, TEXT[code] ?? (res.status >= 500 ? "El servicio de inicio de sesión no responde. Inténtalo más tarde." : "No se pudo completar la acción. Revisa los datos."), res.status);
   }

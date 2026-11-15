@@ -30,6 +30,7 @@ export default function ForgotPasswordScreen() {
     alertConfig,
     setAlertConfig,
     handleResetPassword,
+    secondsLeft,
   } = useForgotPassword();
 
   return (
@@ -110,11 +111,12 @@ export default function ForgotPasswordScreen() {
             <TouchableOpacity
               onPress={handleResetPassword}
               className="rounded-2xl h-12 items-center justify-center shadow-lg mt-6"
-              style={{ backgroundColor: colors.primarySurface }}
+              style={{ backgroundColor: colors.primarySurface, opacity: secondsLeft > 0 ? 0.5 : 1 }}
               activeOpacity={0.8}
+              disabled={secondsLeft > 0}
             >
               <Text className="text-lg" style={{ fontFamily: fonts.family.bold, color: colors.onPrimary }}>
-                Enviar código
+                {secondsLeft > 0 ? `Espera ${secondsLeft} s para pedir otro` : "Enviar código"}
               </Text>
             </TouchableOpacity>
           </View>
