@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Text, TouchableOpacity } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Button, Field, Notice, Screen, Txt } from "../../components/v1/ui";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAuth } from "../../context/AuthContext";
@@ -10,6 +10,7 @@ import { passwordProblem } from "../../logic/auth/passwordRules";
 /** Segundo paso de «Olvidé mi contraseña»: el código de 6 dígitos del correo + la contraseña nueva. Al terminar entra con ella. */
 export default function ResetPasswordScreen() {
   const { colors } = useAppTheme();
+  const router = useRouter();
   const { signInWithPassword } = useAuth();
   const { email = "" } = useLocalSearchParams<{ email?: string }>();
   const [code, setCode] = useState("");
@@ -29,9 +30,12 @@ export default function ResetPasswordScreen() {
     try {
       const s = await verifyRecoveryCode(email, code);
       await updatePassword(s.accessToken, password);
-      await signInWithPassword(email, password); // el guardián de sesión lleva solo al inicio
+      await signInWithPassword(email, password);
+      // Esta pantalla está fuera de los guardianes de sesión, así que no se cierra sola al entrar: se va al inicio a mano.
+      router.replace("/");
     } catch (e) {
       setError((e as Error).message);
+    } finally {
       setBusy(false);
     }
   };
