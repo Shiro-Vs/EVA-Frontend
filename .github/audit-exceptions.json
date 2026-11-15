@@ -22,5 +22,221 @@
     "reason": "Path traversal en auto-carga de source maps previos. Mismo origen y mismo fix pendiente que GHSA-qx2v-qp2m-jg93.",
     "addedOn": "2026-07-31",
     "revisitWhen": "Al planificar el upgrade a expo@57 (ver docs/07-plan-de-sprints.md)"
+  },
+  {
+    "advisoryId": "GHSA-27p8-2357-5qqv",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "reason": "xmldom: DocType `name` Injection Bypasses requireWellFormed. Serialización de XML en las herramientas de configuración de Expo (plugins de app.json). No se ejecuta en el teléfono. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-4w3w-2rp5-g8jm",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "reason": "xmldom: Attribute name injection via setAttribute() bypasses requireWellFormed. Serialización de XML en las herramientas de configuración de Expo (plugins de app.json). No se ejecuta en el teléfono. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-6gmq-8vp8-gcm6",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "reason": "xmldom: XML fragment injection via invalid EntityReference.nodeName during requireWellFormed serialization. Serialización de XML en las herramientas de configuración de Expo (plugins de app.json). No se ejecuta en el teléfono. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-6h8r-xr42-gp59",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "reason": "xmldom: Parser silently accepts a not-well-formed end tag whose name is followed by a line break and trailing content. Serialización de XML en las herramientas de configuración de Expo (plugins de app.json). No se ejecuta en el teléfono. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-8344-3jmq-59r6",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "reason": "xmldom: Quadratic-time attribute deduplication. Serialización de XML en las herramientas de configuración de Expo (plugins de app.json). No se ejecuta en el teléfono. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-93r5-fhx6-vmg9",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "reason": "xmldom: Quadratic-time parsing via the malformed-input recovery path — `parseElementStartPart` re-scan and `normalize()` adjacent-text merge. Serialización de XML en las herramientas de configuración de Expo (plugins de app.json). No se ejecuta en el teléfono. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-965w-775f-mr7g",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "reason": "xmldom: Quadratic-memory consumption. Serialización de XML en las herramientas de configuración de Expo (plugins de app.json). No se ejecuta en el teléfono. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-c7q8-3ch8-vqpv",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "reason": "xmldom: Processing Instruction Target Injection Bypasses requireWellFormed. Serialización de XML en las herramientas de configuración de Expo (plugins de app.json). No se ejecuta en el teléfono. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-w2rr-34g9-rvrj",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "reason": "xmldom: Element name injection via createElement() bypasses requireWellFormed. Serialización de XML en las herramientas de configuración de Expo (plugins de app.json). No se ejecuta en el teléfono. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-x4fp-j954-r2f4",
+    "package": "@xmldom/xmldom",
+    "severity": "high",
+    "reason": "xmldom: End-tag Whitespace-Trim Regex ReDoS — quadratic backtracking in the 0.8.x end-tag parser. Serialización de XML en las herramientas de configuración de Expo (plugins de app.json). No se ejecuta en el teléfono. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-6j4f-fj2g-mc7p",
+    "package": "brace-expansion",
+    "severity": "high",
+    "reason": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion. Denegación de servicio por patrones anidados en herramientas de compilación (glob/minimatch). Solo corre en tu PC o en el CI. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-q2hr-2g5m-vwhr",
+    "package": "brace-expansion",
+    "severity": "high",
+    "reason": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service. Denegación de servicio por patrones anidados en herramientas de compilación (glob/minimatch). Solo corre en tu PC o en el CI. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-qhr7-859c-m2p7",
+    "package": "brace-expansion",
+    "severity": "high",
+    "reason": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion. Denegación de servicio por patrones anidados en herramientas de compilación (glob/minimatch). Solo corre en tu PC o en el CI. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-73wf-gq98-2v4g",
+    "package": "browserslist",
+    "severity": "high",
+    "reason": "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats). Denegación de servicio por consultas o estadísticas manipuladas, en el empaquetado. Solo corre en tu PC o en el CI. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-c83g-rgw3-j3cx",
+    "package": "browserslist",
+    "severity": "high",
+    "reason": "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM. Denegación de servicio por consultas o estadísticas manipuladas, en el empaquetado. Solo corre en tu PC o en el CI. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-qr28-fpjm-wq7f",
+    "package": "decode-uri-component",
+    "severity": "high",
+    "reason": "decode-uri-component vulnerable to denial of service via quadratic replacement of percent-encoded runs. Denegación de servicio por texto mal codificado, en herramientas de desarrollo (query-string). Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-vcc3-ghjq-m6fr",
+    "package": "decode-uri-component",
+    "severity": "high",
+    "reason": "decode-uri-component: Denial of service via exponential decoding of malformed percent-encoded input. Denegación de servicio por texto mal codificado, en herramientas de desarrollo (query-string). Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-5p2g-fcmc-qvqq",
+    "package": "image-size",
+    "severity": "high",
+    "reason": "image-size: JXL and HEIF parsers allow denial of service through infinite loops. Denegación de servicio al leer imágenes manipuladas, en herramientas de Expo. No lee imágenes de usuarios. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-w3rx-r6r6-pgpr",
+    "package": "image-size",
+    "severity": "high",
+    "reason": "image-size: ICNS parser allows denial of service through an infinite loop. Denegación de servicio al leer imágenes manipuladas, en herramientas de Expo. No lee imágenes de usuarios. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-2883-xcg3-v3hh",
+    "package": "js-yaml",
+    "severity": "high",
+    "reason": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources. Consumo de CPU al leer YAML en herramientas de desarrollo. No lee YAML de usuarios. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-5p4m-2wfm-xmqj",
+    "package": "js-yaml",
+    "severity": "high",
+    "reason": "JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) — CVE-2026-59870 fix not backported. Consumo de CPU al leer YAML en herramientas de desarrollo. No lee YAML de usuarios. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-28wg-ghj8-5hjv",
+    "package": "nanoid",
+    "severity": "high",
+    "reason": "nanoid: non-secure generators can loop indefinitely with negative size. Bucles con tamaños inválidos en generadores personalizados, dentro de herramientas de compilación. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-2v37-7h3g-55p8",
+    "package": "nanoid",
+    "severity": "high",
+    "reason": "nanoid: custom generators can loop indefinitely when size is zero. Bucles con tamaños inválidos en generadores personalizados, dentro de herramientas de compilación. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-xwg4-73v4-xw9w",
+    "package": "nanoid",
+    "severity": "high",
+    "reason": "nanoid: Integer Overflow or Wraparound. Bucles con tamaños inválidos en generadores personalizados, dentro de herramientas de compilación. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-fxqj-rqcc-2cmp",
+    "package": "postcss",
+    "severity": "high",
+    "reason": "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset. Procesamiento de CSS en el empaquetado (NativeWind/Metro). No procesa CSS de usuarios finales. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-pqg4-j6r4-53mv",
+    "package": "shell-quote",
+    "severity": "critical",
+    "reason": "shell-quote: `quote()` command injection via a line terminator in a token after a `{ comment }` token. Inyección de comandos en quote() de shell-quote, que usan las herramientas de línea de comandos de Expo al desarrollar. No se ejecuta en el teléfono ni con datos de usuarios. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
+  },
+  {
+    "advisoryId": "GHSA-68fv-2mgg-jv7q",
+    "package": "source-map-js",
+    "severity": "high",
+    "reason": "source-map-js allows event-loop denial of service through indexed source-map section offsets. Denegación de servicio con mapas de fuente manipulados, en el empaquetado. Sin arreglo sin subir de SDK de Expo (cambio mayor no evaluado).",
+    "addedOn": "2026-11-16",
+    "revisitWhen": "Al planificar el upgrade de Expo SDK, o a más tardar el 2027-02-16"
   }
 ]
