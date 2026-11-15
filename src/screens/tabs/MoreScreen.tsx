@@ -34,6 +34,7 @@ const GROUPS: Array<{ title: string; section: SectionKey; rows: Row[] }> = [
     { icon: "options-outline", title: "Bloqueo y captura", text: "Re-bloqueo, propuestas y duplicados", to: "/settings/general" },
   ] },
   { title: "Cuenta", section: "more", rows: [
+    { icon: "key-outline", title: "Cambiar contraseña", text: "Elige una contraseña nueva", to: "/settings/password" },
     { icon: "cash-outline", title: "Ajustes de cobro", text: "Días gratis y límite en bajas", to: "/settings/billing" },
     { icon: "shield-checkmark-outline", title: "Cuenta y privacidad", text: "Eliminar mi cuenta y datos", to: "/settings/account" },
   ] },

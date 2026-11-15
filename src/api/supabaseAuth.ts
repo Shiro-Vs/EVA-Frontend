@@ -26,15 +26,17 @@ const TEXT: Record<string, string> = {
   refresh_token_not_found: "Tu sesión venció. Vuelve a entrar.",
   refresh_token_already_used: "Tu sesión venció. Vuelve a entrar.",
   session_expired: "Tu sesión venció. Vuelve a entrar.",
+  otp_expired: "El código no es válido o ya venció. Pide uno nuevo.",
+  same_password: "La nueva contraseña debe ser distinta a la actual.",
   bad_jwt: "Tu sesión venció. Vuelve a entrar.",
 };
 
-async function call<T>(path: string, body: unknown, query = ""): Promise<T> {
+async function call<T>(path: string, body: unknown, query = "", o: { method?: "POST" | "PUT"; bearer?: string } = {}): Promise<T> {
   const { url, anon } = config();
   if (!url || !anon) throw new AuthError("not_configured", "El inicio de sesión real todavía no está configurado en esta versión.");
   let res: Response;
   try {
-    res = await fetch(`${url}/auth/v1${path}${query}`, { method: "POST", headers: { apikey: anon, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    res = await fetch(`${url}/auth/v1${path}${query}`, { method: o.method ?? "POST", headers: { apikey: anon, "Content-Type": "application/json", ...(o.bearer ? { Authorization: `Bearer ${o.bearer}` } : {}) }, body: JSON.stringify(body) });
   } catch {
     throw new AuthError("network", "No hay conexión. Revisa tu internet e inténtalo otra vez.");
   }
@@ -68,6 +70,18 @@ export async function signUp(email: string, password: string, fullName: string):
 
 export async function recoverPassword(email: string, redirectTo?: string): Promise<void> {
   await call<unknown>("/recover", { email: email.trim() }, redirectTo ? `?redirect_to=${encodeURIComponent(redirectTo)}` : "");
+}
+
+/** Canjea el código de 6 dígitos que llega por correo al recuperar la contraseña: devuelve una sesión para poder fijar la nueva. */
+export async function verifyRecoveryCode(email: string, code: string): Promise<AuthSession> {
+  const s = toSession(await call<TokenResponse>("/verify", { type: "recovery", email: email.trim(), token: code.replace(/\s+/g, "") }));
+  if (!s) throw new AuthError("otp_expired", TEXT.otp_expired!);
+  return s;
+}
+
+/** Cambia la contraseña de la persona dueña del token. */
+export async function updatePassword(accessToken: string, password: string): Promise<void> {
+  await call<unknown>("/user", { password }, "", { method: "PUT", bearer: accessToken });
 }
 
 export async function refreshSession(refreshToken: string): Promise<AuthSession> {

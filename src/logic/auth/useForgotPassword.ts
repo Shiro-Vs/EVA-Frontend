@@ -33,7 +33,7 @@ export function useForgotPassword() {
       return;
     }
     try {
-      await recoverPassword(email, "eva://auth-callback");
+      await recoverPassword(email);
     } catch (e) {
       setAlertConfig({ visible: true, title: "No se pudo enviar", message: (e as Error).message, type: "error", iconName: "warning-outline" });
       return;
@@ -41,8 +41,8 @@ export function useForgotPassword() {
     // Siempre se informa lo mismo: no se revela si el correo tiene cuenta.
     setAlertConfig({
       visible: true,
-      title: "Enlace Enviado",
-      message: "Hemos enviado un correo a " + email + " con las instrucciones para restablecer tu contraseña.",
+      title: "Código enviado",
+      message: "Si " + email + " tiene una cuenta, te enviamos un código de 6 dígitos. Escríbelo en la siguiente pantalla para elegir tu contraseña nueva.",
       type: "success",
       iconName: "mail-unread-outline",
     });

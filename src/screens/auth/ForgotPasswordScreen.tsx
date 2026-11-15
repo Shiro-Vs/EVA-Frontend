@@ -67,7 +67,7 @@ export default function ForgotPasswordScreen() {
             </Text>
             <View className="h-[3px] w-10 rounded-full mt-1 mb-4" style={{ backgroundColor: colors.primary }} />
             <Text className="text-center text-base leading-6 px-4" style={{ fontFamily: fonts.family.medium, color: colors.textSecondary }}>
-              Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+              Ingresa tu correo electrónico y te enviaremos un código para restablecer tu contraseña.
             </Text>
           </View>
 
@@ -114,7 +114,7 @@ export default function ForgotPasswordScreen() {
               activeOpacity={0.8}
             >
               <Text className="text-lg" style={{ fontFamily: fonts.family.bold, color: colors.onPrimary }}>
-                Enviar Enlace
+                Enviar código
               </Text>
             </TouchableOpacity>
           </View>
@@ -138,7 +138,7 @@ export default function ForgotPasswordScreen() {
         onClose={() => {
           setAlertConfig({ ...alertConfig, visible: false });
           if (alertConfig.type === "success") {
-            router.replace("/");
+            router.replace({ pathname: "/reset-password", params: { email: email.trim() } });
           }
         }}
       />

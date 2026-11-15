@@ -1,0 +1,57 @@
+import React, { useState } from "react";
+import { Text, TouchableOpacity } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { Button, Field, Notice, Screen, Txt } from "../../components/v1/ui";
+import { useAppTheme } from "../../hooks/useAppTheme";
+import { useAuth } from "../../context/AuthContext";
+import { recoverPassword, updatePassword, verifyRecoveryCode } from "../../api/supabaseAuth";
+import { passwordProblem } from "../../logic/auth/passwordRules";
+
+/** Segundo paso de «Olvidé mi contraseña»: el código de 6 dígitos del correo + la contraseña nueva. Al terminar entra con ella. */
+export default function ResetPasswordScreen() {
+  const { colors } = useAppTheme();
+  const { signInWithPassword } = useAuth();
+  const { email = "" } = useLocalSearchParams<{ email?: string }>();
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [repeat, setRepeat] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+
+  const submit = async () => {
+    setError(""); setInfo("");
+    if (code.length < 6) return setError("Escribe el código de 6 dígitos que te enviamos.");
+    const problem = passwordProblem(password);
+    if (problem) return setError(`Contraseña nueva: ${problem.toLowerCase()}.`);
+    if (password !== repeat) return setError("Las contraseñas no coinciden.");
+    setBusy(true);
+    try {
+      const s = await verifyRecoveryCode(email, code);
+      await updatePassword(s.accessToken, password);
+      await signInWithPassword(email, password); // el guardián de sesión lleva solo al inicio
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+    }
+  };
+
+  const resend = async () => {
+    setError(""); setInfo("");
+    try { await recoverPassword(email); setInfo("Te enviamos un código nuevo."); } catch (e) { setError((e as Error).message); }
+  };
+
+  return (
+    <Screen title="Nueva contraseña" footer={<Button title="Cambiar contraseña" busy={busy} onPress={submit} />}>
+      <Txt muted size={14}>Escribe el código de 6 dígitos que enviamos a {email || "tu correo"} y elige tu contraseña nueva.</Txt>
+      {error ? <Notice tone="err">{error}</Notice> : null}
+      {info ? <Notice tone="ok">{info}</Notice> : null}
+      <Field label="Código del correo" value={code} onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 10))} keyboardType="number-pad" placeholder="123456" />
+      <Field label="Contraseña nueva" value={password} onChangeText={setPassword} secureTextEntry placeholder="Mínimo 8, una mayúscula y un número" />
+      <Field label="Repite la contraseña" value={repeat} onChangeText={setRepeat} secureTextEntry onSubmitEditing={submit} />
+      <TouchableOpacity onPress={resend} accessibilityRole="button" style={{ paddingVertical: 8 }}>
+        <Text style={{ color: colors.primary, fontSize: 14, fontFamily: "AsapSemiBold", textAlign: "center" }}>¿No llegó? Enviar otro código</Text>
+      </TouchableOpacity>
+    </Screen>
+  );
+}

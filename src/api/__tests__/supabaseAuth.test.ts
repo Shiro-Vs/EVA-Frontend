@@ -1,4 +1,4 @@
-import { AuthError, googleAuthUrl, parseAuthRedirect, recoverPassword, refreshSession, signInWithPassword, signUp, supabaseConfigured } from "../supabaseAuth";
+import { AuthError, googleAuthUrl, parseAuthRedirect, recoverPassword, refreshSession, signInWithPassword, signUp, supabaseConfigured, updatePassword, verifyRecoveryCode } from "../supabaseAuth";
 
 const fetchMock = jest.fn();
 const reply = (status: number, body: unknown) => ({ ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(body) });
@@ -76,5 +76,36 @@ describe("Supabase Auth (REST)", () => {
     expect(parseAuthRedirect("eva://auth-callback#access_token=AT&refresh_token=RT&expires_in=3600&token_type=bearer")).toMatchObject({ accessToken: "AT", refreshToken: "RT" });
     expect(() => parseAuthRedirect("eva://auth-callback#error=access_denied&error_code=access_denied")).toThrow(AuthError);
     expect(() => parseAuthRedirect("eva://auth-callback")).toThrow(/No se recibió la sesión/);
+  });
+
+  it("canjea el código de recuperación y devuelve la sesión", async () => {
+    fetchMock.mockResolvedValue(reply(200, { access_token: "AT", refresh_token: "RT", expires_in: 3600 }));
+    const sess = await verifyRecoveryCode(" rosa@example.com ", "123 456");
+    expect(sess.accessToken).toBe("AT");
+    const [url, init] = fetchMock.mock.calls[0] as [string, { method: string; body: string }];
+    expect(url).toBe("https://proyecto.supabase.co/auth/v1/verify");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ type: "recovery", email: "rosa@example.com", token: "123456" });
+  });
+
+  it("un código vencido o equivocado se informa en español", async () => {
+    fetchMock.mockResolvedValue(reply(403, { error_code: "otp_expired", msg: "Token has expired or is invalid" }));
+    await expect(verifyRecoveryCode("a@b.co", "000000")).rejects.toMatchObject({ code: "otp_expired", message: "El código no es válido o ya venció. Pide uno nuevo." });
+  });
+
+  it("cambia la contraseña con PUT /user y el token de la persona", async () => {
+    fetchMock.mockResolvedValue(reply(200, {}));
+    await updatePassword("AT", "Nueva1234");
+    const [url, init] = fetchMock.mock.calls[0] as [string, { method: string; headers: Record<string, string>; body: string }];
+    expect(url).toBe("https://proyecto.supabase.co/auth/v1/user");
+    expect(init.method).toBe("PUT");
+    expect(init.headers.Authorization).toBe("Bearer AT");
+    expect(init.headers.apikey).toBe("anon-publica");
+    expect(JSON.parse(init.body)).toEqual({ password: "Nueva1234" });
+  });
+
+  it("rechaza una contraseña igual a la actual con un mensaje claro", async () => {
+    fetchMock.mockResolvedValue(reply(422, { error_code: "same_password" }));
+    await expect(updatePassword("AT", "Igual1234")).rejects.toThrow(/distinta a la actual/);
   });
 });
