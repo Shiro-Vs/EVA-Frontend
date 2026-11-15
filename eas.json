@@ -1,0 +1,26 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.eva-app.lat/v1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://yqwjwgwsojulwvzabkit.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_cx-1z7n1GlMduPFcAcsE2Q_a_t1mI4t"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.eva-app.lat/v1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://yqwjwgwsojulwvzabkit.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_cx-1z7n1GlMduPFcAcsE2Q_a_t1mI4t"
+      }
+    }
+  }
+}
