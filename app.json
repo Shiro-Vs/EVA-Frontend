@@ -2,7 +2,7 @@
   "expo": {
     "name": "EVA",
     "slug": "EVA",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -15,7 +15,7 @@
       "package": "lat.evaapp.eva",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0369B2",
+        "backgroundColor": "#06141B",
         "monochromeImage": "./assets/adaptive-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
@@ -36,7 +36,7 @@
         {
           "backgroundColor": "#F7F9F9",
           "image": "./assets/splash-icon.png",
-          "imageWidth": 250,
+          "imageWidth": 288,
           "resizeMode": "contain",
           "dark": {
             "backgroundColor": "#06141B",

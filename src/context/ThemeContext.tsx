@@ -15,6 +15,8 @@ interface ThemeContextType {
   palette: PaletteId;
   setPalette: (palette: PaletteId) => void;
   isDark: boolean;
+  /** Ya se leyeron el modo y la paleta guardados (antes de eso los colores pueden ser los de por defecto). */
+  loaded: boolean;
   fontFamily: "asap" | "roboto";
   setFontFamily: (font: "asap" | "roboto") => void;
 }
@@ -36,21 +38,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveTheme("system"));
   const [fontFamily, setFontFamilyState] = useState<"asap" | "roboto">("asap");
   const [palette, setPaletteState] = useState<PaletteId>("slate");
+  const [loaded, setLoaded] = useState(false);
 
-  // Cargar la preferencia guardada al arrancar
+  // Cargar el modo y la paleta guardados al arrancar; hasta entonces `loaded` es falso.
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored === "light" || stored === "dark" || stored === "system") {
-        setThemePreferenceState(stored);
-        setResolvedTheme(resolveTheme(stored));
+    Promise.all([AsyncStorage.getItem(STORAGE_KEY).catch(() => null), AsyncStorage.getItem(PALETTE_KEY).catch(() => null)]).then(([pref, pal]) => {
+      if (pref === "light" || pref === "dark" || pref === "system") {
+        setThemePreferenceState(pref);
+        setResolvedTheme(resolveTheme(pref));
       }
+      if (pal === "slate" || pal === "violet") setPaletteState(pal);
+      setLoaded(true);
     });
-  }, []);
-
-  useEffect(() => {
-    AsyncStorage.getItem(PALETTE_KEY).then((stored) => {
-      if (stored === "slate" || stored === "violet") setPaletteState(stored);
-    }).catch(() => {});
   }, []);
 
   // Si la preferencia es "system", seguir los cambios del SO en vivo
@@ -83,7 +82,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider
-      value={{ theme, themePreference, setTheme, toggleTheme, palette, setPalette, isDark, fontFamily, setFontFamily }}
+      value={{ theme, themePreference, setTheme, toggleTheme, palette, setPalette, isDark, loaded, fontFamily, setFontFamily }}
     >
       {children}
     </ThemeContext.Provider>

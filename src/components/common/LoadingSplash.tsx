@@ -14,8 +14,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { useAppTheme } from "../../hooks/useAppTheme";
 
-const LOGO_LIGHT_BG = require("../../../assets/LogoEVA_Fclaro.png");
-const LOGO_DARK_BG = require("../../../assets/LogoEVA_Foscuro.png");
+// Las mismas imágenes y el mismo tamaño que la pantalla nativa (app.json → expo-splash-screen), para que el cambio no se note.
+const LOGO_LIGHT_BG = require("../../../assets/splash-icon.png");
+const LOGO_DARK_BG = require("../../../assets/splash-icon-dark.png");
 
 interface LoadingSplashProps {
   onAnimationComplete?: () => void;
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logo: {
-    width: 250, // Logo más grande
-    height: 250,
+    width: 288,
+    height: 288,
   },
 });

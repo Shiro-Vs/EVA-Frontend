@@ -106,7 +106,7 @@ export async function refreshSession(refreshToken: string): Promise<AuthSession>
 /** Dirección que abre el navegador para entrar con Google; Supabase devuelve a `redirectTo` con la sesión en el fragmento (#). */
 export function googleAuthUrl(redirectTo: string): string {
   const { url } = config();
-  return `${url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
+  return `${url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}&prompt=select_account`;
 }
 
 /** Lee la sesión que Supabase deja en el fragmento de la dirección de retorno (#access_token=…&refresh_token=…). */

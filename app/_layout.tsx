@@ -20,7 +20,7 @@ import { UpdatePrompt } from "../src/updates/UpdatePrompt";
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
-  const { theme, isDark } = useAppThemeContext();
+  const { theme, isDark, loaded: themeLoaded } = useAppThemeContext();
   const { colors } = useAppTheme();
   const { user, isLoadingSession } = useAuth();
   useReminderSync();
@@ -43,14 +43,14 @@ function RootLayoutContent() {
 
   // La pantalla de carga nativa y la de la app son iguales (mismo fondo y logo del tema del teléfono), así que no hay un
   // segundo «cargando»: se oculta la nativa cuando hay fuentes y la de la app se desvanece cuando además se restauró la sesión.
-  const fontsDone = fontsLoaded || !!fontError;
+  const fontsDone = (fontsLoaded || !!fontError) && themeLoaded; // fuentes y paleta guardada: así la pantalla de carga ya sale con tus colores
   useEffect(() => {
     if (fontsDone) SplashScreen.hideAsync().catch(() => {});
   }, [fontsDone]);
   const appIsReady = fontsDone && !isLoadingSession;
 
   // Si las fuentes no han cargado, no renderizamos NADA para evitar que se vea la fuente del sistema
-  if (!fontsLoaded && !fontError) {
+  if (!fontsDone) {
     return null;
   }
 

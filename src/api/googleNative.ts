@@ -35,7 +35,10 @@ export async function nativeGoogleIdToken(): Promise<string | null> {
   try {
     GoogleSignin.configure({ webClientId: webClientId(), scopes: ["email", "profile"] });
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-    try { await GoogleSignin.signOut(); } catch { /* sin sesión previa: no pasa nada */ } // así siempre muestra la lista de cuentas
+    // Con una sola cuenta en el teléfono (y ya autorizada), Google entra sin preguntar. Quitar la sesión y el permiso previos
+    // obliga a mostrar la hoja con la cuenta y su confirmación. Si no había sesión, esto falla sin consecuencias.
+    try { await GoogleSignin.signOut(); } catch { /* sin sesión previa */ }
+    try { await GoogleSignin.revokeAccess(); } catch { /* sin permiso previo */ }
     const res = await GoogleSignin.signIn();
     if (res.type !== "success") return null;
     return res.data.idToken ?? null;

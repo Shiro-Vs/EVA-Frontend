@@ -72,7 +72,7 @@ describe("Supabase Auth (REST)", () => {
   });
 
   it("Google: arma la dirección y lee la sesión del fragmento de retorno", () => {
-    expect(googleAuthUrl("eva://auth-callback")).toBe("https://proyecto.supabase.co/auth/v1/authorize?provider=google&redirect_to=eva%3A%2F%2Fauth-callback");
+    expect(googleAuthUrl("eva://auth-callback")).toBe("https://proyecto.supabase.co/auth/v1/authorize?provider=google&redirect_to=eva%3A%2F%2Fauth-callback&prompt=select_account");
     expect(parseAuthRedirect("eva://auth-callback#access_token=AT&refresh_token=RT&expires_in=3600&token_type=bearer")).toMatchObject({ accessToken: "AT", refreshToken: "RT" });
     expect(() => parseAuthRedirect("eva://auth-callback#error=access_denied&error_code=access_denied")).toThrow(AuthError);
     expect(() => parseAuthRedirect("eva://auth-callback")).toThrow(/No se recibió la sesión/);
