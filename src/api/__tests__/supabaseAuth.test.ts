@@ -1,4 +1,4 @@
-import { AuthError, googleAuthUrl, parseAuthRedirect, recoverPassword, refreshSession, signInWithPassword, signUp, supabaseConfigured, updatePassword, verifyRecoveryCode } from "../supabaseAuth";
+import { AuthError, googleAuthUrl, parseAuthRedirect, recoverPassword, refreshSession, signInWithPassword, signUp, signInWithGoogleIdToken, supabaseConfigured, updatePassword, verifyRecoveryCode } from "../supabaseAuth";
 
 const fetchMock = jest.fn();
 const reply = (status: number, body: unknown) => ({ ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(body) });
@@ -119,5 +119,25 @@ describe("límite de correos de Supabase", () => {
     expect(err).toBeInstanceOf(AuthError);
     expect((err as AuthError).retryAfter).toBe(17);
     expect((err as AuthError).message).toBe("Espera 17 segundos antes de pedir otro código.");
+  });
+});
+
+describe("inicio con la hoja nativa de Google", () => {
+  it("canjea el ID token de Google por una sesión de Supabase", async () => {
+    process.env.EXPO_PUBLIC_SUPABASE_URL = "https://proyecto.supabase.co";
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = "anon-publica";
+    const f = jest.fn().mockResolvedValue({ ok: true, status: 200, text: async () => JSON.stringify({ access_token: "AT", refresh_token: "RT", expires_in: 3600 }) });
+    (global as unknown as { fetch: unknown }).fetch = f;
+    const sess = await signInWithGoogleIdToken("ID-TOKEN-DE-GOOGLE");
+    expect(sess.accessToken).toBe("AT");
+    const [url, init] = f.mock.calls[0] as [string, { method: string; body: string }];
+    expect(url).toBe("https://proyecto.supabase.co/auth/v1/token?grant_type=id_token");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ provider: "google", id_token: "ID-TOKEN-DE-GOOGLE" });
+  });
+
+  it("si Supabase rechaza el token lo dice en español", async () => {
+    (global as unknown as { fetch: unknown }).fetch = jest.fn().mockResolvedValue({ ok: false, status: 400, text: async () => JSON.stringify({ error_code: "bad_id_token", msg: "Invalid ID token" }) });
+    await expect(signInWithGoogleIdToken("malo")).rejects.toMatchObject({ code: "bad_id_token", message: "No se pudo validar tu cuenta de Google. Inténtalo otra vez." });
   });
 });

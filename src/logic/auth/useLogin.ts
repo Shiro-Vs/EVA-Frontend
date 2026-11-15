@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { errorMessage } from "../../api/client";
 import { devLogin, session } from "../../api/http";
-import { supabaseConfigured } from "../../api/supabaseAuth";
+import { AuthError, supabaseConfigured } from "../../api/supabaseAuth";
 import { useAuth } from "../../context/AuthContext";
 
 export function useLogin() {
@@ -78,6 +78,7 @@ export function useLogin() {
     try {
       await signInWithGoogle();
     } catch (error) {
+      if (error instanceof AuthError && error.code === "cancelled") return; // cerró la hoja de cuentas: no es un error
       setAlertConfig({ visible: true, title: "No se pudo entrar con Google", message: (error as Error).message, type: "error", iconName: "warning-outline" });
     } finally {
       setIsAuthenticating(false);

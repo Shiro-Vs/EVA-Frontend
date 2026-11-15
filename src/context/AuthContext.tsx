@@ -2,6 +2,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { Platform } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { api } from "../api/client";
+import { NO_NATIVE, nativeGoogleAvailable, nativeGoogleIdToken } from "../api/googleNative";
+import { storage } from "../api/storage";
 import * as sb from "../api/supabaseAuth";
 import { ApiError, session } from "../api/http";
 import type { Profile } from "../api/types";
@@ -28,6 +30,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/** Último perfil conocido: al abrir la app se entra directo al inicio sin esperar a la red (el servidor puede tardar en despertar). */
+const PROFILE_KEY = "eva.profile";
+const leerPerfil = async (): Promise<Profile | null> => {
+  try { const raw = await storage.get(PROFILE_KEY); return raw ? (JSON.parse(raw) as Profile) : null; } catch { return null; }
+};
+
 const toUser = (p: Profile): User => ({
   uid: p.id,
   correo: p.email ?? "",
@@ -44,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await session.setToken(null);
+    await storage.remove(PROFILE_KEY).catch(() => {});
     setProfile(null);
     setLegacyUser(null);
   }, []);
@@ -51,11 +60,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Un 401 en cualquier llamada cierra la sesión.
   useEffect(() => { session.onUnauthorized(() => { void logout(); }); }, [logout]);
 
-  // Restaura la sesión: si hay token guardado, lo valida pidiendo el perfil.
+  // Guarda el perfil cada vez que cambia (para el próximo arranque).
+  useEffect(() => { if (profile) void storage.set(PROFILE_KEY, JSON.stringify(profile)).catch(() => {}); }, [profile]);
+
+  // Restaura la sesión. Con token y perfil guardados se entra al instante y el perfil se renueva en segundo plano;
+  // un 401 cierra la sesión por el camino normal. Sin perfil guardado (primera vez tras actualizar) se espera a la red.
   useEffect(() => {
     (async () => {
       try {
-        if (await session.getToken()) setProfile(await api.me());
+        if (await session.getToken()) {
+          const guardado = await leerPerfil();
+          if (guardado) {
+            setProfile(guardado);
+            setIsLoadingSession(false);
+            api.me().then(setProfile).catch((e) => { if (!(e instanceof ApiError && e.status === 401)) console.warn("No se pudo renovar el perfil", e); });
+            return;
+          }
+          setProfile(await api.me());
+        }
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) await session.setToken(null);
         else console.warn("No se pudo restaurar la sesión", e);
@@ -93,6 +115,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [establish]);
   const signInWithGoogle = useCallback(async () => {
     if (Platform.OS === "web") throw new sb.AuthError("web", "Entrar con Google está disponible en la app del teléfono.");
+    // En el APK se abre la hoja del sistema con tus cuentas de Google; en Expo Go (sin módulo nativo) se usa el navegador.
+    if (nativeGoogleAvailable()) {
+      try {
+        const idToken = await nativeGoogleIdToken();
+        if (!idToken) throw new sb.AuthError("cancelled", "Se canceló el inicio con Google.");
+        await establish(await sb.signInWithGoogleIdToken(idToken));
+        return;
+      } catch (e) {
+        if (!(e instanceof Error) || e.message !== NO_NATIVE) throw e;
+      }
+    }
     const redirectTo = "eva://auth-callback";
     const r = await WebBrowser.openAuthSessionAsync(sb.googleAuthUrl(redirectTo), redirectTo);
     if (r.type !== "success") throw new sb.AuthError("cancelled", "Se canceló el inicio con Google.");

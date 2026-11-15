@@ -22,9 +22,8 @@ SplashScreen.preventAutoHideAsync();
 function RootLayoutContent() {
   const { theme, isDark } = useAppThemeContext();
   const { colors } = useAppTheme();
-  const { user } = useAuth();
+  const { user, isLoadingSession } = useAuth();
   useReminderSync();
-  const [appIsReady, setAppIsReady] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
   const [fontsLoaded, fontError] = useFonts({
@@ -40,25 +39,15 @@ function RootLayoutContent() {
 
   useEffect(() => {
     if (fontError) console.error("Error cargando fuentes:", fontError);
+  }, [fontError]);
 
-    async function prepare() {
-      if (fontsLoaded || fontError) {
-        try {
-          // Ocultamos el splash nativo
-          await SplashScreen.hideAsync();
-        } catch (e) {
-          console.warn(e);
-        } finally {
-          // Ajustado para un tiempo de 1.8 segundos (600ms entrada + 800ms espera + 400ms salida)
-          setTimeout(() => {
-            setAppIsReady(true);
-          }, 1400);
-        }
-      }
-    }
-
-    prepare();
-  }, [fontsLoaded, fontError]);
+  // La pantalla de carga nativa y la de la app son iguales (mismo fondo y logo del tema del teléfono), así que no hay un
+  // segundo «cargando»: se oculta la nativa cuando hay fuentes y la de la app se desvanece cuando además se restauró la sesión.
+  const fontsDone = fontsLoaded || !!fontError;
+  useEffect(() => {
+    if (fontsDone) SplashScreen.hideAsync().catch(() => {});
+  }, [fontsDone]);
+  const appIsReady = fontsDone && !isLoadingSession;
 
   // Si las fuentes no han cargado, no renderizamos NADA para evitar que se vea la fuente del sistema
   if (!fontsLoaded && !fontError) {

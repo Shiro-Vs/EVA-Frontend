@@ -26,6 +26,8 @@ const TEXT: Record<string, string> = {
   refresh_token_not_found: "Tu sesión venció. Vuelve a entrar.",
   refresh_token_already_used: "Tu sesión venció. Vuelve a entrar.",
   session_expired: "Tu sesión venció. Vuelve a entrar.",
+  bad_id_token: "No se pudo validar tu cuenta de Google. Inténtalo otra vez.",
+  provider_disabled: "El inicio con Google no está activado.",
   otp_expired: "El código no es válido o ya venció. Pide uno nuevo.",
   same_password: "La nueva contraseña debe ser distinta a la actual.",
   bad_jwt: "Tu sesión venció. Vuelve a entrar.",
@@ -66,6 +68,13 @@ export async function signInWithPassword(email: string, password: string): Promi
 }
 
 /** Con confirmación de correo activada no hay sesión todavía: `needsConfirmation` indica que hay que abrir el enlace del correo. */
+/** Entra con el ID token que entrega la hoja nativa de cuentas de Google (Supabase lo valida con el ID de cliente web). */
+export async function signInWithGoogleIdToken(idToken: string): Promise<AuthSession> {
+  const s = toSession(await call<TokenResponse>("/token", { provider: "google", id_token: idToken }, "?grant_type=id_token"));
+  if (!s) throw new AuthError("unknown", "No se pudo iniciar sesión con Google.");
+  return s;
+}
+
 export async function signUp(email: string, password: string, fullName: string): Promise<{ session: AuthSession | null; needsConfirmation: boolean }> {
   const r = await call<TokenResponse & { user?: unknown }>("/signup", { email: email.trim(), password, data: { full_name: fullName.trim() } });
   const session = toSession(r);

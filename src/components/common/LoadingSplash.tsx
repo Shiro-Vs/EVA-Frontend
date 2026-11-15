@@ -11,7 +11,6 @@ import Animated, {
   withTiming,
   Easing,
   runOnJS,
-  withDelay,
 } from "react-native-reanimated";
 import { useAppTheme } from "../../hooks/useAppTheme";
 
@@ -34,18 +33,9 @@ export default function LoadingSplash({
   const logoSource = isDark ? LOGO_DARK_BG : LOGO_LIGHT_BG;
   const textColor = isDark ? themeColors.text : themeColors.primary; // Azul EVA o Slate Text
 
-  const contentOpacity = useSharedValue(0);
-  const contentScale = useSharedValue(0.85);
+  // Sin animación de entrada: esta pantalla es idéntica a la nativa (mismo fondo, mismo logo, mismo tamaño), así que
+  // arranca ya visible y solo se anima la salida. Si entrara con efecto, se vería como una segunda carga.
   const containerOpacity = useSharedValue(1);
-
-  useEffect(() => {
-    // Entrada fluida (600ms)
-    contentOpacity.value = withDelay(100, withTiming(1, { duration: 600 }));
-    contentScale.value = withDelay(100, withTiming(1, {
-      duration: 600,
-      easing: Easing.out(Easing.quad),
-    }));
-  }, []);
 
   useEffect(() => {
     if (isReady) {
@@ -69,21 +59,16 @@ export default function LoadingSplash({
     backgroundColor: themeColors.background,
   }));
 
-  const contentStyle = useAnimatedStyle(() => ({
-    opacity: contentOpacity.value,
-    transform: [{ scale: contentScale.value }],
-  }));
-
   return (
     <Animated.View style={[styles.container, containerStyle]}>
-      <Animated.View style={[styles.content, contentStyle]}>
+      <View style={styles.content}>
         <Image 
           source={logoSource} 
           style={styles.logo} 
           resizeMode="contain"
           fadeDuration={0}
         />
-      </Animated.View>
+      </View>
     </Animated.View>
   );
 }

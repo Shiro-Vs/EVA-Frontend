@@ -219,7 +219,8 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Acceso de desarrollo (hasta conectar Supabase) */}
+          {/* Acceso de desarrollo: solo existe al desarrollar (Expo Go / Metro); el APK no lo trae */}
+          {__DEV__ && (
           <TouchableOpacity
             onPress={handleDevLogin}
             disabled={isAuthenticating}
@@ -233,6 +234,7 @@ export default function LoginScreen() {
               Entrar en modo desarrollo
             </Text>
           </TouchableOpacity>
+          )}
 
           {/* Footer */}
           <View className="mt-4 mb-6 flex-row justify-center">
