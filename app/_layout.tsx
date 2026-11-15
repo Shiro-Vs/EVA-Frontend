@@ -66,7 +66,7 @@ function RootLayoutContent() {
           es fragil aqui: app/index.tsx y app/(main)/index.tsx resuelven al
           mismo path "/" (los grupos no aparecen en la URL), y un replace()
           del lado del cliente puede quedar ambiguo entre ambos, dejando la
-          pantalla protegida visible sin sesion. Ver docs/06-auditoria-tecnica.md.
+          pantalla protegida visible sin sesion.
         */}
         <OfflineBanner />
         <UpdatePrompt />

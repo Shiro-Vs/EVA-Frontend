@@ -2,175 +2,88 @@
 
 # EVA
 
-**Gestión financiera personal, inteligente y minimalista.**
-
-[![Expo](https://img.shields.io/badge/Expo-54.0-000020?style=flat-square&logo=expo&logoColor=white)](https://expo.dev/)
-[![React Native](https://img.shields.io/badge/React_Native-0.81-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactnative.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Firebase](https://img.shields.io/badge/Firebase-12.10-FFCA28?style=flat-square&logo=firebase&logoColor=black)](https://firebase.google.com/)
-[![Plataforma](https://img.shields.io/badge/plataforma-Android%20%7C%20iOS%20%7C%20Web-lightgrey?style=flat-square)](https://expo.dev/)
-[![Licencia](https://img.shields.io/badge/licencia-privada-red?style=flat-square)](#)
+**Suscripciones compartidas y finanzas personales, con el dinero calculado por el servidor.**
 
 </div>
 
 ---
 
-EVA es una aplicación móvil construida con **Expo** y **React Native** que te ayuda a tomar el control de tus finanzas personales. Administra tus cuentas, establece metas de ahorro, planifica tus gastos y recibe asistencia de inteligencia artificial, todo desde un solo lugar.
+EVA es una app Android hecha con **Expo** y **React Native**. Sirve para llevar las cuentas de los servicios que compartes (Netflix, Spotify y similares) y tus finanzas personales: cuentas, tarjetas, préstamos, presupuestos y metas, más captura de comprobantes y análisis con IA.
 
----
+**Regla de oro:** la app nunca calcula dinero. Solo muestra y envía; todas las cuentas las hace la API (`EVA-Backend`), y la app les da formato.
 
-## Funcionalidades
+## Cómo está armado
 
-- **Autenticación** — Inicio de sesión y registro con validación en tiempo real
-- **Panel principal** — Vista general del estado financiero del usuario
-- **Metas** — Creación y seguimiento de objetivos de ahorro e inversión
-- **Planificación** — Organización de gastos e ingresos por períodos
-- **Perfil** — Gestión de cuenta y preferencias personales
-- **Contactos** — Administración de contactos financieros
-- **Finanzas** — Control de cuentas, préstamos y suscripciones
-- **Asistente IA** — Integración con Google Gemini para asistencia financiera
+| Pieza | Dónde vive |
+|---|---|
+| App (este repositorio) | Expo SDK 54 · React Native 0.81 · expo-router · NativeWind |
+| API | `EVA-Backend` (Fastify + PostgreSQL) en Render, `https://api.eva-app.lat` |
+| Cuentas y base de datos | Supabase (login, Postgres, archivos) |
+| Sitio web | `EVA-Web` en Vercel, `https://www.eva-app.lat` |
 
----
+El mapa completo (piezas, flujos, variables y cómo se publican los cambios) está en `docs/mapa-eva.html` de la carpeta de documentación del proyecto. Las decisiones de producto y de diseño viven en la carpeta `docs/especificacion` de esa misma carpeta.
 
-## Tecnologías
-
-| Tecnología                                                                     | Versión  | Propósito                             |
-| ------------------------------------------------------------------------------ | -------- | ------------------------------------- |
-| [Expo](https://expo.dev/)                                                      | ~54.0.33 | Marco de trabajo principal            |
-| [React Native](https://reactnative.dev/)                                       | 0.81.5   | Interfaz de usuario nativa            |
-| [Expo Router](https://expo.github.io/router/)                                  | ~6.0.23  | Navegación basada en archivos         |
-| [Firebase](https://firebase.google.com/)                                       | ^12.10.0 | Base de datos y autenticación         |
-| [Google Generative AI](https://ai.google.dev/)                                 | ^0.24.1  | Asistente con inteligencia artificial |
-| [NativeWind](https://www.nativewind.dev/)                                      | 4.2.2    | Estilos con Tailwind CSS              |
-| [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/) | ~4.1.1   | Animaciones fluidas                   |
-| [TypeScript](https://www.typescriptlang.org/)                                  | ^5.9.3   | Tipado estático                       |
-
----
-
-## Estructura del proyecto
+## Estructura
 
 ```
-EVA/
-├── app/                          # Rutas gestionadas por Expo Router
-│   ├── (main)/                   # Rutas de la app con sesión (guardia pendiente, ver Sprint 1)
-│   ├── _layout.tsx               # Diseño raíz de la aplicación
-│   ├── index.tsx                 # Pantalla de entrada
-│   ├── register.tsx              # Pantalla de registro
-│   ├── forgot-password.tsx       # Recuperación de contraseña
-│   └── contacts.tsx              # Pantalla de contactos
-├── src/
-│   ├── api/                      # Configuración y clientes de APIs externas
-│   ├── components/               # Componentes reutilizables de la interfaz
-│   │   └── common/               # EVAAlert, EVAInput, EVAModal, EVAAvatar...
-│   ├── constants/                # Constantes globales de la aplicación
-│   ├── context/                  # Estado global con Context API
-│   ├── data/                     # Datos estáticos y de ejemplo
-│   ├── hooks/                    # Hooks personalizados (useAppTheme, etc.)
-│   ├── interfaces/               # Tipos e interfaces de TypeScript
-│   ├── logic/                    # Lógica de negocio desacoplada de la interfaz
-│   ├── screens/                  # Pantallas organizadas por módulo
-│   │   ├── auth/                 # Inicio de sesión, registro, recuperación
-│   │   ├── dashboard/            # Panel financiero principal
-│   │   ├── goals/                # Metas de ahorro
-│   │   ├── planning/             # Planificación financiera
-│   │   └── profile/             # Perfil del usuario
-│   ├── services/                 # Servicios de acceso a datos y APIs
-│   │   ├── AuthService.ts        # Autenticación con Firebase
-│   │   ├── AccountService.ts     # Gestión de cuentas
-│   │   ├── FinanceService.ts     # Movimientos financieros
-│   │   ├── LoanService.ts        # Préstamos
-│   │   ├── SubscriptionService.ts# Suscripciones
-│   │   └── ContactService.ts     # Contactos
-│   └── utils/                    # Funciones de utilidad general
-├── assets/                       # Imágenes, íconos y fuentes
-├── app.json                      # Configuración de Expo
-├── package.json                  # Dependencias del proyecto
-└── tsconfig.json                 # Configuración de TypeScript
+app/                 Rutas (expo-router): una carpeta o archivo por pantalla
+src/
+  api/               Cliente de la API, sesión, caché sin conexión, login con Supabase y Google
+  components/        Componentes reutilizables (kit v1, hojas, diálogos)
+  constants/         Paletas de color, entidades bancarias
+  context/           Sesión, tema y diálogos
+  hooks/             Utilidades de pantallas (useAsync, useSubmit…)
+  logic/             Lógica de pantallas sin interfaz (servicios, contactos, auth)
+  screens/           Pantallas por módulo
+  security/          Bloqueo con PIN y huella
+  updates/           Aviso de actualizaciones por internet
+assets/              Ícono, pantalla de carga, logos y fuentes
+docs/                Manual de colores y estrategia de la versión 1
 ```
 
----
+## Empezar
 
-## Instalación
-
-### Requisitos previos
-
-- [Node.js](https://nodejs.org/) v18 o superior
-- [Git](https://git-scm.com/)
-- [Expo Go](https://expo.dev/client) en tu dispositivo móvil, o un emulador configurado
-
-### Pasos
+Requisitos: Node 22 y, para probar en el teléfono, Expo Go (o el APK de EVA).
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/EVA.git
-cd EVA
-
-# Instalar las dependencias
 npm install
-
-# Configurar las variables de entorno
-cp .env.example .env
-
-# Iniciar la aplicación
+cp .env.example .env     # rellena solo valores públicos
 npx expo start
 ```
 
-### Comandos disponibles
-
-| Comando             | Descripción                                  |
-| ------------------- | -------------------------------------------- |
-| `npx expo start`    | Inicia el servidor de desarrollo             |
-| `npm run android`   | Ejecuta la app en un emulador Android        |
-| `npm run ios`       | Ejecuta la app en un simulador iOS           |
-| `npm run web`       | Ejecuta la app en el navegador web           |
-| `npm test`          | Ejecuta la suite de tests (Jest)             |
-| `npm run test:watch`| Ejecuta los tests en modo observador         |
-| `npm run typecheck` | Verifica los tipos de TypeScript sin compilar |
-
----
+| Comando | Qué hace |
+|---|---|
+| `npx expo start` | Servidor de desarrollo |
+| `npm test` | Pruebas (Jest) |
+| `npm run typecheck` | Comprueba los tipos de TypeScript |
+| `npm run publicar -- "qué cambió"` | Publica una actualización por internet para el APK (canal `preview`) |
 
 ## Variables de entorno
 
-Crea un archivo `.env` en la raíz del proyecto. Puedes obtener estos valores desde la consola de [Firebase](https://console.firebase.google.com/) y [Google AI Studio](https://aistudio.google.com/).
+Todo lo que empieza con `EXPO_PUBLIC_` queda dentro del paquete de la app y cualquiera puede extraerlo. Por eso **aquí solo van valores públicos**; las claves de servicio, las contraseñas y la clave de Gemini viven únicamente en el servidor.
 
-```env
-# Firebase
-EXPO_PUBLIC_FIREBASE_API_KEY=
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-EXPO_PUBLIC_FIREBASE_APP_ID=
+| Variable | Para qué |
+|---|---|
+| `EXPO_PUBLIC_API_URL` | Dirección de la API (`https://api.eva-app.lat/v1`) |
+| `EXPO_PUBLIC_SUPABASE_URL` | Proyecto de Supabase (inicio de sesión) |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Clave «publishable» de Supabase (pública por diseño) |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | ID de cliente web de Google, para la hoja de cuentas del APK |
 
-# Google Gemini
-EXPO_PUBLIC_GEMINI_API_KEY=
-```
+Para el APK, estos valores se declaran en `eas.json` (el `.env` no viaja a la compilación).
 
-> **Sobre el prefijo `EXPO_PUBLIC_`:** todo lo que lo lleva queda embebido en el bundle de la app y es extraíble de cualquier build. Para Firebase es esperado —las claves de cliente no son secretas, la protección real son las reglas de Firestore—, pero **la clave de Gemini sí es sensible**: una clave expuesta se puede usar contra tu cuota. Por eso el plan mueve todas las llamadas a Gemini detrás de una Cloud Function ([Sprint 9](docs/07-plan-de-sprints.md)) y esa variable desaparecerá del cliente.
+## Probar con el APK
 
----
+- **Compilar:** `npx eas-cli build --platform android --profile preview` (perfil `production` para Google Play).
+- **Actualizar sin reinstalar:** `npm run publicar -- "mensaje"`. Sirve para código y pantallas; las librerías nativas, los permisos o subir de SDK piden un APK nuevo (y subir `version` en `app.json`).
+- Entrar con Google, las notificaciones y la huella solo funcionan en el APK, no en Expo Go.
 
 ## Documentación
 
-La documentación del proyecto vive en [`docs/`](docs/) y está numerada en el orden en que conviene leerla. Cada documento depende de los anteriores.
-
-| Documento | De qué trata |
-| --------- | ------------ |
-| [01 — Alcance y fases](docs/01-alcance-y-fases.md) | Visión del producto, módulos y el roadmap por fases (0 a 7). **Empieza por aquí.** |
-| [02 — Modelo de datos](docs/02-modelo-de-datos.md) | Colecciones y subcolecciones de Firestore, principios de diseño y diagrama ER. |
-| [03 — Implementación de Firebase](docs/03-implementacion-firebase.md) | Plan técnico para pasar de `mockDatabase` a Firebase real. |
-| [04 — Roadmap de sprints](docs/04-roadmap-sprints.md) | Cómo las fases se traducen en milestones, labels e issues de GitHub. |
-| [05 — Convenciones de código](docs/05-convenciones-de-codigo.md) | Nombres, estructura, TypeScript, tests y flujo de git. |
-| [06 — Auditoría técnica](docs/06-auditoria-tecnica.md) | Revisión del código real: bugs, deuda técnica y evaluación de la arquitectura. |
-| [07 — Plan de sprints](docs/07-plan-de-sprints.md) | Secuencia de construcción ordenada por dependencia, con criterios de cierre. |
-| [Manual de colores](docs/EVA-manual-colores.md) | Design system: tokens, paletas clara y oscura, y reglas de accesibilidad. |
-
-### Estado actual
-
-El proyecto está en fase de construcción y **todos los datos corren sobre un mock en memoria** (`src/data/mock/mockData.ts`) — la migración a Firestore es el Sprint 3 del plan. Para saber qué funciona de verdad y qué es scaffolding, ver la tabla de estado en [01 — Alcance y fases](docs/01-alcance-y-fases.md#3-estado-actual-del-código-auditado-no-asumido) y los hallazgos de la [auditoría técnica](docs/06-auditoria-tecnica.md).
-
----
+| Documento | Contenido |
+|---|---|
+| [Manual de colores](docs/EVA-manual-colores.md) | Paletas, tokens y reglas de accesibilidad. La identidad de EVA es la Paleta 1 · Pizarra. |
+| [Estrategia SQL y versión 1](docs/08-estrategia-sql-backend-y-v1.md) | Cómo se pasó al backend propio con PostgreSQL. |
 
 ## Licencia
 
-Este proyecto es privado. Todos los derechos reservados ©EVA.
+Proyecto privado. Todos los derechos reservados © EVA.
