@@ -13,7 +13,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.eva-app.lat/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "https://yqwjwgwsojulwvzabkit.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_cx-1z7n1GlMduPFcAcsE2Q_a_t1mI4t"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_cx-1z7n1GlMduPFcAcsE2Q_a_t1mI4t",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "320088930062-qh2e0sa1h6v4jq7tovvita5an8umdial.apps.googleusercontent.com"
       }
     },
     "production": {
@@ -25,7 +26,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.eva-app.lat/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "https://yqwjwgwsojulwvzabkit.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_cx-1z7n1GlMduPFcAcsE2Q_a_t1mI4t"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_cx-1z7n1GlMduPFcAcsE2Q_a_t1mI4t",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "320088930062-qh2e0sa1h6v4jq7tovvita5an8umdial.apps.googleusercontent.com"
       }
     }
   }
