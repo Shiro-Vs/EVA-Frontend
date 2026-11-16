@@ -4,63 +4,89 @@
 
 **Suscripciones compartidas y finanzas personales, con el dinero calculado por el servidor.**
 
+![Expo](https://img.shields.io/badge/Expo-SDK%2054-000020?logo=expo&logoColor=white)
+![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Android](https://img.shields.io/badge/Android-APK-3DDC84?logo=android&logoColor=white)
+![Pruebas](https://img.shields.io/badge/pruebas-220-2EA44F)
+
+[Sitio web](https://www.eva-app.lat) · [Manual de colores](docs/EVA-manual-colores.md)
+
 </div>
 
 ---
 
-EVA es una app Android hecha con **Expo** y **React Native**. Sirve para llevar las cuentas de los servicios que compartes (Netflix, Spotify y similares) y tus finanzas personales: cuentas, tarjetas, préstamos, presupuestos y metas, más captura de comprobantes y análisis con IA.
+## Qué es
 
-**Regla de oro:** la app nunca calcula dinero. Solo muestra y envía; todas las cuentas las hace la API (`EVA-Backend`), y la app les da formato.
+EVA es una app Android para llevar las cuentas de los servicios que compartes (Netflix, Spotify y similares) y tus finanzas personales: **cuentas, tarjetas, préstamos, presupuestos y metas**, con captura de comprobantes y análisis con IA.
+
+Te dice quién te debe, cuánto y desde cuándo; reparte cada cuota con prorrateo exacto; y convierte una constancia de Yape o de tu banco en un movimiento listo para confirmar.
+
+> **Regla de oro:** la app nunca calcula dinero. Solo muestra y envía; todas las cuentas las hace la API y la app les da formato (`S/ 20.00`).
+
+## Lo que incluye
+
+| | |
+|---|---|
+| **Servicios compartidos** | Plazas, cuotas por ciclo, cobros, cortesías, bajas y devoluciones |
+| **Finanzas personales** | Cuentas, tarjetas de crédito, préstamos, presupuestos, metas y recurrentes |
+| **Captura inteligente** | Foto, PDF o correo reenviado → propuesta que tú confirmas |
+| **Análisis con IA** | Consejo del día y preguntas sobre tus propios números |
+| **Seguridad** | Bloqueo con PIN y huella, respaldos cifrados, modo sin conexión de consulta |
+| **Siempre al día** | Actualizaciones por internet, sin reinstalar |
 
 ## Cómo está armado
 
-| Pieza | Dónde vive |
+| Pieza | Tecnología |
 |---|---|
-| App (este repositorio) | Expo SDK 54 · React Native 0.81 · expo-router · NativeWind |
-| API | `EVA-Backend` (Fastify + PostgreSQL) en Render, `https://api.eva-app.lat` |
-| Cuentas y base de datos | Supabase (login, Postgres, archivos) |
-| Sitio web | `EVA-Web` en Vercel, `https://www.eva-app.lat` |
+| **App** (este repositorio) | Expo SDK 54 · React Native 0.81 · expo-router · NativeWind |
+| **API** | Fastify + PostgreSQL en Render · `https://api.eva-app.lat` |
+| **Cuentas y datos** | Supabase: inicio de sesión (correo y Google), base y archivos |
+| **Sitio web** | Vercel · `https://www.eva-app.lat` |
 
-El mapa completo (piezas, flujos, variables y cómo se publican los cambios) está en `docs/mapa-eva.html` de la carpeta de documentación del proyecto. Las decisiones de producto y de diseño viven en la carpeta `docs/especificacion` de esa misma carpeta.
-
-## Estructura
-
-```
-app/                 Rutas (expo-router): una carpeta o archivo por pantalla
-src/
-  api/               Cliente de la API, sesión, caché sin conexión, login con Supabase y Google
-  components/        Componentes reutilizables (kit v1, hojas, diálogos)
-  constants/         Paletas de color, entidades bancarias
-  context/           Sesión, tema y diálogos
-  hooks/             Utilidades de pantallas (useAsync, useSubmit…)
-  logic/             Lógica de pantallas sin interfaz (servicios, contactos, auth)
-  screens/           Pantallas por módulo
-  security/          Bloqueo con PIN y huella
-  updates/           Aviso de actualizaciones por internet
-assets/              Ícono, pantalla de carga, logos y fuentes
-docs/                Manual de colores y estrategia de la versión 1
-```
+La identidad visual es la **Paleta 1 · Pizarra** (azul de marca y acento ámbar), con modo claro y oscuro y tipografía Asap.
 
 ## Empezar
 
-Requisitos: Node 22 y, para probar en el teléfono, Expo Go (o el APK de EVA).
+Necesitas **Node 22** y, para probar en el teléfono, Expo Go o el APK de EVA.
 
 ```bash
 npm install
-cp .env.example .env     # rellena solo valores públicos
+cp .env.example .env     # solo valores públicos
 npx expo start
 ```
 
 | Comando | Qué hace |
 |---|---|
 | `npx expo start` | Servidor de desarrollo |
+| `npx expo start --web` | La app en el navegador (sirve para revisar diseño) |
 | `npm test` | Pruebas (Jest) |
-| `npm run typecheck` | Comprueba los tipos de TypeScript |
-| `npm run publicar -- "qué cambió"` | Publica una actualización por internet para el APK (canal `preview`) |
+| `npm run typecheck` | Comprueba los tipos |
+| `npm run publicar -- "qué cambió"` | Publica una actualización por internet (canal `preview`) |
+
+**Expo Go o APK:** con Expo Go se ven pantallas y API. Entrar con la hoja de cuentas de Google, las notificaciones, el PIN y la huella y las actualizaciones por internet solo funcionan en el **APK**.
+
+## Estructura
+
+```
+app/                 Rutas (expo-router): una carpeta o archivo por pantalla
+src/
+  api/               Cliente de la API, sesión, caché sin conexión, login
+  components/        Componentes reutilizables (kit v1, hojas, diálogos)
+  constants/         Paletas de color y entidades bancarias
+  context/           Sesión, tema y diálogos
+  hooks/             Utilidades de pantallas
+  logic/             Lógica de pantallas sin interfaz
+  screens/           Pantallas por módulo
+  security/          Bloqueo con PIN y huella
+  updates/           Aviso de «hay una versión nueva»
+assets/              Ícono, pantalla de carga, logos y fuentes
+docs/                Manual de colores
+```
 
 ## Variables de entorno
 
-Todo lo que empieza con `EXPO_PUBLIC_` queda dentro del paquete de la app y cualquiera puede extraerlo. Por eso **aquí solo van valores públicos**; las claves de servicio, las contraseñas y la clave de Gemini viven únicamente en el servidor.
+Todo lo que empieza con `EXPO_PUBLIC_` queda dentro del paquete de la app y cualquiera puede extraerlo. Por eso **aquí solo van valores públicos**; las claves de servicio y de IA viven únicamente en el servidor.
 
 | Variable | Para qué |
 |---|---|
@@ -69,21 +95,27 @@ Todo lo que empieza con `EXPO_PUBLIC_` queda dentro del paquete de la app y cual
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Clave «publishable» de Supabase (pública por diseño) |
 | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | ID de cliente web de Google, para la hoja de cuentas del APK |
 
-Para el APK, estos valores se declaran en `eas.json` (el `.env` no viaja a la compilación).
+Para el APK, estos valores se declaran en `eas.json`: el `.env` no viaja a la compilación.
 
-## Probar con el APK
+## Publicar
 
-- **Compilar:** `npx eas-cli build --platform android --profile preview` (perfil `production` para Google Play).
-- **Actualizar sin reinstalar:** `npm run publicar -- "mensaje"`. Sirve para código y pantallas; las librerías nativas, los permisos o subir de SDK piden un APK nuevo (y subir `version` en `app.json`).
-- Entrar con Google, las notificaciones y la huella solo funcionan en el APK, no en Expo Go.
+| Quiero… | Hago… |
+|---|---|
+| Un APK instalable | `npx eas-cli build --platform android --profile preview` |
+| Cambiar pantallas o lógica | `npm run publicar -- "mensaje"` (llega al abrir la app) |
+| Usar una librería nativa, permisos o subir de SDK | Subir `version` en `app.json` y compilar un APK nuevo |
+
+## Calidad
+
+El CI (GitHub Actions) comprueba tipos, auditoría de dependencias, pruebas y compilación web en cada cambio. Los avisos conocidos de herramientas de Expo se documentan, con fecha de revisión, en `.github/audit-exceptions.json`.
 
 ## Documentación
 
-| Documento | Contenido |
-|---|---|
-| [Manual de colores](docs/EVA-manual-colores.md) | Paletas, tokens y reglas de accesibilidad. La identidad de EVA es la Paleta 1 · Pizarra. |
-| [Estrategia SQL y versión 1](docs/08-estrategia-sql-backend-y-v1.md) | Cómo se pasó al backend propio con PostgreSQL. |
+- [Manual de colores](docs/EVA-manual-colores.md): paletas, tokens y reglas de accesibilidad.
+- La especificación del producto, la guía de operación y el mapa interactivo del sistema viven en la documentación privada del proyecto, junto a la API.
 
-## Licencia
+---
 
-Proyecto privado. Todos los derechos reservados © EVA.
+<div align="center">
+<sub>Todos los derechos reservados © EVA. El código es visible, pero no se concede licencia de uso, copia ni distribución.</sub>
+</div>
