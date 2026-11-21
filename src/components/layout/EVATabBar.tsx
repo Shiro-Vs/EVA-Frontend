@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -91,7 +92,10 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
                   
                   {/* Botón Principal */}
                   <TouchableOpacity
-                    onPress={() => quickAdd.open()}
+                    onPress={() => {
+                      if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                      quickAdd.open();
+                    }}
                     activeOpacity={0.8}
                     accessibilityRole="button"
                     accessibilityLabel="Nuevo: registrar o crear"
