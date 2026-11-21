@@ -21,7 +21,9 @@ export function parseLocal(stamp: string): Date | null {
 
 export const identifierOf = (id: string, fireAt: string) => `${PREFIX}${id}@${fireAt}`;
 
-export function planNotifications(items: ReminderItem[], existing: string[], now: Date): Plan {
+export interface ExistingScheduled { identifier: string; body?: string | null }
+
+export function planNotifications(items: ReminderItem[], existing: Array<string | ExistingScheduled>, now: Date): Plan {
   const want = new Map<string, Planned>();
   for (const it of items) {
     for (const f of it.fireAt) {
@@ -33,12 +35,25 @@ export function planNotifications(items: ReminderItem[], existing: string[], now
     }
   }
   const ordered = [...want.values()].sort((a, b) => a.at.getTime() - b.at.getTime() || a.identifier.localeCompare(b.identifier)).slice(0, MAX_SCHEDULED);
-  const keep = new Set(ordered.map((p) => p.identifier));
-  const have = new Set(existing);
+  const keep = new Map(ordered.map((p) => [p.identifier, p]));
+  const normalized: ExistingScheduled[] = existing.map((e) => (typeof e === "string" ? { identifier: e } : e));
+  const unchanged = new Set<string>();
+  const cancel: string[] = [];
+
+  for (const e of normalized) {
+    if (!e.identifier.startsWith(PREFIX)) continue;
+    const target = keep.get(e.identifier);
+    // Si ya no existe, o cambió el texto (ej. al activar/desactivar «Texto discreto»), se cancela para reprogramarlo.
+    if (!target || (e.body !== undefined && e.body !== target.body)) {
+      cancel.push(e.identifier);
+    } else {
+      unchanged.add(e.identifier);
+    }
+  }
+
   return {
-    // Solo se tocan las nuestras (prefijo «eva:»): cualquier otra notificación del teléfono se respeta.
-    cancel: existing.filter((id) => id.startsWith(PREFIX) && !keep.has(id)),
-    schedule: ordered.filter((p) => !have.has(p.identifier)),
+    cancel,
+    schedule: ordered.filter((p) => !unchanged.has(p.identifier)),
     desired: ordered.length,
   };
 }

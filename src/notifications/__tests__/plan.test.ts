@@ -51,6 +51,18 @@ describe("Planificación de notificaciones locales", () => {
     expect(times).toEqual([...times].sort((a, b) => a - b));
   });
 
+  it("reprograma una notificación existente si cambió el texto (por ejemplo, al activar o desactivar texto discreto)", () => {
+    const id = identifierOf("renewal:1", "2026-11-04T09:00");
+    const p = planNotifications(
+      [item("renewal:1", ["2026-11-04T09:00"], { detail: "Renueva Netflix (45.00)" })],
+      [{ identifier: id, body: "Tienes renovaciones próximas" }],
+      NOW,
+    );
+    expect(p.cancel).toEqual([id]);
+    expect(p.schedule).toHaveLength(1);
+    expect(p.schedule[0]!.body).toBe("Renueva Netflix (45.00)");
+  });
+
   it("ignora horas mal formadas sin romper", () => {
     expect(planNotifications([item("x", ["mañana", "2026-11-04T09:00"])], [], NOW).schedule).toHaveLength(1);
   });

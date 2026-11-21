@@ -11,11 +11,12 @@ export function useReminderSync() {
   const router = useRouter();
 
   useEffect(() => {
+    if (isLoadingSession || !uid) return;
     let off = () => {};
     let alive = true;
     installHandlers((route) => router.push(route as never)).then((f) => { if (alive) off = f; else f(); }).catch(() => {});
     return () => { alive = false; off(); };
-  }, [router]);
+  }, [router, uid, isLoadingSession]);
 
   useEffect(() => {
     if (isLoadingSession) return;
