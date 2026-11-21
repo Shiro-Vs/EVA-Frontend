@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Switch, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { AppState, Linking, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { CardId, DashboardCard, LeadKind, Preferences } from "../../api/types";
@@ -11,7 +11,8 @@ import { humanDate } from "../../utils/dates";
 import { formatSoles } from "../../utils/money";
 import { MultiChoice } from "../e4/shared";
 import { useLock } from "../../security/LockGate";
-import { permissionStatus, requestPermission, syncReminders, type Permission } from "../../notifications/scheduler";
+import { permissionStatus, requestPermission, scheduledCount, syncReminders, type Permission } from "../../notifications/scheduler";
+import { NotificationTestSection } from "../../notifications/NotificationTestSection"; // TEMPORAL: borrar al terminar las pruebas
 
 const isHHMM = (s: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
 
@@ -124,13 +125,36 @@ export function NotificationsSettingsScreen() {
   const [n, setN] = useState<Preferences["notifications"] | null>(null);
   const [saved, setSaved] = useState(false);
   const [perm, setPerm] = useState<Permission>("undetermined");
-  useEffect(() => { permissionStatus().then(setPerm).catch(() => {}); }, []);
+  const [scheduled, setScheduled] = useState<number | null>(null);
+
+  const refreshDevice = useCallback(() => {
+    permissionStatus().then(setPerm).catch(() => {});
+    scheduledCount().then(setScheduled).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    refreshDevice();
+    const sub = AppState.addEventListener("change", (s) => { if (s === "active") refreshDevice(); });
+    return () => sub.remove();
+  }, [refreshDevice]);
+
   useEffect(() => { if (prefs.data) setN(prefs.data.notifications); }, [prefs.data]);
-  const allow = useSubmit(async () => { const p = await requestPermission(); setPerm(p); if (p === "granted") await syncReminders(); });
+  const allow = useSubmit(async () => {
+    const p = await requestPermission();
+    setPerm(p);
+    if (p === "granted") await syncReminders();
+    refreshDevice();
+  });
   const set = (patch: Partial<Preferences["notifications"]>) => { setN((x) => (x ? { ...x, ...patch } : x)); setSaved(false); };
   const setKind = (k: keyof Preferences["notifications"]["kinds"], v: Partial<LeadKind>) => { setN((x) => (x ? { ...x, kinds: { ...x.kinds, [k]: { ...(x.kinds[k] as LeadKind), ...v } } } : x)); setSaved(false); };
   const valid = !!n && isHHMM(n.time) && (!n.quiet || (isHHMM(n.quiet.from) && isHHMM(n.quiet.to)));
-  const save = useSubmit(async () => { await api.savePreferences({ notifications: n! }); setSaved(true); await rem.reload(); await syncReminders().catch(() => {}); });
+  const save = useSubmit(async () => {
+    await api.savePreferences({ notifications: n! });
+    setSaved(true);
+    await rem.reload();
+    await syncReminders().catch(() => {});
+    refreshDevice();
+  });
   if (!n) return <Screen title="Avisos">{prefs.error ? <ErrorBox message={prefs.error} onRetry={prefs.reload} /> : <Loading />}</Screen>;
   return (
     <Screen title="Avisos" subtitle="EVA nunca envía mensajes a otras personas" footer={<Button title="Guardar" busy={save.busy} disabled={!valid} onPress={save.submit} />}>
@@ -138,9 +162,18 @@ export function NotificationsSettingsScreen() {
         <Card>
           <Txt bold>Permiso de notificaciones</Txt>
           <Txt size={13}>{perm === "denied" ? "Las notificaciones están bloqueadas: actívalas en los ajustes del teléfono para esta app." : "Para avisarte necesitamos tu permiso."}</Txt>
-          {perm !== "denied" && <Button title="Permitir notificaciones" busy={allow.busy} onPress={allow.submit} />}
+          {perm === "denied" ? (
+            <Button title="Abrir ajustes del teléfono" icon="settings-outline" variant="secondary" onPress={() => { void Linking.openSettings(); }} />
+          ) : (
+            <Button title="Permitir notificaciones" busy={allow.busy} onPress={allow.submit} />
+          )}
         </Card>
       )}
+
+      {/* TEMPORAL: quitar apartado de prueba cuando termine la verificación */}
+      <NotificationTestSection discreet={n.discreet} perm={perm} scheduledCount={scheduled} onSyncDone={refreshDevice} />
+
+      <Heading>Configuración</Heading>
       <Card>
         <Row label="Activar avisos" value={n.enabled} onChange={(v) => set({ enabled: v })} />
         <Row label="Texto discreto" hint="Sin nombres ni importes en la notificación" value={n.discreet} onChange={(v) => set({ discreet: v })} />
