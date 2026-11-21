@@ -35,8 +35,8 @@ export const SUGGESTIONS = [
   "¿En qué gasto más?",
   "¿Cómo voy frente al mes pasado?",
   "¿Qué gastos pequeños puedo reducir?",
-  "¿Cuánto me deben y quién?",
-  "¿Qué suscripciones me cuestan más?",
+  "¿En qué cuenta gasto más?",
+  "¿Qué gastos no tienen categoría?",
   "¿Cuánto ahorré este periodo?",
 ];
 
@@ -148,14 +148,17 @@ function ConversationView({ chatId }: { chatId?: string }) {
     const before = local;
     setLocal((l) => [...l, { role: "user", content: q }]);
     setText(""); setCtx(null);
+    let createdNow: string | null = null;
     try {
       let cid = id;
-      if (!cid) { cid = (await api.createChat({ scope, saveHistory })).id; setId(cid); }
-      const r = await api.sendChat(cid, { text: q, ...(saveHistory ? {} : { history: before.slice(-10) }) });
+      if (!cid) { cid = (await api.createChat({ scope, saveHistory })).id; createdNow = cid; setId(cid); }
+      const history = before.slice(-10).map((m) => ({ role: m.role, content: m.content.slice(0, 3800) }));
+      const r = await api.sendChat(cid, { text: q, ...(saveHistory ? {} : { history }) });
       setLocal((l) => [...l, { role: "assistant", content: r.answer }]);
       setLast(r);
     } catch (e) {
       setLocal(before); setText(q);
+      if (createdNow) { setId(undefined); void api.deleteChat(createdNow).catch(() => {}); }
       await dialog.fail(e, "No se pudo preguntar");
     }
   });
@@ -179,9 +182,9 @@ function ConversationView({ chatId }: { chatId?: string }) {
   return (
     <Screen title="Análisis con IA" subtitle="Responde con tus datos"
       right={<View style={{ flexDirection: "row", gap: 6 }}>
-        {local.length > 0 && <IconBtn icon="add" label="Nueva conversación" onPress={fresh} />}
+        {(local.length > 0 || locked) && <IconBtn icon="add" label="Nueva conversación" onPress={fresh} />}
         <IconBtn icon="time-outline" label="Conversaciones anteriores" onPress={() => router.push("/analysis/chats" as never)} />
-        {chatId && <IconBtn icon="trash-outline" label="Borrar conversación" onPress={remove} danger />}
+        {id && saveHistory && <IconBtn icon="trash-outline" label="Borrar conversación" onPress={remove} danger />}
       </View>}
       footer={(
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
