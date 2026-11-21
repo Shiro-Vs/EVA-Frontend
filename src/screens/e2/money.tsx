@@ -169,8 +169,11 @@ export function OperationCorrectScreen() {
 /** Nuevo ingreso, gasto o transferencia manual. */
 export function OperationNewScreen() {
   const done = useDone();
+  const params = useLocalSearchParams<{ kind?: string }>();
+  const initialKind: "income" | "expense" | "transfer" =
+    params.kind === "income" || params.kind === "transfer" ? params.kind : "expense";
   const contacts = useAsync(() => api.contacts(), []);
-  const [kind, setKind] = useState<"income" | "expense" | "transfer">("expense");
+  const [kind, setKind] = useState<"income" | "expense" | "transfer">(initialKind);
   const [from, setFrom] = useState<string | null>(null);
   const [to, setTo] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
