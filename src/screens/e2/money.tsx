@@ -24,12 +24,22 @@ export function OperationScreen() {
   const router = useRouter();
   const op = useAsync(() => api.operation(id), [id]);
   const accounts = useAsync(() => api.accounts(), []);
+  const contacts = useAsync(() => api.contacts("active"), []);
   useFocusReload(op.reload);
   const [description, setDescription] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null | undefined>(undefined);
+  const [contactId, setContactId] = useState<string | null | undefined>(undefined);
   const [mode, setMode] = useState<"reverse" | null>(null);
   const [reason, setReason] = useState("");
   const [date, setDate] = useState("");
-  const save = useSubmit(async () => api.patchOperation(id, { description: (description ?? "").trim() }, op.data!.version));
+  const save = useSubmit(async () => {
+    const o = op.data!;
+    return api.patchOperation(id, {
+      ...(description !== null && description.trim() !== o.description ? { description: description.trim() } : {}),
+      ...(categoryId !== undefined && categoryId !== (o.category?.id ?? null) ? { categoryId } : {}),
+      ...(contactId !== undefined && contactId !== (o.contactId ?? null) ? { contactId } : {}),
+    }, o.version);
+  });
   const reverse = useSubmit(async (key: string) => api.reverseOperation(id, { reason: reason.trim(), ...(date ? { date } : {}) }, key));
 
   if (op.loading && !op.data) return <Screen title="Movimiento"><Loading /></Screen>;
@@ -38,20 +48,34 @@ export function OperationScreen() {
   const editable = o.status === "confirmed" && o.kind !== "reversal";
   const linked = !!(o.links.receiptId || o.links.supplierPaymentId || o.links.refundId);
   const correctable = editable && !linked && ["income", "expense", "transfer"].includes(o.kind);
+  const canCategorize = editable && ["income", "expense"].includes(o.kind);
+  const curCat = categoryId === undefined ? (o.category?.id ?? null) : categoryId;
+  const curContact = contactId === undefined ? (o.contactId ?? null) : contactId;
+  const metaDirty = (description !== null && description.trim() !== o.description)
+    || (categoryId !== undefined && categoryId !== (o.category?.id ?? null))
+    || (contactId !== undefined && contactId !== (o.contactId ?? null));
+  const contactOpts = [{ id: "__none__", label: "Ninguno" }, ...(contacts.data ?? []).map((c) => ({ id: c.id, label: c.name }))];
 
   return (
     <Screen title={KIND_TEXT[o.kind] ?? o.kind} subtitle={humanDate(o.occurredOn)}>
       <Card>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}><Chip status={o.status === "confirmed" ? "paid" : "converted"} label={o.status === "confirmed" ? "Confirmado" : "Revertido"} /></View>
         {o.entries.map((e, i) => <KV key={i} label={accountName(accounts.data, e.accountId)} value={formatSoles(e.amount)} strong />)}
+        {o.category && <KV label="Categoría" value={o.category.name} />}
         {o.reason ? <KV label="Motivo" value={o.reason} /> : null}
       </Card>
 
       {editable && (
         <Card>
           <Field label="Descripción" value={description ?? o.description} onChangeText={(v) => { setDescription(v); save.resetKey(); }} autoCapitalize="sentences" maxLength={200} />
-          <Button title="Guardar descripción" variant="secondary" busy={save.busy} disabled={description === null || description === o.description}
-            onPress={async () => { if (await save.submit()) { setDescription(null); void op.reload(); } }} />
+          {canCategorize && <CategoryPicker value={curCat} onChange={(v) => { setCategoryId(v); save.resetKey(); }} />}
+          {contactOpts.length > 1 && (
+            <Choice select label="Contacto (opcional)" value={curContact ?? "__none__"}
+              onChange={(v) => { setContactId(v === "__none__" ? null : v); save.resetKey(); }}
+              options={contactOpts} />
+          )}
+          <Button title="Guardar cambios" variant="secondary" busy={save.busy} disabled={!metaDirty}
+            onPress={async () => { if (await save.submit()) { setDescription(null); setCategoryId(undefined); setContactId(undefined); void op.reload(); } }} />
           {save.error && <Notice tone="err">{save.error}</Notice>}
         </Card>
       )}
@@ -82,6 +106,7 @@ export function OperationScreen() {
 /** Corregir una operación: importe, cuenta(s) y fecha; revierte la original y registra la corregida. */
 export function OperationCorrectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const done = useDone();
   const op = useAsync(() => api.operation(id), [id]);
   const [amount, setAmount] = useState<string | null>(null);
@@ -113,7 +138,7 @@ export function OperationCorrectScreen() {
   if (op.error || !o) return <Screen title="Corregir movimiento"><ErrorBox message={op.error ?? "No se encontró el movimiento."} onRetry={op.reload} /></Screen>;
   return (
     <Screen title="Corregir movimiento" subtitle={`${KIND_TEXT[o.kind] ?? o.kind} de ${formatSoles(oldAmount)} · ${humanDate(o.occurredOn)}`}
-      footer={<PreviewFooter flow={flow} disabled={Object.keys(body()).length === 0 || reason.trim().length === 0} confirmDisabled={reason.trim().length === 0} confirmLabel="Aplicar corrección" onConfirm={async () => { if (await flow.confirm()) done(`/operation/${id}`); }} />}>
+      footer={<PreviewFooter flow={flow} disabled={Object.keys(body()).length === 0 || reason.trim().length === 0} confirmDisabled={reason.trim().length === 0} confirmLabel="Aplicar corrección" onConfirm={async () => { const res = await flow.confirm() as { operation?: { id?: string } } | undefined; if (res?.operation?.id) router.replace(`/operation/${res.operation.id}` as never); else if (res) done(`/operation/${id}`); }} />}>
       <Card>
         <MoneyField label="Importe" value={amount ?? oldAmount} onChange={touch(setAmount)} />
         <AccountPicker label={transfer ? "Cuenta de origen" : "Cuenta"} value={from} onChange={touch(setFrom)} />

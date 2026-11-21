@@ -5,6 +5,7 @@ import { api, type CalendarChangeBody } from "../../api/client";
 import type { Interval } from "../../api/types";
 import { Choice, DateField, FlowResult, FutureCyclePicker, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Button, Card, Chip, ErrorBox, Field, Heading, Loading, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import { useDialog } from "../../context/DialogContext";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -16,13 +17,15 @@ import { cmpMoney, formatSoles, normalizeMoneyInput } from "../../utils/money";
 export function ServiceManageScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const done = useDone();
+  const dialog = useDialog();
   const sub = useAsync(() => api.subscription(id), [id]);
   const terms = useAsync(() => api.terms(id), [id]);
   const seats = useAsync(() => api.seats(id), [id]);
   const reload = React.useCallback(() => { void sub.reload(); void terms.reload(); void seats.reload(); }, [sub.reload, terms.reload, seats.reload]);
   useFocusReload(reload);
   const archive = useSubmit(async () => api.archiveSubscription(id));
+  const restore = useSubmit(async () => api.restoreSubscription(id));
+  const remove = useSubmit(async () => api.deleteSubscription(id));
 
   if (sub.loading && !sub.data) return <Screen title="Gestionar servicio"><Loading /></Screen>;
   if (sub.error || !sub.data) return <Screen title="Gestionar servicio"><ErrorBox message={sub.error ?? "No se encontró el servicio."} onRetry={sub.reload} /></Screen>;
@@ -70,14 +73,42 @@ export function ServiceManageScreen() {
         </Card>
       ))}
 
-      {s.status !== "archived" && (
+      {s.status === "archived" ? (
+        <>
+          <Heading>Restaurar</Heading>
+          <Button title="Restaurar servicio" icon="refresh-outline" busy={restore.busy} onPress={async () => { if (await restore.submit()) void reload(); }} />
+          {restore.error && <Notice tone="err">{restore.error}</Notice>}
+        </>
+      ) : (
         <>
           <Heading>Archivar</Heading>
-          <Button title="Archivar servicio" variant="danger" icon="archive-outline" busy={archive.busy} onPress={async () => { if (await archive.submit()) done("/planning"); }} />
-          <Txt size={12} muted>No se archiva con plazas activas de terceros: primero da de baja a cada participante.</Txt>
+          <Button title="Archivar servicio" variant="secondary" icon="archive-outline" busy={archive.busy} onPress={async () => {
+            const ok = await dialog.confirm({
+              title: `¿Archivar ${s.name}?`,
+              message: "Dejará de generar ciclos nuevos, pero conservará su historial. Podrás restaurarlo desde Servicios → Archivados.",
+              confirmLabel: "Archivar",
+              cancelLabel: "Cancelar",
+            });
+            if (ok && await archive.submit()) router.replace("/planning" as never);
+          }} />
+          <Txt size={12} muted>No se archiva con plazas activas de terceros ni con crédito reservado.</Txt>
           {archive.error && <Notice tone="err">{archive.error}</Notice>}
         </>
       )}
+
+      <Heading>Eliminar</Heading>
+      <Button title="Eliminar servicio" variant="outlineDanger" icon="trash-outline" busy={remove.busy} onPress={async () => {
+        const ok = await dialog.confirm({
+          title: `¿Eliminar ${s.name}?`,
+          message: "Se borrará definitivamente. Solo se permite si el servicio no tiene pagos al proveedor, cargos ni participantes.",
+          confirmLabel: "Eliminar",
+          cancelLabel: "Cancelar",
+          danger: true,
+        });
+        if (ok && await remove.submit()) router.replace("/planning" as never);
+      }} />
+      <Txt size={12} muted>Si ya tiene historial, usa Archivar para no perder tus registros.</Txt>
+      {remove.error && <Notice tone="err">{remove.error}</Notice>}
     </Screen>
   );
 }

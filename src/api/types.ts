@@ -150,7 +150,8 @@ export interface ContactReceipt {
   id: string; operationId: string; amount: Money; receivedOn: IsoDate; note: string | null; status: "active" | "reversed"; version: number; unapplied: Money | null; free: Money | null;
 }
 export interface OperationDetail {
-  id: string; kind: string; occurredOn: IsoDate; description: string; status: "confirmed" | "reversed"; reversalOfId: string | null; reason: string | null; version: number; createdAt: string;
+  id: string; kind: string; occurredOn: IsoDate; occurredTime?: string | null; description: string; status: "confirmed" | "reversed"; reversalOfId: string | null; reason: string | null; version: number; createdAt: string;
+  concept?: string; contactId?: string | null; category?: { id: string; name: string } | null;
   entries: Array<{ accountId: string; amount: Money }>;
   links: { receiptId: string | null; supplierPaymentId: string | null; refundId: string | null };
 }
@@ -181,7 +182,7 @@ export interface Budget {
   items?: Array<{ operationId: string; date: IsoDate; description: string; amount: Money; sharedService: boolean }>; shared?: Array<Record<string, string>>;
 }
 export interface Goal {
-  id: string; name: string; targetAmount: Money; targetDate: IsoDate | null; status: string; version: number; saved: Money; remaining: Money; percent: number; achieved: boolean;
+  id: string; name: string; targetAmount: Money; targetDate: IsoDate | null; note?: string | null; overdue?: boolean; status: string; version: number; saved: Money; remaining: Money; percent: number; achieved: boolean;
   daysLeft: number | null; accounts: Array<{ accountId: string; name: string; reserved: Money; accountBalance: Money; overReserved: boolean }>;
   contributions?: Array<{ id: string; accountName: string; amount: Money; kind: string; at: string }>;
 }

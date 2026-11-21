@@ -7,6 +7,7 @@ export interface Contact {
   notas?: string;
   total_deuda?: number; // (código antiguo) Calculado dinámicamente
   total_servicios?: number; // Cantidad de servicios en los que participa
+  plazasActivas?: number;
   /** Pendiente de cobro como cadena decimal exacta, tal como la entrega la API. */
   deuda?: string;
   /** Parte vencida del pendiente. */

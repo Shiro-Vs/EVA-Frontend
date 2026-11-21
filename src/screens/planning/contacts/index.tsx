@@ -30,6 +30,7 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
   const { fonts } = useAppTheme();
   const {
     loading,
+    statusFilter,
     searchQuery,
     sortBy,
     isModalVisible,
@@ -45,6 +46,7 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
     stats,
     colors,
     router,
+    setStatusFilter,
     setSearchQuery,
     setSortBy,
     setIsModalVisible,
@@ -56,6 +58,8 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
     handleSaveContact,
     handleNewContact,
     handleEditContact,
+    handleArchiveContact,
+    handleRestoreContact,
     handleDeleteContact,
     openHistory,
     closeHistory,
@@ -122,6 +126,20 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
             </TouchableOpacity>
           </View>
 
+          {stats.archivedCount > 0 && (
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {([["active", `Activos (${stats.totalCount})`], ["archived", `Archivados (${stats.archivedCount})`]] as const).map(([id, label]) => {
+                const on = statusFilter === id;
+                return (
+                  <TouchableOpacity key={id} onPress={() => setStatusFilter(id)} accessibilityRole="button" accessibilityState={{ selected: on }}
+                    style={{ minHeight: 34, paddingHorizontal: 12, borderRadius: 99, justifyContent: "center", backgroundColor: on ? colors.primarySurface : `${colors.primary}12` }}>
+                    <Text style={{ color: on ? colors.onPrimary : colors.primary, fontSize: 12, fontFamily: fonts.family.bold }}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
           <ContactList contacts={filteredContacts} onContactPress={openHistory} onMenuPress={setMenuFor} />
 
           {asTab && (
@@ -133,11 +151,16 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
         </ScrollView>
       </View>
 
-      <BottomSheet visible={!!menuFor} onClose={() => setMenuFor(null)} title={menuFor?.nombre} maxHeight={0.5}>
+      <BottomSheet visible={!!menuFor} onClose={() => setMenuFor(null)} title={menuFor?.nombre} maxHeight={0.55}>
         <View style={{ paddingHorizontal: 4, paddingBottom: 4, gap: 6 }}>
           <MenuRow icon="time-outline" title="Ver historial" onPress={() => pick((c) => openHistory(c))} />
           <MenuRow icon="create-outline" title="Editar" onPress={() => pick(handleEditContact)} />
-          <MenuRow icon="archive-outline" title="Archivar" text="Deja de aparecer en tu lista" danger onPress={() => pick(handleDeleteContact)} />
+          {statusFilter === "archived" ? (
+            <MenuRow icon="refresh-outline" title="Restaurar" text="Vuelve a aparecer en tu lista activa" onPress={() => pick(handleRestoreContact)} />
+          ) : (
+            <MenuRow icon="archive-outline" title="Archivar" text="Deja de aparecer en tu lista activa" onPress={() => pick(handleArchiveContact)} />
+          )}
+          <MenuRow icon="trash-outline" title="Eliminar" text="Solo si no tiene historial ni servicios" danger onPress={() => pick(handleDeleteContact)} />
         </View>
       </BottomSheet>
 

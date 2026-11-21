@@ -28,15 +28,17 @@ function StatusLine({ s }: { s: BudgetStatus }) {
 
 export function BudgetsScreen() {
   const router = useRouter();
-  const list = useAsync(() => api.budgets(), []);
+  const [status, setStatus] = useState<"active" | "archived">("active");
+  const list = useAsync(() => api.budgets(status), [status]);
   useFocusReload(list.reload);
   return (
     <Screen title="Presupuestos" subtitle="Son un límite: avisan, nunca bloquean" footer={<Button title="Nuevo presupuesto" icon="add" onPress={() => router.push("/budgets/new" as never)} />}>
+      <Choice value={status} onChange={setStatus} options={[{ id: "active", label: "Activos" }, { id: "archived", label: "Archivados" }]} />
       {list.loading && !list.data ? <Loading /> : list.error ? <ErrorBox message={list.error} onRetry={list.reload} /> : (list.data ?? []).length === 0 ? (
-        <Empty icon="pie-chart-outline" title="Sin presupuestos" text="Crea un límite por categoría o uno general." />
+        <Empty icon="pie-chart-outline" title={status === "active" ? "Sin presupuestos" : "Sin presupuestos archivados"} text={status === "active" ? "Crea un límite por categoría o uno general." : "Los presupuestos que archives aparecerán aquí por si quieres restaurarlos."} />
       ) : (list.data ?? []).map((b) => (
         <RowLink key={b.id} onPress={() => router.push(`/budgets/${b.id}` as never)}>
-          <View style={{ flex: 1, gap: 4 }}><Txt bold>{b.name}</Txt><Txt size={12} muted>{b.category?.name ?? "Todo el gasto"} · {PERIOD[b.period]}</Txt><StatusLine s={b.current} /></View>
+          <View style={{ flex: 1, gap: 4 }}><Txt bold>{b.name}</Txt><Txt size={12} muted>{b.category?.name ?? "Todo el gasto"} · {PERIOD[b.period]}{b.status === "archived" ? " · Archivado" : ""}</Txt><StatusLine s={b.current} /></View>
         </RowLink>
       ))}
     </Screen>
@@ -83,22 +85,57 @@ export function BudgetNewScreen() {
 
 export function BudgetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const dialog = useDialog();
   const b = useAsync(() => api.budget(id), [id]);
   const hist = useAsync(() => api.budgetHistory(id, 6), [id]);
   useFocusReload(() => { void b.reload(); void hist.reload(); });
+  const [name, setName] = useState<string | null>(null);
   const [limit, setLimit] = useState("");
   const [thresholds, setThresholds] = useState("");
+  const [rollover, setRollover] = useState<"no" | "yes" | null>(null);
+  const [cap, setCap] = useState<string | null>(null);
+  const [children, setChildren] = useState<"yes" | "no" | null>(null);
+
+  const parsedTh = thresholds.trim() === "" ? null : thresholds.split(",").map((x) => x.trim()).filter(Boolean).map((x) => (/^\d+$/.test(x) ? Number.parseInt(x, 10) : Number.NaN));
+  const thInvalid = parsedTh !== null && (parsedTh.length === 0 || parsedTh.length > 6 || parsedTh.some((n) => !Number.isInteger(n) || n < 1 || n > 1000));
   const save = useSubmit(async () => {
-    const th = thresholds.split(",").map((x) => Number.parseInt(x.trim(), 10)).filter((x) => Number.isInteger(x));
-    return api.patchBudget(id, { ...(normalizeMoneyInput(limit) ? { limit: normalizeMoneyInput(limit)! } : {}), ...(th.length ? { thresholds: th } : {}) }, b.data!.version);
+    const cur = b.data!;
+    const nextRoll = rollover === null ? cur.rollover : rollover === "yes";
+    const normLimit = normalizeMoneyInput(limit);
+    const normCap = cap === null ? undefined : cap.trim() === "" ? null : normalizeMoneyInput(cap);
+    return api.patchBudget(id, {
+      ...(name !== null && name.trim() && name.trim() !== cur.name ? { name: name.trim() } : {}),
+      ...(normLimit ? { limit: normLimit } : {}),
+      ...(parsedTh && !thInvalid ? { thresholds: parsedTh } : {}),
+      ...(rollover !== null && nextRoll !== cur.rollover ? { rollover: nextRoll } : {}),
+      ...(nextRoll && normCap !== undefined ? { rolloverCap: normCap } : {}),
+      ...(children !== null && (children === "yes") !== cur.includeSubcategories ? { includeSubcategories: children === "yes" } : {}),
+    }, cur.version);
   });
   const archive = useSubmit(async () => (b.data!.status === "active" ? api.archiveBudget(id) : api.restoreBudget(id)));
+  const remove = useSubmit(async () => api.deleteBudget(id));
+
   if (b.loading && !b.data) return <Screen title="Presupuesto"><Loading /></Screen>;
   if (b.error || !b.data) return <Screen title="Presupuesto"><ErrorBox message={b.error ?? "No se encontró el presupuesto."} onRetry={b.reload} /></Screen>;
   const d: Budget = b.data;
+  const effRoll = rollover === null ? (d.rollover ? "yes" : "no") : rollover;
+  const effChildren = children === null ? (d.includeSubcategories ? "yes" : "no") : children;
+  const hasEdit = (name !== null && name.trim().length > 0 && name.trim() !== d.name)
+    || !!normalizeMoneyInput(limit)
+    || (parsedTh !== null && !thInvalid)
+    || (rollover !== null && (rollover === "yes") !== d.rollover)
+    || (effRoll === "yes" && cap !== null && (cap.trim() === "" || !!normalizeMoneyInput(cap)))
+    || (children !== null && (children === "yes") !== d.includeSubcategories);
+
   return (
     <Screen title={d.name} subtitle={`${d.category?.name ?? "Todo el gasto"} · ${PERIOD[d.period]}`}>
-      <Card><StatusLine s={d.current} /><KV label="Bruto" value={formatSoles(d.current.breakdown.gross)} /><KV label="Cobros restados" value={formatSoles(d.current.breakdown.collectionsOffset)} /></Card>
+      <Card>
+        <StatusLine s={d.current} />
+        <KV label="Bruto" value={formatSoles(d.current.breakdown.gross)} />
+        <KV label="Cobros restados" value={formatSoles(d.current.breakdown.collectionsOffset)} />
+        <KV label="Arrastre" value={d.rollover ? (d.rolloverCap ? `Sí (tope ${formatSoles(d.rolloverCap)})` : "Sí") : "No"} />
+      </Card>
       <Heading>Qué consume</Heading>
       {(d.items ?? []).length === 0 ? <Card><Txt muted>Sin gastos en este período.</Txt></Card> : d.items!.map((i) => (
         <Card key={i.operationId} outlined><View style={{ flexDirection: "row", justifyContent: "space-between" }}><Txt size={13} style={{ flex: 1 }}>{humanDate(i.date)} · {i.description || "Gasto"}{i.sharedService ? " (servicio compartido)" : ""}</Txt><Money value={i.amount} size={14} /></View></Card>
@@ -108,15 +145,34 @@ export function BudgetDetailScreen() {
       ))}
       <Heading>Períodos anteriores</Heading>
       {(hist.data ?? []).map((h) => <Card key={h.period.start} outlined><StatusLine s={h} /></Card>)}
-      <Heading>Editar</Heading>
-      <Card>
-        <MoneyField label={`Límite nuevo (hoy ${formatSoles(d.current.limit)}); rige desde este período`} value={limit} optional onChange={setLimit} />
-        <Field label={`Avisos en % (hoy ${d.thresholds.join(", ")})`} value={thresholds} onChangeText={setThresholds} placeholder="80,100" />
-        <Button title="Guardar cambios" busy={save.busy} disabled={!normalizeMoneyInput(limit) && !thresholds.trim()} onPress={async () => { if (await save.submit()) { setLimit(""); setThresholds(""); void b.reload(); } }} />
-        {save.error && <Notice tone="err">{save.error}</Notice>}
-      </Card>
-      <Button title={d.status === "active" ? "Archivar presupuesto" : "Restaurar presupuesto"} variant="secondary" busy={archive.busy} onPress={async () => { if (await archive.submit()) void b.reload(); }} />
+      {d.status === "active" && (
+        <>
+          <Heading>Editar</Heading>
+          <Card>
+            <Field label="Nombre" value={name ?? d.name} onChangeText={setName} autoCapitalize="sentences" maxLength={80} />
+            <MoneyField label={`Límite nuevo (hoy ${formatSoles(d.current.limit)}); rige desde este período`} value={limit} optional onChange={setLimit} />
+            <Field label={`Avisos en % (hoy ${d.thresholds.join(", ")})`} value={thresholds} onChangeText={setThresholds} placeholder="80,100" error={thInvalid ? "Usa entre 1 y 6 enteros de 1 a 1000" : undefined} />
+            {d.category && <Choice label="¿Incluye sus subcategorías?" value={effChildren} onChange={setChildren} options={[{ id: "yes", label: "Sí" }, { id: "no", label: "No" }]} />}
+            <Choice label="¿Arrastra lo no gastado al período siguiente?" value={effRoll} onChange={setRollover} options={[{ id: "no", label: "No" }, { id: "yes", label: "Sí" }]} />
+            {effRoll === "yes" && <MoneyField label="Tope del arrastre" value={cap ?? d.rolloverCap ?? ""} optional onChange={setCap} />}
+            <Button title="Guardar cambios" busy={save.busy} disabled={!hasEdit || thInvalid} onPress={async () => { if (await save.submit()) { setName(null); setLimit(""); setThresholds(""); setRollover(null); setCap(null); setChildren(null); void b.reload(); } }} />
+            {save.error && <Notice tone="err">{save.error}</Notice>}
+          </Card>
+        </>
+      )}
+      <Button title={d.status === "active" ? "Archivar presupuesto" : "Restaurar presupuesto"} variant="secondary" busy={archive.busy} onPress={async () => {
+        if (d.status === "active") {
+          const ok = await dialog.confirm({ title: "¿Archivar presupuesto?", message: "Dejará de aparecer en tus presupuestos activos. Podrás restaurarlo desde Presupuestos → Archivados.", confirmLabel: "Archivar", cancelLabel: "Cancelar" });
+          if (!ok) return;
+        }
+        if (await archive.submit()) void b.reload();
+      }} />
       {archive.error && <Notice tone="err">{archive.error}</Notice>}
+      <Button title="Eliminar presupuesto" variant="outlineDanger" icon="trash-outline" busy={remove.busy} onPress={async () => {
+        const ok = await dialog.confirm({ title: `¿Eliminar «${d.name}»?`, message: "Se eliminará esta regla de presupuesto definitivamente. Tus gastos y movimientos no se tocan.", confirmLabel: "Eliminar", cancelLabel: "Cancelar", danger: true });
+        if (ok && await remove.submit()) router.replace("/budgets" as never);
+      }} />
+      {remove.error && <Notice tone="err">{remove.error}</Notice>}
     </Screen>
   );
 }
@@ -175,6 +231,7 @@ export function GoalNewScreen() {
 
 export function GoalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const dialog = useDialog();
   const g = useAsync(() => api.goal(id), [id]);
   const transfers = useAsync(() => api.operations({ kind: "transfer", limit: 20 }), []);
@@ -183,16 +240,36 @@ export function GoalDetailScreen() {
   const [account, setAccount] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [opId, setOpId] = useState<string | null>(null);
+  const [editName, setEditName] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState<string | null>(null);
+  const [editNote, setEditNote] = useState<string | null>(null);
   const money = useSubmit(async (key: string) => (mode === "reserve" ? api.reserveGoal : api.releaseGoal)(id, { accountId: account!, amount: normalizeMoneyInput(amount)! }, key));
   const link = useSubmit(async (key: string) => api.linkGoalTransfer(id, opId!, key));
+  const patch = useSubmit(async () => {
+    const cur = g.data!;
+    const normT = editTarget !== null ? normalizeMoneyInput(editTarget) : null;
+    return api.patchGoal(id, {
+      ...(editName !== null && editName.trim() && editName.trim() !== cur.name ? { name: editName.trim() } : {}),
+      ...(normT && normT !== cur.targetAmount ? { targetAmount: normT } : {}),
+      ...(editDate !== null && (editDate || null) !== cur.targetDate ? { targetDate: editDate || null } : {}),
+      ...(editNote !== null && (editNote.trim() || null) !== (cur.note ?? null) ? { note: editNote.trim() || null } : {}),
+    }, cur.version);
+  });
   const archive = useSubmit(async () => (g.data!.status === "active" ? api.archiveGoal(id) : api.restoreGoal(id)));
+  const remove = useSubmit(async () => api.deleteGoal(id));
   if (g.loading && !g.data) return <Screen title="Meta"><Loading /></Screen>;
   if (g.error || !g.data) return <Screen title="Meta"><ErrorBox message={g.error ?? "No se encontró la meta."} onRetry={g.reload} /></Screen>;
   const d = g.data;
+  const editDirty = (editName !== null && editName.trim().length > 0 && editName.trim() !== d.name)
+    || (editTarget !== null && !!normalizeMoneyInput(editTarget) && normalizeMoneyInput(editTarget) !== d.targetAmount)
+    || (editDate !== null && (editDate === "" || isIsoDate(editDate)) && (editDate || null) !== d.targetDate)
+    || (editNote !== null && (editNote.trim() || null) !== (d.note ?? null));
   return (
     <Screen title={d.name} subtitle={`Objetivo ${formatSoles(d.targetAmount)}${d.targetDate ? ` · ${humanDate(d.targetDate)}` : ""}`}>
       <Card>
-        <Money value={d.saved} size={30} /><Txt size={13} muted>{d.percent}% · faltan {formatSoles(d.remaining)}{d.daysLeft !== null ? ` · ${d.daysLeft} días` : ""}</Txt>
+        <Money value={d.saved} size={30} /><Txt size={13} muted>{d.percent}% · faltan {formatSoles(d.remaining)}{d.daysLeft !== null ? (d.daysLeft < 0 ? ` · venció hace ${Math.abs(d.daysLeft)} días` : ` · ${d.daysLeft} días`) : ""}</Txt>
+        {d.note ? <Txt size={13} muted>{d.note}</Txt> : null}
         {d.achieved && <Chip status="paid" label="Meta cumplida" />}
         {d.accounts.map((a) => <View key={a.accountId}><KV label={a.name} value={formatSoles(a.reserved)} />{a.overReserved && <Notice tone="warn">Lo reservado en {a.name} supera su saldo.</Notice>}</View>)}
       </Card>
@@ -226,6 +303,19 @@ export function GoalDetailScreen() {
       )}
       <Heading>Historial</Heading>
       {(d.contributions ?? []).map((c) => <Card key={c.id} outlined><View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}><Txt size={13} style={{ flex: 1, flexShrink: 1 }}>{c.accountName} · {c.kind === "reserve" ? "reserva" : c.kind === "release" ? "liberación" : c.kind === "transfer" ? "transferencia" : "gasto"}</Txt><Txt bold size={13} style={{ fontVariant: ["tabular-nums"] }}>{formatSoles(c.amount)}</Txt></View></Card>)}
+      {d.status === "active" && (
+        <>
+          <Heading>Editar meta</Heading>
+          <Card>
+            <Field label="Nombre" value={editName ?? d.name} onChangeText={setEditName} autoCapitalize="sentences" maxLength={80} />
+            <MoneyField label="Objetivo" value={editTarget ?? d.targetAmount} onChange={setEditTarget} />
+            <DateField label="Fecha objetivo" value={editDate ?? d.targetDate ?? ""} optional onChange={setEditDate} />
+            <Field label="Nota (opcional)" value={editNote ?? d.note ?? ""} onChangeText={setEditNote} autoCapitalize="sentences" maxLength={200} />
+            <Button title="Guardar cambios" variant="secondary" busy={patch.busy} disabled={!editDirty} onPress={async () => { if (await patch.submit()) { setEditName(null); setEditTarget(null); setEditDate(null); setEditNote(null); void g.reload(); } }} />
+            {patch.error && <Notice tone="err">{patch.error}</Notice>}
+          </Card>
+        </>
+      )}
       <Button title={d.status === "active" ? "Archivar meta" : "Restaurar meta"} variant="secondary" busy={archive.busy} onPress={async () => {
         if (d.status === "active") {
           const ok = await dialog.confirm({
@@ -241,6 +331,11 @@ export function GoalDetailScreen() {
         if (await archive.submit()) void g.reload();
       }} />
       {archive.error && <Notice tone="err">{archive.error}</Notice>}
+      <Button title="Eliminar meta" variant="outlineDanger" icon="trash-outline" busy={remove.busy} onPress={async () => {
+        const ok = await dialog.confirm({ title: `¿Eliminar «${d.name}»?`, message: "Se borrará definitivamente. Solo se permite si la meta nunca tuvo reservas ni transferencias vinculadas.", confirmLabel: "Eliminar", cancelLabel: "Cancelar", danger: true });
+        if (ok && await remove.submit()) router.replace("/goals/accounts" as never);
+      }} />
+      {remove.error && <Notice tone="err">{remove.error}</Notice>}
     </Screen>
   );
 }

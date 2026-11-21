@@ -53,7 +53,9 @@ export default function MoneyScreen() {
     finally { setLoadingMore(false); }
   };
 
+  const [showArchived, setShowArchived] = useState(false);
   const list = (accounts.data ?? []).filter((a) => a.status === "active");
+  const archived = (accounts.data ?? []).filter((a) => a.status === "archived");
   const items = [...(ops.data ?? []), ...more];
   const s = summary.data;
   const accountOptions = [{ id: "all", label: "Todas las cuentas" }, ...list.map((a) => ({ id: a.id, label: a.name }))];
@@ -85,6 +87,26 @@ export default function MoneyScreen() {
             <Text style={{ color: colors.muted, fontSize: 13, fontFamily: "AsapBold" }}>Nueva cuenta</Text>
           </TouchableOpacity>
         </ScrollView>
+      )}
+
+      {archived.length > 0 && (
+        <View style={{ gap: 8 }}>
+          <TouchableOpacity onPress={() => setShowArchived((v) => !v)} accessibilityRole="button" hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" }}>
+            <Ionicons name={showArchived ? "chevron-up" : "archive-outline"} size={15} color={colors.textSecondary} />
+            <Txt size={12} muted bold>{showArchived ? "Ocultar cuentas archivadas" : `Ver cuentas archivadas (${archived.length})`}</Txt>
+          </TouchableOpacity>
+          {showArchived && archived.map((a) => (
+            <TouchableOpacity key={a.id} onPress={() => router.push(`/account/${a.id}/edit` as never)} activeOpacity={0.75} accessibilityRole="button"
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+              <View style={{ flex: 1 }}>
+                <Txt bold size={14} numberOfLines={1}>{a.name}</Txt>
+                <Txt size={12} muted>{formatSoles(a.balance)} · Archivada</Txt>
+              </View>
+              <Chip status="converted" label="Gestionar" />
+            </TouchableOpacity>
+          ))}
+        </View>
       )}
 
       <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold", marginTop: 4 }}>Movimientos</Text>

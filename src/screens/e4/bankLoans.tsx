@@ -6,6 +6,7 @@ import type { BankChangePreview, BankInstallment, BankLoan, BankPaymentPreview, 
 import type { BankChangeBody, BankInstallmentIn, BankPaymentBody } from "../../api/client";
 import { AccountPicker, Choice, DateField, MoneyField, OptionalAccountPicker, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Badge, Button, Card, Chip, Empty, ErrorBox, Field, Heading, KV, Loading, Notice, RowLink, Screen, Txt, SwitchRow } from "../../components/v1/ui";
+import { useDialog } from "../../context/DialogContext";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, isIsoDate } from "../../utils/dates";
@@ -29,12 +30,14 @@ const parts = (i: { principal: string | null; interest: string | null; insurance
 
 export function BankLoansScreen() {
   const router = useRouter();
-  const loans = useAsync(() => api.bankLoans(), []);
+  const [status, setStatus] = useState<"active" | "closed">("active");
+  const loans = useAsync(() => api.bankLoans(status), [status]);
   useFocusReload(loans.reload);
   return (
     <Screen title="Préstamos bancarios" subtitle="Solo datos confirmados por documento o por ti" footer={<Button title="Nuevo préstamo bancario" icon="add" onPress={() => router.push("/bank-loans/new" as never)} />}>
+      <Choice value={status} onChange={setStatus} options={[{ id: "active", label: "Activos" }, { id: "closed", label: "Cerrados" }]} />
       {loans.loading && !loans.data ? <Loading /> : loans.error ? <ErrorBox message={loans.error} onRetry={loans.reload} /> : (loans.data ?? []).length === 0 ? (
-        <Empty icon="business-outline" title="Sin préstamos bancarios" text="Crea uno y agrégale el cronograma o la hoja resumen (desde la bandeja de captura o a mano)." />
+        <Empty icon="business-outline" title={status === "active" ? "Sin préstamos bancarios" : "Sin préstamos cerrados"} text={status === "active" ? "Crea uno y agrégale el cronograma o la hoja resumen (desde la bandeja de captura o a mano)." : "Los préstamos que marques como cerrados aparecerán aquí."} />
       ) : (loans.data ?? []).map((l) => (
         <RowLink key={l.id} onPress={() => router.push(`/bank-loan/${l.id}` as never)}>
           <View style={{ flex: 1, gap: 4 }}>
@@ -79,17 +82,36 @@ export function BankLoanNewScreen() {
 export function BankLoanScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const dialog = useDialog();
   const q = useAsync(() => api.bankLoan(id), [id]);
   useFocusReload(q.reload);
   const [reversing, setReversing] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [editName, setEditName] = useState<string | null>(null);
+  const [editEntity, setEditEntity] = useState<string | null>(null);
+  const [editAcc, setEditAcc] = useState<string | null | undefined>(undefined);
+  const [editNote, setEditNote] = useState<string | null>(null);
   const reverse = useSubmit(async (key: string, pid: string) => api.reverseBankPayment(pid, reason.trim(), key));
   const toggle = useSubmit(async () => api.patchBankLoan(id, { status: q.data!.status === "active" ? "closed" : "active" }, q.data!.version));
+  const saveMeta = useSubmit(async () => {
+    const cur = q.data!;
+    return api.patchBankLoan(id, {
+      ...(editName !== null && editName.trim() && editName.trim() !== cur.name ? { name: editName.trim() } : {}),
+      ...(editEntity !== null && (editEntity.trim() || null) !== (cur.entity ?? null) ? { entity: editEntity.trim() || null } : {}),
+      ...(editAcc !== undefined && editAcc !== (cur.accountId ?? null) ? { accountId: editAcc } : {}),
+      ...(editNote !== null && (editNote.trim() || null) !== (cur.note ?? null) ? { note: editNote.trim() || null } : {}),
+    }, cur.version);
+  });
+  const remove = useSubmit(async () => api.deleteBankLoan(id));
 
   if (q.loading && !q.data) return <Screen title="Préstamo"><Loading /></Screen>;
   if (q.error || !q.data) return <Screen title="Préstamo"><ErrorBox message={q.error ?? "No se encontró el préstamo."} onRetry={q.reload} /></Screen>;
   const l: BankLoan = q.data;
   const active = l.status === "active";
+  const metaDirty = (editName !== null && editName.trim().length > 0 && editName.trim() !== l.name)
+    || (editEntity !== null && (editEntity.trim() || null) !== (l.entity ?? null))
+    || (editAcc !== undefined && editAcc !== (l.accountId ?? null))
+    || (editNote !== null && (editNote.trim() || null) !== (l.note ?? null));
   return (
     <Screen title={l.name} subtitle={l.entity ?? undefined}>
       <Card>
@@ -173,8 +195,30 @@ export function BankLoanScreen() {
         </>
       )}
 
+      <Heading>Datos básicos</Heading>
+      <Card>
+        <Field label="Nombre" value={editName ?? l.name} onChangeText={setEditName} autoCapitalize="sentences" maxLength={80} />
+        <Field label="Entidad (opcional)" value={editEntity ?? l.entity ?? ""} onChangeText={setEditEntity} autoCapitalize="words" maxLength={80} />
+        <OptionalAccountPicker label="Cuenta habitual de pago" value={editAcc === undefined ? (l.accountId ?? null) : editAcc} onChange={setEditAcc} />
+        <Field label="Nota (opcional)" value={editNote ?? l.note ?? ""} onChangeText={setEditNote} autoCapitalize="sentences" maxLength={300} />
+        <Button title="Guardar datos" variant="secondary" busy={saveMeta.busy} disabled={!metaDirty} onPress={async () => { if (await saveMeta.submit()) { setEditName(null); setEditEntity(null); setEditAcc(undefined); setEditNote(null); await q.reload(); } }} />
+        {saveMeta.error && <Notice tone="err">{saveMeta.error}</Notice>}
+      </Card>
+
       <Button title={active ? "Cerrar préstamo" : "Reabrir préstamo"} variant="secondary" busy={toggle.busy} onPress={async () => { if (await toggle.submit()) await q.reload(); }} />
       {toggle.error && <Notice tone="err">{toggle.error}</Notice>}
+
+      <Button title="Eliminar préstamo" variant="outlineDanger" icon="trash-outline" busy={remove.busy} onPress={async () => {
+        const ok = await dialog.confirm({
+          title: `¿Eliminar «${l.name}»?`,
+          message: "Se borrará definitivamente junto con su calendario y datos. Solo se permite si no tiene pagos registrados.",
+          confirmLabel: "Eliminar",
+          cancelLabel: "Cancelar",
+          danger: true,
+        });
+        if (ok && await remove.submit()) router.replace("/bank-loans" as never);
+      }} />
+      {remove.error && <Notice tone="err">{remove.error}</Notice>}
     </Screen>
   );
 }

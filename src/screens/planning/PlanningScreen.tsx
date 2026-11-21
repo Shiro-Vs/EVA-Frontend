@@ -15,7 +15,7 @@ import { getAdjustedColor, ServiceIcon } from "../../utils/serviceIcons";
 import { daysUntil, whenText } from "../dashboard/attention";
 
 type View_ = "cards" | "list";
-type Filter = "all" | "shared" | "personal";
+type Filter = "all" | "shared" | "personal" | "archived";
 const VIEW_KEY = "eva.services.view";
 
 /** «/mes», «/año», «/3 meses»: lo que cuesta cada cobro del proveedor. */
@@ -33,24 +33,26 @@ const renewalOf = (s: Subscription) => s.currentCycle?.endDate ?? null;
 export default function PlanningScreen() {
   const { colors, isDark } = useAppTheme();
   const router = useRouter();
-  const subs = useAsync(() => api.subscriptions(), []);
+  const [view, setView] = useState<View_>("cards");
+  const [filter, setFilter] = useState<Filter>("all");
+  const subs = useAsync(() => api.subscriptions(filter === "archived" ? "archived" : undefined), [filter === "archived"]);
   const summary = useAsync(() => api.summary(), []);
   const reload = useCallback(() => { void subs.reload(); void summary.reload(); }, [subs.reload, summary.reload]);
   useFocusReload(reload);
 
-  const [view, setView] = useState<View_>("cards");
-  const [filter, setFilter] = useState<Filter>("all");
   useEffect(() => { AsyncStorage.getItem(VIEW_KEY).then((v) => { if (v === "cards" || v === "list") setView(v); }).catch(() => {}); }, []);
   const chooseView = (v: View_) => { setView(v); AsyncStorage.setItem(VIEW_KEY, v).catch(() => {}); };
 
   const today = todayLocalIso();
-  const all = (subs.data ?? []).filter((s) => s.status === "active");
+  // Sin filtro "archived", la API ya excluye archivados pero incluye activos y suspendidos (para poder reactivarlos).
+  const all = subs.data ?? [];
+  const activeOnly = useMemo(() => all.filter((s) => s.status === "active"), [all]);
   const list = useMemo(() => all
-    .filter((s) => filter === "all" || s.mode === filter)
-    .sort((a, b) => (renewalOf(a) ?? "9999").localeCompare(renewalOf(b) ?? "9999") || a.name.localeCompare(b.name)), [all, filter]);
-  const next = useMemo(() => all.filter((s) => renewalOf(s)).sort((a, b) => renewalOf(a)!.localeCompare(renewalOf(b)!))[0], [all]);
+    .filter((s) => filter === "all" || filter === "archived" || s.mode === filter)
+    .sort((a, b) => (a.status === "suspended" ? 1 : 0) - (b.status === "suspended" ? 1 : 0) || (renewalOf(a) ?? "9999").localeCompare(renewalOf(b) ?? "9999") || a.name.localeCompare(b.name)), [all, filter]);
+  const next = useMemo(() => activeOnly.filter((s) => renewalOf(s)).sort((a, b) => renewalOf(a)!.localeCompare(renewalOf(b)!))[0], [activeOnly]);
   const nextDays = next ? daysUntil(renewalOf(next)!, today) : null;
-  const sharedCount = all.filter((s) => s.mode === "shared").length;
+  const sharedCount = activeOnly.filter((s) => s.mode === "shared").length;
 
   if ((subs.loading && !subs.data) || (summary.loading && !summary.data)) return <Screen title="Servicios" back={false}><Loading /></Screen>;
   if (subs.error || summary.error) return <Screen title="Servicios" back={false}><ErrorBox message={(subs.error ?? summary.error)!} onRetry={reload} /></Screen>;
@@ -65,7 +67,7 @@ export default function PlanningScreen() {
         <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Comprometido este ciclo</Text>
         <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(s?.subscriptions.currentCycleTotal)}</Text>
         <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
-          <Stat label="Servicios" value={`${all.length}`} sub={sharedCount ? (sharedCount === 1 ? "1 compartido" : `${sharedCount} compartidos`) : "personales"} />
+          <Stat label="Servicios" value={`${s?.subscriptions.active ?? activeOnly.length}`} sub={sharedCount ? (sharedCount === 1 ? "1 compartido" : `${sharedCount} compartidos`) : "activos"} />
           <Stat label="Por cobrar" value={formatSoles(s?.receivable.pending)} sub={s && Number(s.receivable.overdue) > 0 ? `${formatSoles(s.receivable.overdue)} vencido` : "al día"} />
         </View>
         {next && nextDays !== null && (
@@ -81,7 +83,7 @@ export default function PlanningScreen() {
       {/* Filtros y vista */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: 6, alignItems: "center", paddingVertical: 2 }}>
-          {([["all", "Todos"], ["shared", "Compartidos"], ["personal", "Personales"]] as Array<[Filter, string]>).map(([id, label]) => {
+          {([["all", "Todos"], ["shared", "Compartidos"], ["personal", "Personales"], ["archived", "Archivados"]] as Array<[Filter, string]>).map(([id, label]) => {
             const on = filter === id;
             return (
               <TouchableOpacity key={id} onPress={() => setFilter(id)} accessibilityRole="button" accessibilityState={{ selected: on }} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
@@ -102,7 +104,7 @@ export default function PlanningScreen() {
       </View>
 
       {list.length === 0 ? (
-        <Empty icon="calendar-outline" title={all.length === 0 ? "Crea tu primer servicio" : "Nada con este filtro"} text={all.length === 0 ? "Netflix, Spotify… Registra el plan, su calendario y quién participa." : "Prueba con otro filtro."} action={all.length === 0 ? <Button title="Nuevo servicio" icon="add" onPress={() => router.push("/service/new" as never)} /> : undefined} />
+        <Empty icon="calendar-outline" title={filter === "archived" ? "Sin servicios archivados" : all.length === 0 ? "Crea tu primer servicio" : "Nada con este filtro"} text={filter === "archived" ? "Los servicios que archives aparecerán aquí por si quieres restaurarlos." : all.length === 0 ? "Netflix, Spotify… Registra el plan, su calendario y quién participa." : "Prueba con otro filtro."} action={filter !== "archived" && all.length === 0 ? <Button title="Nuevo servicio" icon="add" onPress={() => router.push("/service/new" as never)} /> : undefined} />
       ) : view === "cards" ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
           {list.map((sub) => <ServiceCard key={sub.id} sub={sub} today={today} isDark={isDark} onPress={() => router.push(`/service/${sub.id}` as never)} />)}
@@ -130,6 +132,8 @@ function Stat({ label, value, sub }: { label: string; value: string; sub: string
 /** Cuándo se renueva, dicho corto y con color si es pronto. */
 function useRenewal(sub: Subscription, today: string) {
   const { colors } = useAppTheme();
+  if (sub.status === "suspended") return { text: "Suspendido", color: colors.warningStrong, soon: false };
+  if (sub.status === "archived") return { text: "Archivado", color: colors.textSecondary, soon: false };
   const end = renewalOf(sub);
   if (!end) return { text: "Sin ciclo", color: colors.textSecondary, soon: false };
   const d = daysUntil(end, today);

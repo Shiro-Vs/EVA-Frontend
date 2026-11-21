@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { BackHandler } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppTheme } from "../../hooks/useAppTheme";
+import { useFocusReload } from "../../hooks/useFocusReload";
 import { api, errorMessage } from "../../api/client";
 import { Contact } from "../../interfaces/Contact";
 import { useDialog } from "../../context/DialogContext";
@@ -17,6 +18,8 @@ export const useContacts = () => {
   const dialog = useDialog();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [archivedContacts, setArchivedContacts] = useState<Contact[]>([]);
+  const [statusFilter, setStatusFilter] = useState<"active" | "archived">("active");
   const [totalPending, setTotalPending] = useState(ZERO);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,6 +46,7 @@ export const useContacts = () => {
     try {
       const [list, summary] = await Promise.all([api.contacts(), api.summary()]);
       setContacts(list.filter((c) => c.status === "active").map(toUiContact));
+      setArchivedContacts(list.filter((c) => c.status === "archived").map(toUiContact));
       setTotalPending(summary.receivable.pending);
     } catch (e) {
       setAlertConfig({ visible: true, title: "No se pudo cargar", message: errorMessage(e), type: "error" });
@@ -52,6 +56,7 @@ export const useContacts = () => {
   }, []);
 
   useEffect(() => { void loadContacts(); }, [loadContacts]);
+  useFocusReload(loadContacts);
 
   const closeHistory = useCallback(() => {
     setShowHistory(false);
@@ -99,34 +104,60 @@ export const useContacts = () => {
     setIsModalVisible(true);
   };
 
-  const handleDeleteContact = async (contact: Contact) => {
-    if (owes(contact)) {
-      await dialog.notify({ kind: "blocked", title: "No se puede archivar", message: `${contact.nombre} todavía te debe ${formatSoles(contact.deuda)}. Cóbrale o ajusta la deuda primero.` });
+  const handleArchiveContact = async (contact: Contact) => {
+    if ((contact.plazasActivas ?? 0) > 0) {
+      await dialog.notify({ kind: "blocked", title: "No se puede archivar", message: `${contact.nombre} todavía ocupa plazas activas en servicios. Dala de baja primero.` });
       return;
     }
-    const ok = await dialog.confirm({ title: `¿Archivar a ${contact.nombre}?`, message: "Dejará de aparecer en tu lista. Su historial se conserva.", confirmLabel: "Archivar", cancelLabel: "Mantener", danger: true });
+    const ok = await dialog.confirm({
+      title: `¿Archivar a ${contact.nombre}?`,
+      message: owes(contact)
+        ? `${contact.nombre} todavía debe ${formatSoles(contact.deuda)}. Puedes archivar igual y su historial y deuda se conservan; podrás restaurar el contacto cuando quieras.`
+        : "Dejará de aparecer en tu lista activa. Su historial se conserva y podrás restaurar el contacto cuando quieras.",
+      confirmLabel: "Archivar",
+      cancelLabel: "Mantener",
+      danger: true,
+    });
     if (!ok) return;
     try { await api.archiveContact(contact.id); await loadContacts(); } catch (e) { await dialog.fail(e, "No se pudo archivar"); }
   };
 
+  const handleRestoreContact = async (contact: Contact) => {
+    try { await api.restoreContact(contact.id); await loadContacts(); } catch (e) { await dialog.fail(e, "No se pudo restaurar"); }
+  };
+
+  const handleDeleteContact = async (contact: Contact) => {
+    const ok = await dialog.confirm({
+      title: `¿Eliminar a ${contact.nombre}?`,
+      message: "Se borrará definitivamente. Solo se permite si el contacto nunca tuvo servicios, cobros, préstamos ni movimientos.",
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+      danger: true,
+    });
+    if (!ok) return;
+    try { await api.deleteContact(contact.id); await loadContacts(); } catch (e) { await dialog.fail(e, "No se pudo eliminar"); }
+  };
+
+  const activeSource = statusFilter === "active" ? contacts : archivedContacts;
   const filteredContacts = useMemo(() => {
-    return contacts
+    return activeSource
       .filter((c) => c.nombre.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (sortBy === "name" ? a.nombre.localeCompare(b.nombre) : cmpMoney(b.deuda ?? ZERO, a.deuda ?? ZERO)));
-  }, [contacts, searchQuery, sortBy]);
+  }, [activeSource, searchQuery, sortBy]);
 
   const stats = useMemo(() => ({
     totalDeudaGlobal: totalPending,
     debtorCount: contacts.filter(owes).length,
     totalCount: contacts.length,
-  }), [contacts, totalPending]);
+    archivedCount: archivedContacts.length,
+  }), [contacts, archivedContacts, totalPending]);
 
   const openHistory = (contact: Contact) => { setSelectedContact(contact); setShowHistory(true); };
 
   return {
-    contacts, loading, searchQuery, sortBy, isModalVisible, isRemindModalVisible, isAddSubModalVisible, editingContact, contactDraft,
+    contacts, archivedContacts, statusFilter, loading, searchQuery, sortBy, isModalVisible, isRemindModalVisible, isAddSubModalVisible, editingContact, contactDraft,
     alertConfig, showHistory, selectedContact, historyRefreshKey, filteredContacts, stats, colors, router,
-    setSearchQuery, setSortBy, setIsModalVisible, setIsRemindModalVisible, setIsAddSubModalVisible, setContactDraft, setAlertConfig,
-    loadContacts, handleSaveContact, handleNewContact, handleEditContact, handleDeleteContact, closeHistory, openHistory, setHistoryRefreshKey,
+    setStatusFilter, setSearchQuery, setSortBy, setIsModalVisible, setIsRemindModalVisible, setIsAddSubModalVisible, setContactDraft, setAlertConfig,
+    loadContacts, handleSaveContact, handleNewContact, handleEditContact, handleArchiveContact, handleRestoreContact, handleDeleteContact, closeHistory, openHistory, setHistoryRefreshKey,
   };
 };

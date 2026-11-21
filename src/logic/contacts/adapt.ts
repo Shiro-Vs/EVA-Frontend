@@ -13,6 +13,7 @@ export function toUiContact(c: ApiContact): Contact {
     email: c.email ?? undefined,
     notas: c.notes ?? undefined,
     total_servicios: c.services,
+    plazasActivas: c.activeSeats,
     deuda: c.totals.pending,
     vencido: c.totals.overdue,
     version: c.version,
