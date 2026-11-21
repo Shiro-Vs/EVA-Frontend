@@ -7,10 +7,22 @@ import { Choice } from "../../components/v1/forms";
 import { Badge, Button, Card, Chip, Empty, ErrorBox, Heading, KV, Loading, Notice, Screen, Txt } from "../../components/v1/ui";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
-import { humanDate } from "../../utils/dates";
+import { humanDate, isIsoDate } from "../../utils/dates";
 import { saveAndShare } from "../../utils/files";
 import { formatSoles } from "../../utils/money";
 import { initialScope, MultiChoice, ScopeForm } from "../e4/shared";
+
+function mimeFor(filename: string | null | undefined, format?: "csv" | "xlsx" | "pdf"): string {
+  const lower = (filename ?? "").toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (lower.endsWith(".zip")) return "application/zip";
+  if (lower.endsWith(".csv")) return "text/csv";
+  if (format === "pdf") return "application/pdf";
+  if (format === "xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (format === "csv") return "application/zip";
+  return "application/octet-stream";
+}
 
 const SECTIONS: Array<[SectionId, string, string]> = [
   ["transactions", "Movimientos", "Un renglón por asiento"],
@@ -43,24 +55,30 @@ export function ExportScreen() {
   useFocusReload(recent.reload);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const stopPolling = () => { if (timer.current) { clearInterval(timer.current); timer.current = null; } };
   const body = (): ExportBody => ({ from: scope.from, to: scope.to, ...(scope.accountIds.length ? { accountIds: scope.accountIds } : {}), sections: order, level, format });
-  const touch = () => { setPv(null); setJob(null); };
+  const touch = () => { stopPolling(); setPv(null); setJob(null); };
   const move = (i: number, d: number) => { const n = [...order]; const j = i + d; if (j < 0 || j >= n.length) return; [n[i], n[j]] = [n[j]!, n[i]!]; setOrder(n); touch(); };
   const toggle = (id: SectionId) => { setOrder((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id])); touch(); };
 
-  const preview = useSubmit(async () => { setJob(null); setPv(await api.previewExport(body())); });
+  const preview = useSubmit(async () => { stopPolling(); setJob(null); setPv(await api.previewExport(body())); });
   const create = useSubmit(async (key: string) => {
+    stopPolling();
     const j = await api.createExport(body(), key);
     setJob(j);
     if (j.status === "queued" || j.status === "running") {
       timer.current = setInterval(async () => {
-        try { const n = await api.exportJob(j.id); setJob(n); if (n.status !== "queued" && n.status !== "running") { if (timer.current) clearInterval(timer.current); void recent.reload(); } } catch { if (timer.current) clearInterval(timer.current); }
+        try { const n = await api.exportJob(j.id); setJob(n); if (n.status !== "queued" && n.status !== "running") { stopPolling(); void recent.reload(); } } catch { stopPolling(); }
       }, 1500);
     } else void recent.reload();
   });
-  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
-  const download = useSubmit(async (_k: string, id: string, name?: string | null) => { const f = await api.downloadExport(id); await saveAndShare(f.bytes, f.filename ?? name ?? "exportacion", "application/octet-stream"); });
-  const ready = order.length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(scope.from) && /^\d{4}-\d{2}-\d{2}$/.test(scope.to) && scope.from <= scope.to;
+  useEffect(() => () => stopPolling(), []);
+  const download = useSubmit(async (_k: string, id: string, name?: string | null, fmt?: "csv" | "xlsx" | "pdf") => {
+    const f = await api.downloadExport(id);
+    const filename = f.filename ?? name ?? `exportacion.${fmt === "csv" ? "zip" : (fmt ?? "bin")}`;
+    await saveAndShare(f.bytes, filename, mimeFor(filename, fmt));
+  });
+  const ready = order.length > 0 && isIsoDate(scope.from) && isIsoDate(scope.to) && scope.from <= scope.to;
   const inactive = SECTIONS.filter(([id]) => !order.includes(id));
 
   return (
@@ -113,9 +131,9 @@ export function ExportScreen() {
         <Card>
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}><Chip status={job.status === "done" ? "paid" : job.status === "failed" ? "overdue" : "partial"} label={STATUS_TEXT[job.status]} />{job.rows > 0 && <Txt size={12} muted>{job.rows} filas</Txt>}</View>
           {job.status === "failed" && <Notice tone="err">No se pudo generar la exportación. Acota el periodo o las cuentas e inténtalo otra vez.</Notice>}
-          {job.status === "done" && <Button title="Descargar" icon="download-outline" busy={download.busy} onPress={() => download.submit(job.id, job.filename)} />}
+          {job.status === "done" && <Button title="Descargar" icon="download-outline" busy={download.busy} onPress={() => download.submit(job.id, job.filename, job.format)} />}
           {job.status === "done" && job.expiresAt && <Txt size={11} muted>El archivo se borra el {humanDate(job.expiresAt.slice(0, 10))}.</Txt>}
-          <Button title="Nueva exportación" variant="secondary" onPress={() => { setJob(null); setPv(null); }} />
+          <Button title="Nueva exportación" variant="secondary" onPress={touch} />
           {download.error && <Notice tone="err">{download.error}</Notice>}
         </Card>
       )}
@@ -129,7 +147,7 @@ export function ExportScreen() {
         <Card key={j.id} outlined>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View style={{ flex: 1 }}><Txt bold size={13} numberOfLines={1}>{j.filename ?? j.format.toUpperCase()}</Txt><Txt size={11} muted>{humanDate(j.createdAt.slice(0, 10))} · {STATUS_TEXT[j.status]}</Txt></View>
-            {j.status === "done" ? <Button title="Descargar" variant="secondary" size="small" busy={download.busy} onPress={() => download.submit(j.id, j.filename)} /> : <Badge text={STATUS_TEXT[j.status]} />}
+            {j.status === "done" ? <Button title="Descargar" variant="secondary" size="small" busy={download.busy} onPress={() => download.submit(j.id, j.filename, j.format)} /> : <Badge text={STATUS_TEXT[j.status]} />}
           </View>
         </Card>
       ))}
@@ -143,7 +161,11 @@ export function ContactStatementExportScreen() {
   const contacts = useAsync(() => api.contacts(), []);
   const [id, setId] = useState<string | null>(null);
   const [format, setFormat] = useState<"pdf" | "xlsx" | "csv">("pdf");
-  const go = useSubmit(async () => { const f = await api.contactStatementFile(id!, format); await saveAndShare(f.bytes, f.filename ?? `estado-de-cuenta.${format}`, "application/octet-stream"); });
+  const go = useSubmit(async () => {
+    const f = await api.contactStatementFile(id!, format);
+    const filename = f.filename ?? `estado-de-cuenta.${format === "csv" ? "zip" : format}`;
+    await saveAndShare(f.bytes, filename, mimeFor(filename, format));
+  });
   return (
     <Screen title="Estado de cuenta" subtitle="Un documento por contacto" footer={<Button title="Descargar" icon="download-outline" busy={go.busy} disabled={!id} onPress={go.submit} />}>
       {contacts.loading && !contacts.data ? <Loading /> : contacts.error ? <ErrorBox message={contacts.error} onRetry={contacts.reload} /> : (contacts.data ?? []).filter((c) => c.status === "active").length === 0 ? (
