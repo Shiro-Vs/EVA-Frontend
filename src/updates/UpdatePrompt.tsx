@@ -11,9 +11,9 @@ import { shouldCheckForUpdate } from "./throttle";
  */
 export function UpdatePrompt() {
   const dialog = useDialog();
-  const { isUpdatePending } = Updates.useUpdates();
+  const { isUpdatePending, downloadedUpdate } = Updates.useUpdates();
   const lastCheck = useRef<number | null>(null);
-  const asked = useRef(false);
+  const askedId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!Updates.isEnabled) return;
@@ -32,20 +32,22 @@ export function UpdatePrompt() {
     return () => sub.remove();
   }, []);
 
+  const pendingKey = isUpdatePending ? (downloadedUpdate?.updateId ?? "__pending__") : null;
+
   useEffect(() => {
-    if (!isUpdatePending || asked.current) return;
-    asked.current = true;
+    if (!pendingKey || askedId.current === pendingKey) return;
+    askedId.current = pendingKey;
     void (async () => {
       const ok = await dialog.confirm({
         title: "Hay una versión nueva de EVA",
-        message: "Ya está lista. Actualiza para ver las mejoras; la app se reinicia en un momento.",
+        message: "Ya está lista. Actualiza para ver las mejoras; si eliges «Más tarde», se aplicará al reiniciar la app o desde Más → Acerca de EVA.",
         confirmLabel: "Actualizar ahora",
         cancelLabel: "Más tarde",
       });
-      if (ok) await Updates.reloadAsync(); // si la deja para después, se vuelve a ofrecer en la próxima apertura
+      if (ok) await Updates.reloadAsync();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUpdatePending]);
+  }, [pendingKey]);
 
   return null;
 }

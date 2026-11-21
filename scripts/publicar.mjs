@@ -23,17 +23,31 @@ if (/localhost|127\.0\.0\.1|192\.168\./.test(env.EXPO_PUBLIC_API_URL)) {
   process.exit(1);
 }
 
-console.log(`Publicando en el canal «${channel}»: ${message}`);
+let gitCommit = "";
+try {
+  const g = spawnSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" });
+  if (g.status === 0) gitCommit = g.stdout.trim();
+} catch {}
+
+const publishEnv = {
+  ...process.env,
+  ...env,
+  EXPO_PUBLIC_UPDATE_MESSAGE: message,
+  EXPO_PUBLIC_UPDATE_DATE: new Date().toISOString(),
+  ...(gitCommit ? { EXPO_PUBLIC_GIT_COMMIT: gitCommit } : {}),
+};
+
+console.log(`Publicando en el canal «${channel}»${gitCommit ? ` (${gitCommit})` : ""}: ${message}`);
 const args = ["--yes", "eas-cli", "update", "--channel", channel, "--message", message];
 const isWin = process.platform === "win32";
 const r = isWin
   ? spawnSync(`npx ${args.map((a) => `"${a.replace(/["\r\n]/g, "'")}"`).join(" ")}`, {
       stdio: "inherit",
       shell: true,
-      env: { ...process.env, ...env },
+      env: publishEnv,
     })
   : spawnSync("npx", args, {
       stdio: "inherit",
-      env: { ...process.env, ...env },
+      env: publishEnv,
     });
 process.exit(r.status ?? 1);
