@@ -56,12 +56,11 @@ function SectionLabel({ children }: { children: string }) {
   );
 }
 
-/** Fila dentro de una tarjeta agrupada, con ícono tintado, estado opcional y divisor suave. */
+/** Fila dentro de una tarjeta agrupada, con ícono limpio sin fondo, estado opcional y divisor suave. */
 function SettingRow({
   icon,
   title,
   text,
-  tint,
   ink,
   last,
   danger,
@@ -72,7 +71,6 @@ function SettingRow({
   icon: IconName;
   title: string;
   text?: string;
-  tint: string;
   ink: string;
   last?: boolean;
   danger?: boolean;
@@ -90,13 +88,13 @@ function SettingRow({
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
-        paddingVertical: 11,
+        paddingVertical: 12,
         borderBottomWidth: last ? 0 : 1,
         borderBottomColor: colors.border,
       }}
     >
-      <View style={{ width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: tint }}>
-        <Ionicons name={icon} size={19} color={ink} />
+      <View style={{ width: 26, alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name={icon} size={21} color={ink} />
       </View>
       <View style={{ flex: 1 }}>
         <Text numberOfLines={1} style={{ color: danger ? colors.expenseStrong : colors.text, fontSize: 15, fontFamily: "AsapSemiBold" }}>
@@ -121,7 +119,6 @@ function ToolTile({
   text,
   icon,
   customIcon,
-  tint,
   ink,
   badge,
   onPress,
@@ -130,7 +127,6 @@ function ToolTile({
   text: string;
   icon?: IconName;
   customIcon?: React.ReactNode;
-  tint: string;
   ink: string;
   badge?: { text: string; tone?: BadgeTone } | null;
   onPress: () => void;
@@ -152,8 +148,8 @@ function ToolTile({
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <View style={{ width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: tint }}>
-          {customIcon ?? (icon ? <Ionicons name={icon} size={20} color={ink} /> : null)}
+        <View style={{ width: 28, height: 28, alignItems: "center", justifyContent: "center" }}>
+          {customIcon ?? (icon ? <Ionicons name={icon} size={23} color={ink} /> : null)}
         </View>
         {badge ? <Badge text={badge.text} tone={badge.tone} /> : <Ionicons name="chevron-forward" size={16} color={colors.muted} />}
       </View>
@@ -391,7 +387,7 @@ export default function MoreScreen() {
   );
 
   const accentFor = (section?: SectionKey) =>
-    section ? colors.sections[section] : { tint: `${colors.primary}12`, ink: colors.primary };
+    section ? colors.sections[section].ink : colors.primary;
 
   const confirmLogout = async () => {
     const ok = await dialog.confirm({
@@ -441,23 +437,19 @@ export default function MoreScreen() {
           <Empty icon="search-outline" title="Sin resultados" text={`No encontramos nada con «${query.trim()}».`} />
         ) : (
           <Card style={{ paddingVertical: 4, gap: 0 }}>
-            {filtered.map((it, idx) => {
-              const a = accentFor(it.section);
-              return (
-                <SettingRow
-                  key={it.id}
-                  icon={it.icon}
-                  title={it.title}
-                  text={it.text}
-                  tint={a.tint}
-                  ink={a.ink}
-                  badge={it.badge}
-                  right={it.right}
-                  last={idx === filtered.length - 1}
-                  onPress={it.onPress}
-                />
-              );
-            })}
+            {filtered.map((it, idx) => (
+              <SettingRow
+                key={it.id}
+                icon={it.icon}
+                title={it.title}
+                text={it.text}
+                ink={accentFor(it.section)}
+                badge={it.badge}
+                right={it.right}
+                last={idx === filtered.length - 1}
+                onPress={it.onPress}
+              />
+            ))}
           </Card>
         )
       ) : (
@@ -495,8 +487,7 @@ export default function MoreScreen() {
               <ToolTile
                 title="Análisis con IA"
                 text="Pregunta sobre tus gastos"
-                customIcon={<GeminiMark size={20} id="more-ai" />}
-                tint={colors.sections.plan.tint}
+                customIcon={<GeminiMark size={23} id="more-ai" />}
                 ink={colors.sections.plan.ink}
                 onPress={() => go("/analysis")}
               />
@@ -504,7 +495,6 @@ export default function MoreScreen() {
                 title="Captura"
                 text={pendingCount > 0 ? `${pendingCount} por revisar` : "Comprobantes y correos"}
                 icon="scan-outline"
-                tint={colors.sections.people.tint}
                 ink={colors.sections.people.ink}
                 badge={pendingCount > 0 ? { text: String(pendingCount), tone: "danger" } : null}
                 onPress={() => go("/capture")}
@@ -515,7 +505,6 @@ export default function MoreScreen() {
                 title="Resumen mensual"
                 text="Flujo, resultado y PDF"
                 icon="bar-chart-outline"
-                tint={colors.sections.money.tint}
                 ink={colors.sections.money.ink}
                 onPress={() => go("/reports")}
               />
@@ -523,7 +512,6 @@ export default function MoreScreen() {
                 title="Exportar"
                 text="CSV, Excel y PDF"
                 icon="download-outline"
-                tint={colors.sections.money.tint}
                 ink={colors.sections.money.ink}
                 onPress={() => go("/export")}
               />
@@ -533,7 +521,6 @@ export default function MoreScreen() {
                 icon="chatbubbles-outline"
                 title="Conversaciones guardadas"
                 text="Tu historial con la IA"
-                tint={colors.sections.plan.tint}
                 ink={colors.sections.plan.ink}
                 last
                 onPress={() => go("/analysis/chats")}
@@ -547,7 +534,7 @@ export default function MoreScreen() {
               <SectionLabel>{g.title}</SectionLabel>
               <Card style={{ paddingVertical: 4, gap: 0 }}>
                 {g.items.map((it, idx) => {
-                  const a = accentFor(it.section);
+                  const ink = accentFor(it.section);
                   const isAppearance = it.id === "appearance";
                   return (
                     <React.Fragment key={it.id}>
@@ -555,8 +542,7 @@ export default function MoreScreen() {
                         icon={it.icon}
                         title={it.title}
                         text={it.text}
-                        tint={a.tint}
-                        ink={a.ink}
+                        ink={ink}
                         badge={it.badge}
                         right={it.right}
                         last={!isAppearance && idx === g.items.length - 1}
@@ -614,7 +600,6 @@ export default function MoreScreen() {
             <SettingRow
               icon="log-out-outline"
               title="Cerrar sesión"
-              tint={`${colors.expense}1F`}
               ink={colors.expenseStrong}
               danger
               last
