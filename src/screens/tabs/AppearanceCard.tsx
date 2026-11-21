@@ -14,15 +14,15 @@ export default function AppearanceCard({ bare }: { bare?: boolean }) {
   return (
     <View style={bare ? { gap: 14, paddingBottom: 8 } : { backgroundColor: colors.card, borderRadius: 24, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 14 }}>
       <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>Paleta de color</Text>
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {(Object.keys(PALETTE_INFO) as PaletteId[]).map((id) => {
           const sample = Palettes[id][theme === "dark" ? "dark" : "light"];
           const on = palette === id;
           return (
             <TouchableOpacity key={id} onPress={() => setPalette(id)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={PALETTE_INFO[id].label}
-              activeOpacity={0.8} style={{ flex: 1, borderRadius: 18, padding: 10, gap: 8, backgroundColor: colors.background, borderWidth: on ? 2 : 1, borderColor: on ? colors.primary : colors.borderStrong }}>
-              <View style={{ flexDirection: "row", height: 34, borderRadius: 10, overflow: "hidden" }}>
-                {[sample.background, sample.card, sample.primarySurface, sample.fab, sample.sections.money.ink].map((c, i) => <View key={i} style={{ flex: 1, backgroundColor: c }} />)}
+              activeOpacity={0.8} style={{ width: "48%", flexGrow: 1, minWidth: 136, borderRadius: 18, padding: 10, gap: 8, backgroundColor: colors.background, borderWidth: on ? 2 : 1, borderColor: on ? colors.primary : colors.borderStrong }}>
+              <View style={{ flexDirection: "row", height: 34, borderRadius: 10, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
+                {[sample.background, sample.card, sample.primarySurface, sample.fab, sample.accent].map((c, i) => <View key={i} style={{ flex: 1, backgroundColor: c }} />)}
               </View>
               <View>
                 <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, fontFamily: "AsapBold" }}>{PALETTE_INFO[id].label}</Text>

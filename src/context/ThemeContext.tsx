@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { PaletteId } from "../constants/Colors";
+import { Palettes, type PaletteId } from "../constants/Colors";
 
 type ThemePreference = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
@@ -47,7 +47,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setThemePreferenceState(pref);
         setResolvedTheme(resolveTheme(pref));
       }
-      if (pal === "slate" || pal === "violet") setPaletteState(pal);
+      if (pal && pal in Palettes) setPaletteState(pal as PaletteId);
       setLoaded(true);
     });
   }, []);
