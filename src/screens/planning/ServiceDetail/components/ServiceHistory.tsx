@@ -18,13 +18,14 @@ interface ServiceHistoryProps {
   onEditPayment: () => void;
   onPressCharge: (c: Charge) => void;
   onRemindParticipant: (contactId: string) => void;
+  onAddParticipant?: () => void;
   onAdvance: () => void;
   advancing: boolean;
   error?: string | null;
 }
 
 /** Pestaña de pagos: elegir ciclo, ver su resumen y, si es compartido, el estado de cada participante. */
-export const ServiceHistory: React.FC<ServiceHistoryProps> = ({ service, cycle, loading, cycles, selectedIndex, onChangeCycle, onPayService, onEditPayment, onPressCharge, onRemindParticipant, onAdvance, advancing, error }) => {
+export const ServiceHistory: React.FC<ServiceHistoryProps> = ({ service, cycle, loading, cycles, selectedIndex, onChangeCycle, onPayService, onEditPayment, onPressCharge, onRemindParticipant, onAddParticipant, onAdvance, advancing, error }) => {
   const { colors } = useAppTheme();
   const shared = service.mode === "shared";
   const active = service.status === "active";
@@ -53,7 +54,14 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({ service, cycle, 
             <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>Quién ha pagado</Text>
             {advanceButton}
           </View>
-          <SharedParticipantsList charges={cycle.charges} onPressCharge={onPressCharge} onRemindParticipant={onRemindParticipant} />
+          <SharedParticipantsList
+            charges={cycle.charges}
+            hasParticipants={service.occupiedSeats > 1}
+            canAddParticipant={active && service.occupiedSeats < service.capacity}
+            onAddParticipant={onAddParticipant}
+            onPressCharge={onPressCharge}
+            onRemindParticipant={onRemindParticipant}
+          />
         </>
       )}
     </View>

@@ -78,13 +78,13 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
         {...pan.panHandlers}
       >
         {s.activeTab === "historial" ? (
-          <ServicePayments cycles={s.history.data} loading={s.history.loading} shared={shared} />
+          <ServicePayments cycles={s.history.data} loading={s.history.loading} shared={shared} canPay={active} onPayCycle={s.goPayCycle} />
         ) : shared && s.activeTab === "participantes" ? (
           <ServiceParticipants seats={s.seats.data ?? []} shared={shared} capacity={service.capacity} canAdd={active} onAddSubscriber={s.goJoin} onOpenSeat={(sid) => s.router.push(`/seat/${sid}` as never)} />
         ) : (
           <ServiceHistory
             service={service} cycle={s.detail.data} loading={s.detail.loading} cycles={s.ordered} selectedIndex={s.selectedIndex}
-            onChangeCycle={s.selectCycleAt} onPayService={s.goPay} onEditPayment={correctPayment} onPressCharge={s.openCharge} onRemindParticipant={s.remind}
+            onChangeCycle={s.selectCycleAt} onPayService={s.goPay} onEditPayment={correctPayment} onPressCharge={s.openCharge} onRemindParticipant={s.remind} onAddParticipant={s.goJoin}
             onAdvance={() => void s.advance.submit()} advancing={s.advance.busy}
             error={s.remindError ?? s.advance.error ?? s.reversePayment.error ?? s.detail.error}
           />

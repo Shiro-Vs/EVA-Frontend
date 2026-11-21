@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -35,6 +35,7 @@ export default function PlanningScreen() {
   const router = useRouter();
   const [view, setView] = useState<View_>("cards");
   const [filter, setFilter] = useState<Filter>("all");
+  const [query, setQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const subs = useAsync(() => api.subscriptions(), []);
   const archivedSubs = useAsync(() => (filter === "archived" ? api.subscriptions("archived") : Promise.resolve<Subscription[]>([])), [filter === "archived"]);
@@ -62,9 +63,12 @@ export default function PlanningScreen() {
   const allActive = subs.data ?? [];
   const activeOnly = useMemo(() => allActive.filter((s) => s.status === "active"), [allActive]);
   const source = filter === "archived" ? (archivedSubs.data ?? []) : allActive;
+  const q = query.trim().toLowerCase();
   const list = useMemo(() => source
     .filter((s) => filter === "all" || filter === "archived" || s.mode === filter)
-    .sort((a, b) => (a.status === "suspended" ? 1 : 0) - (b.status === "suspended" ? 1 : 0) || (renewalOf(a) ?? "9999").localeCompare(renewalOf(b) ?? "9999") || a.name.localeCompare(b.name)), [source, filter]);
+    .filter((s) => !q || s.name.toLowerCase().includes(q) || (s.provider ?? "").toLowerCase().includes(q))
+    .sort((a, b) => (a.status === "suspended" ? 1 : 0) - (b.status === "suspended" ? 1 : 0) || (renewalOf(a) ?? "9999").localeCompare(renewalOf(b) ?? "9999") || a.name.localeCompare(b.name)), [source, filter, q]);
+  const showSearch = allActive.length >= 4 || (filter === "archived" && source.length >= 4) || query.length > 0;
   const next = useMemo(() => activeOnly.filter((s) => renewalOf(s)).sort((a, b) => renewalOf(a)!.localeCompare(renewalOf(b)!))[0], [activeOnly]);
   const nextDays = next ? daysUntil(renewalOf(next)!, today) : null;
   const sharedCount = activeOnly.filter((s) => s.mode === "shared").length;
@@ -118,12 +122,36 @@ export default function PlanningScreen() {
         </View>
       </View>
 
+      {showSearch && (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 42, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+          <Ionicons name="search-outline" size={18} color={colors.muted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Buscar servicio o proveedor…"
+            placeholderTextColor={colors.muted}
+            returnKeyType="search"
+            style={{ flex: 1, color: colors.text, fontFamily: "Asap", fontSize: 14, paddingVertical: 8 }}
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery("")} accessibilityRole="button" accessibilityLabel="Limpiar búsqueda" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={18} color={colors.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
       {filter === "archived" && archivedSubs.loading && !archivedSubs.data?.length ? (
         <Loading />
       ) : filter === "archived" && archivedSubs.error ? (
         <ErrorBox message={archivedSubs.error} onRetry={archivedSubs.reload} />
       ) : list.length === 0 ? (
-        <Empty icon="calendar-outline" title={filter === "archived" ? "Sin servicios archivados" : allActive.length === 0 ? "Crea tu primer servicio" : "Nada con este filtro"} text={filter === "archived" ? "Los servicios que archives aparecerán aquí por si quieres restaurarlos." : allActive.length === 0 ? "Netflix, Spotify… Registra el plan, su calendario y quién participa." : "Prueba con otro filtro."} action={filter !== "archived" && allActive.length === 0 ? <Button title="Nuevo servicio" icon="add" onPress={() => router.push("/service/new" as never)} /> : undefined} />
+        <Empty
+          icon={q ? "search-outline" : "calendar-outline"}
+          title={q ? "Sin resultados" : filter === "archived" ? "Sin servicios archivados" : allActive.length === 0 ? "Crea tu primer servicio" : "Nada con este filtro"}
+          text={q ? `No encontramos ningún servicio que coincida con «${query.trim()}».` : filter === "archived" ? "Los servicios que archives aparecerán aquí por si quieres restaurarlos." : allActive.length === 0 ? "Netflix, Spotify… Registra el plan, su calendario y quién participa." : "Prueba con otro filtro."}
+          action={!q && filter !== "archived" && allActive.length === 0 ? <Button title="Nuevo servicio" icon="add" onPress={() => router.push("/service/new" as never)} /> : undefined}
+        />
       ) : view === "cards" ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
           {list.map((sub) => <ServiceCard key={sub.id} sub={sub} today={today} isDark={isDark} onPress={() => router.push(`/service/${sub.id}` as never)} />)}
@@ -178,14 +206,15 @@ function ServiceCard({ sub, today, isDark, onPress }: { sub: Subscription; today
   const { colors } = useAppTheme();
   const tone = getAdjustedColor(sub.color || colors.primary, isDark);
   const r = useRenewal(sub, today);
+  const dim = sub.status === "archived" || sub.status === "suspended";
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`${sub.name}, ${formatSoles(sub.terms?.announcedPrice)}, ${r.text}`}
-      style={{ width: "47.5%", borderRadius: 20, borderWidth: 1, borderColor: `${tone}40`, backgroundColor: `${tone}14`, padding: 12, gap: 8 }}>
+      style={{ width: "47.5%", borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, padding: 14, gap: 10, opacity: dim ? 0.78 : 1 }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <View style={{ width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: `${tone}26` }}><ServiceIcon name={sub.icon || "receipt"} size={20} color={tone} /></View>
+        <ServiceIcon name={sub.icon || "receipt"} size={24} color={tone} />
         {r.soon && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color }} />}
       </View>
-      <View>
+      <View style={{ gap: 2 }}>
         <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{sub.name}</Text>
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 2 }}>
           <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: colors.text, fontSize: 18, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], flexShrink: 1 }}>{formatSoles(sub.terms?.announcedPrice)}</Text>
@@ -204,9 +233,12 @@ function ServiceRow({ sub, today, isDark, first, onPress }: { sub: Subscription;
   const { colors } = useAppTheme();
   const tone = getAdjustedColor(sub.color || colors.primary, isDark);
   const r = useRenewal(sub, today);
+  const dim = sub.status === "archived" || sub.status === "suspended";
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderTopWidth: first ? 0 : 1, borderTopColor: colors.border }}>
-      <View style={{ width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: `${tone}22` }}><ServiceIcon name={sub.icon || "receipt"} size={21} color={tone} /></View>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: first ? 0 : 1, borderTopColor: colors.border, opacity: dim ? 0.78 : 1 }}>
+      <View style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
+        <ServiceIcon name={sub.icon || "receipt"} size={23} color={tone} />
+      </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{sub.name}</Text>
         <Text numberOfLines={1} style={{ color: r.color, fontSize: 12, fontFamily: r.soon ? "AsapBold" : "Asap" }}>{r.text}</Text>

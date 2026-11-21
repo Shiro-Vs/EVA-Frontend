@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 import { api } from "../../api/client";
-import type { Charge } from "../../api/types";
+import type { Charge, CycleDetail } from "../../api/types";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { todayLocalIso } from "../../utils/dates";
@@ -75,10 +75,11 @@ export function useServiceDetail(serviceId: string) {
 
   const preferredAccount = (accounts.data ?? []).find((a) => a.id === sub.data?.preferredAccountId) ?? null;
 
-  const goPay = () => {
-    const cycle = detail.data;
-    if (!cycle) return;
+  const goPayCycle = (cycle: CycleDetail) => {
     router.push({ pathname: "/service/pay", params: { cycleId: cycle.id, serviceId, announced: cycle.announcedPrice } });
+  };
+  const goPay = () => {
+    if (detail.data) goPayCycle(detail.data);
   };
   const goJoin = () => router.push({ pathname: "/service/join", params: { id: serviceId } });
   const openCharge = (c: Charge) => {
@@ -102,6 +103,6 @@ export function useServiceDetail(serviceId: string) {
     isEditVisible, setEditVisible,
     refreshing, onRefresh,
     advance, reversePayment, preferredAccount, remindError,
-    goPay, goJoin, openCharge, remind, reloadAll, router,
+    goPay, goPayCycle, goJoin, openCharge, remind, reloadAll, router,
   };
 }

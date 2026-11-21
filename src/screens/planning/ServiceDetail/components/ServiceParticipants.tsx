@@ -58,13 +58,14 @@ export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats,
         {Array.from({ length: Math.max(0, capacity - seats.length) }).map((_, k) => (
           <TouchableOpacity key={`free-${k}`} disabled={addDisabled} onPress={onAddSubscriber} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Plaza libre, incorporar participante"
             style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, borderTopWidth: seats.length + k === 0 ? 0 : 1, borderTopColor: colors.border, opacity: addDisabled ? 0.5 : 1 }}>
-            <View style={{ width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.muted, alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="add" size={18} color={colors.muted} />
+            <View style={{ width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderStyle: "dashed", borderColor: addDisabled ? colors.muted : colors.primary, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="add" size={18} color={addDisabled ? colors.muted : colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.muted, fontSize: 16, fontFamily: "AsapBold", letterSpacing: 2 }}>- - - - - - - -</Text>
-              <Text style={{ color: colors.muted, fontSize: 12, fontFamily: "Asap" }}>Plaza libre</Text>
+              <Text style={{ color: addDisabled ? colors.muted : colors.text, fontSize: 14, fontFamily: "AsapBold" }}>Plaza libre</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{canAdd ? "Toca para incorporar participante" : "Reactiva el servicio para incorporar"}</Text>
             </View>
+            {!addDisabled && <Ionicons name="chevron-forward" size={16} color={colors.muted} />}
           </TouchableOpacity>
         ))}
       </View>

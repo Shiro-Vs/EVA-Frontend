@@ -2,18 +2,22 @@ import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { Charge } from "../../../../api/types";
+import { Button } from "../../../../components/v1/ui";
 import { useAppTheme } from "../../../../hooks/useAppTheme";
 import { humanDate } from "../../../../utils/dates";
 import { cmpMoney, formatSoles } from "../../../../utils/money";
 
 interface SharedParticipantsListProps {
   charges: Charge[];
+  hasParticipants?: boolean;
+  canAddParticipant?: boolean;
+  onAddParticipant?: () => void;
   onPressCharge: (c: Charge) => void;
   onRemindParticipant: (contactId: string) => void;
 }
 
 /** Lista plana de participantes: la barra de la izquierda indica si pagó, lo que debe y las acciones de cobro y recordatorio. */
-export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ charges, onPressCharge, onRemindParticipant }) => {
+export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ charges, hasParticipants = true, canAddParticipant = false, onAddParticipant, onPressCharge, onRemindParticipant }) => {
   const { colors } = useAppTheme();
 
   const statusOf = (c: Charge) => {
@@ -25,6 +29,20 @@ export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ 
   };
 
   if (charges.length === 0) {
+    if (!hasParticipants && canAddParticipant && onAddParticipant) {
+      return (
+        <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 18, alignItems: "center", gap: 8 }}>
+          <Ionicons name="people-outline" size={28} color={colors.primary} />
+          <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold", textAlign: "center" }}>Aún no agregaste participantes</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", textAlign: "center" }}>
+            Incorpora a las personas que comparten este plan para dividir el costo y llevar sus cobros.
+          </Text>
+          <View style={{ marginTop: 4 }}>
+            <Button title="Incorporar primer participante" icon="person-add-outline" size="compact" onPress={onAddParticipant} />
+          </View>
+        </View>
+      );
+    }
     return <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", textAlign: "center", paddingVertical: 24 }}>Este ciclo todavía no tiene cargos para los participantes.</Text>;
   }
 
