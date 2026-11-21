@@ -62,7 +62,9 @@ export default function JoinSeatScreen() {
 
   const seq = useRef(0);
   useEffect(() => {
-    if (!body) { setPreview(null); setPreviewError(null); return; }
+    setPreview(null);
+    setPreviewError(null);
+    if (!body) return;
     const mine = ++seq.current;
     const t = setTimeout(async () => {
       try {
@@ -95,8 +97,7 @@ export default function JoinSeatScreen() {
 
   const calc = preview?.calculation;
   const blocked = !preview || preview.warnings.includes("CAPACITY_EXCEEDED");
-  const seated = new Set((seats.data ?? []).map((x) => x.contact?.id));
-  const people = (contacts.data ?? []).filter((c) => c.status === "active" && (!seated.has(c.id) || c.id === contactId)).map((c) => ({ id: c.id, label: c.name }));
+  const people = (contacts.data ?? []).filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }));
   const edit = (set: (v: string) => void) => (v: string) => { set(v); join.resetKey(); };
 
   return (

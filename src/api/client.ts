@@ -138,7 +138,7 @@ export const api = {
   subscription: (id: string) => get<T.Subscription>(`/subscriptions/${id}`),
   previewSubscription: (body: SubscriptionBody & { occupiedSeats?: number }) => post<T.SubscriptionPreview>("/subscriptions/preview", body),
   createSubscription: (body: SubscriptionBody & { previewToken: string; confirmCalendarMismatch?: boolean }, key: string) => post<T.Subscription>("/subscriptions", body, key),
-  patchSubscription: (id: string, body: { name?: string; provider?: string | null; color?: string | null; icon?: string | null; preferredAccountId?: string | null }, version: number) => patch<T.Subscription>(`/subscriptions/${id}`, body, version),
+  patchSubscription: (id: string, body: { name?: string; provider?: string | null; color?: string | null; icon?: string | null; preferredAccountId?: string | null; categoryId?: string | null }, version: number) => patch<T.Subscription>(`/subscriptions/${id}`, body, version),
   archiveSubscription: (id: string) => post<T.Subscription>(`/subscriptions/${id}/archive`),
   restoreSubscription: (id: string) => post<T.Subscription>(`/subscriptions/${id}/restore`),
   deleteSubscription: (id: string) => post<{ id: string; deleted: true }>(`/subscriptions/${id}/delete`),
@@ -304,7 +304,7 @@ export interface ReceiptCorrectionBody { amount?: string; accountId?: string; re
 
 export interface SubscriptionBody {
   name: string; provider?: string | null; mode: "personal" | "shared"; capacity: number; announcedPrice: string; interval: T.Interval;
-  startDate: string; nextPaymentDate: string; preferredAccountId?: string | null; color?: string | null; icon?: string | null;
+  startDate: string; nextPaymentDate: string; preferredAccountId?: string | null; categoryId?: string | null; color?: string | null; icon?: string | null;
 }
 export interface SeatBody { contactId: string; label: string; quota: string; joinDate?: string; freeDaysThreshold?: number | null }
 export interface ReceiptBody {
@@ -463,6 +463,28 @@ export const ERROR_TEXT: Record<string, string> = {
   CONFIRMATION_MISMATCH: "Escribe exactamente la frase de confirmación.",
   ACCOUNT_DELETED: "Esta cuenta fue eliminada.",
   IDEMPOTENCY_KEY_REUSED: "Esta acción ya se envió con otros datos.",
+  IDEMPOTENCY_KEY_REQUIRED: "Falta la clave de idempotencia de la solicitud.",
+  PRECONDITION_REQUIRED: "Falta la versión del registro. Actualiza e inténtalo de nuevo.",
+  CONCURRENT_UPDATE: "Otro cambio ocurrió al mismo tiempo. Inténtalo de nuevo.",
+  ALREADY_CANCELLED: "Ya está cancelado.",
+  ALREADY_RELEASED: "Esa aplicación o reserva ya fue liberada.",
+  ALREADY_REMOVED: "El vínculo ya fue quitado.",
+  ALREADY_VOID: "Ya está anulado.",
+  CURRENCY_MISMATCH: "Las cuentas deben estar en la misma moneda.",
+  LOAN_NOT_LEDGER: "Este préstamo viene de una deuda de servicios y se cobra con un cobro normal.",
+  NOT_CORRECTABLE: "Este tipo de movimiento no admite corrección directa; reviértelo si hubo un error.",
+  NOTHING_TO_PAY: "No hay saldo pendiente por pagar.",
+  OBLIGATION_NOT_PAYABLE: "Ese cargo ya no está pendiente de pago.",
+  OPERATION_NOT_LINKABLE: "Ese movimiento no se puede vincular aquí.",
+  PROPOSAL_NOT_RESOLVED: "Solo se puede deshacer una propuesta ya aceptada o vinculada.",
+  DOCUMENT_NOT_DISCARDABLE: "Este documento ya no se puede descartar.",
+  DOCUMENT_NOT_PROCESSABLE: "Este documento no se puede procesar.",
+  INBOX_ADDRESS_UNAVAILABLE: "El correo de captura no está disponible en este servidor.",
+  NEW_DATE_BEFORE_CYCLE_START: "La nueva fecha no puede ser anterior al inicio del ciclo.",
+  NO_QUOTA_AT_DATE: "La plaza no tiene una cuota vigente en esa fecha.",
+  QUOTA_OWNER_SEAT: "Tu propia plaza no tiene cuota que cambiar.",
+  RESERVATION_NOT_ACTIVE: "La reserva de crédito ya no está activa.",
+  BACKUP_SCHEMA_CYCLE: "No se pudo preparar el respaldo por un error interno de esquema.",
 };
 
 export function errorMessage(e: unknown): string {

@@ -52,7 +52,13 @@ export function useServiceDetail(serviceId: string) {
 
   const selectCycleAt = (index: number) => { const c = ordered[index]; if (c) setSelectedId(c.id); };
 
-  const advance = useSubmit(async (key: string) => { await api.generateAhead(serviceId, 1, key); reloadAll(); });
+  const futureCycles = useMemo(() => ordered.filter((c) => c.startDate > todayLocalIso()).length, [ordered]);
+  const advance = useSubmit(async (key: string) => {
+    const ahead = Math.min(12, Math.max(1, futureCycles + 1));
+    await api.generateAhead(serviceId, ahead, key);
+    advance.resetKey();
+    reloadAll();
+  });
 
   const reversePayment = useSubmit(async (key: string) => {
     const pid = detail.data?.supplierPayment?.id;

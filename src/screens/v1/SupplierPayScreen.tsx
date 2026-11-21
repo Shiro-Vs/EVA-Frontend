@@ -15,6 +15,7 @@ export default function SupplierPayScreen() {
   const { colors } = useAppTheme();
   const { cycleId, serviceId, announced } = useLocalSearchParams<{ cycleId: string; serviceId: string; announced: string }>();
   const accounts = useAsync(() => api.accounts(), []);
+  const service = useAsync(async () => (serviceId ? api.subscription(serviceId) : null), [serviceId]);
   const [accountId, setAccountId] = useState<string | null>(null);
   const [amount, setAmount] = useState(announced ?? "");
   const [date, setDate] = useState(todayLocalIso());
@@ -30,10 +31,13 @@ export default function SupplierPayScreen() {
   const save = async () => { if (await pay.submit()) done(`/service/${serviceId}`); };
 
   const list = (accounts.data ?? []).filter((a) => a.status === "active");
-  // Cuenta por defecto: la predeterminada o la primera.
+  // Cuenta por defecto: la preferida del servicio si está activa, luego la predeterminada o la primera.
   useEffect(() => {
-    if (!accountId && list.length) setAccountId((list.find((a) => a.isDefault) ?? list[0]!).id);
-  }, [accountId, list]);
+    if (accountId || !list.length || (serviceId && service.loading)) return;
+    const pref = service.data?.preferredAccountId;
+    const chosen = (pref ? list.find((a) => a.id === pref) : undefined) ?? list.find((a) => a.isDefault) ?? list[0]!;
+    setAccountId(chosen.id);
+  }, [accountId, list, serviceId, service.loading, service.data?.preferredAccountId]);
 
   return (
     <Screen title="Pago al proveedor" footer={<Button title="Registrar pago" onPress={save} busy={pay.busy} />}>

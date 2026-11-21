@@ -51,7 +51,9 @@ export default function ReceiptScreen() {
 
   const seq = useRef(0);
   useEffect(() => {
-    if (!body) { setPreview(null); setPreviewError(null); return; }
+    setPreview(null);
+    setPreviewError(null);
+    if (!body) return;
     const mine = ++seq.current;
     const t = setTimeout(async () => {
       try {
@@ -130,12 +132,16 @@ export default function ReceiptScreen() {
             <KV label="Sobrante" value={formatSoles(preview.summary.remainder)} strong />
             <KV label="Saldo de la cuenta después" value={formatSoles(preview.account.balanceAfter)} />
             {cmpMoney(preview.summary.remainder, "0.00") > 0 && (
-              <SwitchRow
-                label={preview.summary.reservedTo || !noReserve ? `Reservar el sobrante para el próximo cargo${serviceName(preview.summary.reservedTo) ? ` de ${serviceName(preview.summary.reservedTo)}` : ""}` : "Dejar el sobrante como crédito libre"}
-                value={!noReserve}
-                onValueChange={(v) => { setNoReserve(!v); save.resetKey(); }}
-                accessibilityLabel="Reservar el sobrante"
-              />
+              preview.summary.reservedTo || noReserve ? (
+                <SwitchRow
+                  label={preview.summary.reservedTo ? `Reservar el sobrante para el próximo cargo${serviceName(preview.summary.reservedTo) ? ` de ${serviceName(preview.summary.reservedTo)}` : ""}` : "Dejar el sobrante como crédito libre"}
+                  value={!!preview.summary.reservedTo && !noReserve}
+                  onValueChange={(v) => { setNoReserve(!v); save.resetKey(); }}
+                  accessibilityLabel="Reservar el sobrante"
+                />
+              ) : (
+                <Txt size={12} muted>El sobrante quedará como crédito libre (no se reserva automáticamente a un solo servicio).</Txt>
+              )
             )}
           </Card>
           <Notice tone="info">Se registra un solo ingreso de {formatSoles(preview.summary.received)} en la cuenta. El reparto no crea ingresos adicionales.</Notice>

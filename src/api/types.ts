@@ -26,7 +26,7 @@ export interface Interval { unit: "day" | "week" | "month" | "year"; count: numb
 export interface CycleRef { id: string; seq: number; startDate: IsoDate; endDate: IsoDate; announcedPrice: Money; baseDays: number }
 export interface Subscription {
   id: string; name: string; provider: string | null; mode: "personal" | "shared"; capacity: number; preferredAccountId: string | null;
-  color: string | null; icon: string | null; status: string; currency: string; version: number; createdAt: string; occupiedSeats: number;
+  categoryId?: string | null; color: string | null; icon: string | null; status: string; currency: string; version: number; createdAt: string; occupiedSeats: number;
   terms: { announcedPrice: Money; interval: Interval; anchor: IsoDate; validFrom: IsoDate } | null;
   currentCycle: CycleRef | null; nextCycle: CycleRef | null; baseDays: number | null;
 }

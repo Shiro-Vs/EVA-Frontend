@@ -8,7 +8,7 @@ import { ServiceStylePicker } from "../../components/v1/ServiceStylePicker";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { getServiceDefaults } from "../../utils/serviceIcons";
 import { useSubmit } from "../../hooks/useAsync";
-import { Choice, OptionalAccountPicker } from "../../components/v1/forms";
+import { CategoryPicker, Choice, OptionalAccountPicker } from "../../components/v1/forms";
 import { SelectField } from "../../components/v1/Select";
 import { DateInput } from "../../components/v1/DatePicker";
 import { addMonthsIso, humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
@@ -49,6 +49,7 @@ export default function NewServiceScreen() {
   const [customUnit, setCustomUnit] = useState<Unit>("month");
   const [count, setCount] = useState("1");
   const [preferred, setPreferred] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [start, setStart] = useState(todayLocalIso());
   const [next, setNext] = useState(suggestNext(todayLocalIso(), "month", 1));
   const [nextTouched, setNextTouched] = useState(false);
@@ -76,15 +77,17 @@ export default function NewServiceScreen() {
   }, [start, unit, cnt, nextTouched]);
 
   const body = useMemo<SubscriptionBody | null>(() => {
-    if (!name.trim() || !priceNorm || !isIsoDate(start) || !isIsoDate(next)) return null;
-    return { name: name.trim(), mode, capacity: mode === "personal" ? 1 : cap, announcedPrice: priceNorm, interval: { unit, count: cnt }, startDate: start, nextPaymentDate: next, ...(preferred ? { preferredAccountId: preferred } : {}) };
-  }, [name, mode, cap, priceNorm, unit, cnt, start, next, preferred]);
+    if (!name.trim() || !priceNorm || priceNorm === "0.00" || !isIsoDate(start) || !isIsoDate(next)) return null;
+    return { name: name.trim(), mode, capacity: mode === "personal" ? 1 : cap, announcedPrice: priceNorm, interval: { unit, count: cnt }, startDate: start, nextPaymentDate: next, ...(preferred ? { preferredAccountId: preferred } : {}), ...(categoryId ? { categoryId } : {}) };
+  }, [name, mode, cap, priceNorm, unit, cnt, start, next, preferred, categoryId]);
 
   // Vista previa en vivo (con espera breve para no consultar en cada tecla).
   const seq = useRef(0);
   useEffect(() => {
     setConfirmMismatch(false);
-    if (!body) { setPreview(null); setPreviewError(null); return; }
+    setPreview(null);
+    setPreviewError(null);
+    if (!body) return;
     const mine = ++seq.current;
     const t = setTimeout(async () => {
       try {
@@ -103,27 +106,29 @@ export default function NewServiceScreen() {
     return api.createSubscription({ ...body, icon: style.icon, color: style.color, previewToken: preview.previewToken, confirmCalendarMismatch: preview.calendar.ok ? undefined : true }, key);
   });
   const save = async () => { const r = await create.submit(); if (r) router.replace(`/service/${r.id}`); };
+  const edit = <T,>(set: (v: T) => void) => (v: T) => { set(v); create.resetKey(); };
 
   return (
     <Screen title="Nuevo servicio" footer={<Button title="Crear servicio" onPress={save} busy={create.busy} disabled={!preview} />}>
       <Card>
-        <Field label="Nombre" value={name} onChangeText={(t) => { setName(t); create.resetKey(); }} placeholder="Netflix" autoCapitalize="words" />
-        <ServiceStylePicker icon={style.icon} color={style.color} onChange={(v) => { setStyle(v); setStyleTouched(true); }} />
-        <Choice label="Tipo" options={[{ id: "shared", label: "Compartido" }, { id: "personal", label: "Personal" }]} value={mode} onChange={setMode} />
+        <Field label="Nombre" value={name} onChangeText={edit(setName)} placeholder="Netflix" autoCapitalize="words" />
+        <ServiceStylePicker icon={style.icon} color={style.color} onChange={(v) => { setStyle(v); setStyleTouched(true); create.resetKey(); }} />
+        <Choice label="Tipo" options={[{ id: "shared", label: "Compartido" }, { id: "personal", label: "Personal" }]} value={mode} onChange={edit(setMode)} />
         <View style={{ flexDirection: "row", gap: 10 }}>
-          {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas" value={capacity} onChangeText={setCapacity} keyboardType="number-pad" /></View>}
-          <View style={{ flex: 1 }}><Field label="Precio (S/)" value={price} onChangeText={setPrice} placeholder="45.00" keyboardType="decimal-pad" error={price && !priceNorm ? "Importe inválido" : undefined} /></View>
+          {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas" value={capacity} onChangeText={edit(setCapacity)} keyboardType="number-pad" /></View>}
+          <View style={{ flex: 1 }}><Field label="Precio (S/)" value={price} onChangeText={edit(setPrice)} placeholder="45.00" keyboardType="decimal-pad" error={price && !priceNorm ? "Importe inválido" : undefined} /></View>
         </View>
-        <SelectField label="Cada cuánto cobra el proveedor" value={freq} onChange={setFreq} options={FREQUENCIES.map((f) => ({ id: f.id, label: f.label }))} />
+        <SelectField label="Cada cuánto cobra el proveedor" value={freq} onChange={edit(setFreq)} options={FREQUENCIES.map((f) => ({ id: f.id, label: f.label }))} />
         {freq === "custom" && (
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <View style={{ flex: 1 }}><Field label="Cada" value={count} onChangeText={setCount} keyboardType="number-pad" /></View>
-            <View style={{ flex: 1.4 }}><SelectField label="Unidad" value={customUnit} onChange={setCustomUnit} options={UNITS} /></View>
+            <View style={{ flex: 1 }}><Field label="Cada" value={count} onChangeText={edit(setCount)} keyboardType="number-pad" /></View>
+            <View style={{ flex: 1.4 }}><SelectField label="Unidad" value={customUnit} onChange={edit(setCustomUnit)} options={UNITS} /></View>
           </View>
         )}
-        <DateInput label="Inicio" value={start} onChange={setStart} />
-        <DateInput label="Siguiente pago" value={next} onChange={(t) => { setNext(t); setNextTouched(true); }} />
-        <OptionalAccountPicker label="Cuenta de pago (opcional)" value={preferred} onChange={setPreferred} />
+        <DateInput label="Inicio" value={start} onChange={edit(setStart)} />
+        <DateInput label="Siguiente pago" value={next} onChange={(t) => { setNext(t); setNextTouched(true); create.resetKey(); }} />
+        <OptionalAccountPicker label="Cuenta de pago (opcional)" value={preferred} onChange={edit(setPreferred)} />
+        <CategoryPicker label="Categoría (opcional, para presupuestos)" value={categoryId} onChange={edit(setCategoryId)} />
         <Txt size={12} muted>El siguiente pago es el que informa tu proveedor; EVA lo compara con lo calculado.</Txt>
       </Card>
 
