@@ -237,6 +237,17 @@ function ConversationView({ chatId }: { chatId?: string }) {
     return () => cancelAnimationFrame(handle);
   }, [local.length, send.busy]);
 
+  const saveCurrent = useSubmit(async () => {
+    if (!id || saveHistory) return;
+    const msgs = local.slice(-100).map((m) => ({ role: m.role, content: m.content.slice(0, 3900) }));
+    try {
+      await api.saveChat(id, { messages: msgs });
+      setSaveHistory(true);
+    } catch (e) {
+      await dialog.fail(e, "No se pudo guardar la conversación");
+    }
+  });
+
   const remove = async () => {
     if (!id) return;
     if (!(await dialog.confirm({ title: "¿Borrar esta conversación?", message: "Se elimina con todos sus mensajes y no se puede deshacer.", confirmLabel: "Borrar", danger: true }))) return;
@@ -278,13 +289,39 @@ function ConversationView({ chatId }: { chatId?: string }) {
         {!locked && <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>{editingScope ? "Ocultar" : "Cambiar"}</Text>}
       </TouchableOpacity>
 
+      {/* Estado de guardado: visible siempre antes y durante la conversación */}
+      {!locked ? (
+        <View style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: saveHistory ? colors.primary : colors.border }}>
+          <SwitchRow
+            label="Guardar esta conversación"
+            hint={saveHistory ? "Permanece en tu cuenta sin vencimiento hasta que la borres" : "Temporal: se borra al salir (también puedes guardarla después)"}
+            value={saveHistory}
+            onValueChange={setSaveHistory}
+          />
+        </View>
+      ) : saveHistory ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: `${colors.primary}10`, borderWidth: 1, borderColor: `${colors.primary}30` }}>
+          <Ionicons name="bookmark" size={15} color={colors.primary} />
+          <Text style={{ flex: 1, color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>
+            Guardada · permanece en tu cuenta sin vencimiento hasta que la borres.
+          </Text>
+        </View>
+      ) : local.length > 0 ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+          <Ionicons name="bookmark-outline" size={16} color={colors.textSecondary} />
+          <Text style={{ flex: 1, color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
+            Temporal (se pierde al salir). Guárdala para conservarla sin vencimiento.
+          </Text>
+          <Button title="Guardar" icon="bookmark-outline" size="small" variant="secondary" busy={saveCurrent.busy} disabled={send.busy} onPress={saveCurrent.submit} />
+        </View>
+      ) : null}
+
       {editingScope && !locked && (
         <Card>
           <Txt bold size={15}>¿Qué analizar?</Txt>
           <Txt size={13} muted>La IA solo verá lo que elijas aquí. Si no filtras nada, analiza todo el periodo.</Txt>
           <ScopeForm value={scope} onChange={(s2) => { setScope(s2); setCtx(null); peek.setError(null); }} />
           {!ok && <Notice tone="warn">Revisa las fechas: «Hasta» debe ser igual o posterior a «Desde».</Notice>}
-          <SwitchRow label="Guardar esta conversación" hint={saveHistory ? "Queda en tu cuenta hasta que la borres" : "Si no la guardas, se pierde al cerrarla"} value={saveHistory} onValueChange={setSaveHistory} />
           {peek.error && <Notice tone="err">{peek.error}</Notice>}
           <Button title="Ver qué datos usaría la IA" variant="secondary" busy={peek.busy} disabled={!ok} onPress={peek.submit} />
           <Button title="Listo" onPress={() => setEditingScope(false)} disabled={!ok} />
@@ -372,15 +409,19 @@ export function ChatsScreen() {
   useFocusReload(() => { void chats.reload(); void saved.reload(); });
   const empty = !chats.loading && (chats.data ?? []).length === 0 && !saved.loading && (saved.data ?? []).length === 0;
   return (
-    <Screen title="Conversaciones" subtitle="Las que guardaste con la IA" footer={<Button title="Nueva conversación" icon="add" onPress={() => router.replace("/analysis" as never)} />}>
+    <Screen title="Conversaciones" subtitle="Se guardan sin fecha de vencimiento" footer={<Button title="Nueva conversación" icon="add" onPress={() => router.replace("/analysis" as never)} />}>
+      <Notice tone="info">Las conversaciones guardadas permanecen en tu cuenta hasta que las borres. Las temporales no se almacenan.</Notice>
       {(chats.loading && !chats.data) || (saved.loading && !saved.data) ? <Loading /> : chats.error || saved.error ? <ErrorBox message={(chats.error ?? saved.error)!} onRetry={() => { void chats.reload(); void saved.reload(); }} /> : empty ? (
-        <Empty icon="chatbubbles-outline" title="Aún no hay conversaciones guardadas" text="Al empezar una puedes elegir «Guardar esta conversación» para volver a leerla." />
+        <Empty icon="chatbubbles-outline" title="Aún no hay conversaciones guardadas" text="Activa «Guardar esta conversación» antes de preguntar, o toca «Guardar» mientras conversas con la IA." />
       ) : (
         <>
           {(chats.data ?? []).map((c) => (
             <RowLink key={c.id} onPress={() => router.push(`/analysis/chat/${c.id}` as never)}>
               <View style={{ width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}14` }}><GeminiMark size={16} id={c.id.slice(0, 6)} /></View>
-              <View style={{ flex: 1 }}><Txt bold numberOfLines={1}>{c.title || "Conversación"}</Txt><Txt size={12} muted numberOfLines={1}>{scopeSummary(c.scope)}</Txt></View>
+              <View style={{ flex: 1 }}>
+                <Txt bold numberOfLines={1}>{c.title || "Conversación"}</Txt>
+                <Txt size={12} muted numberOfLines={1}>{scopeSummary(c.scope)} · {humanDate(c.updatedAt.slice(0, 10))}</Txt>
+              </View>
             </RowLink>
           ))}
           {(saved.data ?? []).length > 0 && <Heading>Respuestas guardadas</Heading>}
