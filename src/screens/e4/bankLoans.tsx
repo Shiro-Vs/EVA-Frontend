@@ -171,11 +171,11 @@ export function BankLoanScreen() {
               {parts(p) !== "" && <Txt size={11} muted>{parts(p)}</Txt>}
               {p.note && <Txt size={11} muted>{p.note}</Txt>}
             </View>
-            {p.status === "reversed" ? <Chip status="converted" label="Revertido" /> : <Button title="Revertir" variant="secondary" size="small" onPress={() => { setReversing(reversing === p.id ? null : p.id); setReason(""); }} />}
+            {p.status === "reversed" ? <Chip status="converted" label="Revertido" /> : <Button title="Revertir" variant="secondary" size="small" onPress={() => { setReversing(reversing === p.id ? null : p.id); setReason(""); reverse.resetKey(); }} />}
           </View>
           {reversing === p.id && (
             <>
-              <ReasonField value={reason} onChange={setReason} />
+              <ReasonField value={reason} onChange={(v) => { setReason(v); reverse.resetKey(); }} />
               <Button title="Confirmar reversión" variant="danger" busy={reverse.busy} disabled={!reason.trim()} onPress={async () => { if (await reverse.submit(p.id)) { setReversing(null); await q.reload(); } }} />
             </>
           )}
@@ -325,6 +325,7 @@ export function BankLoanChangeScreen() {
   const { id, documentId: docParam, kind: kindParam } = useLocalSearchParams<{ id: string; documentId?: string; kind?: string }>();
   const router = useRouter();
   const docs = useAsync(() => api.documents("loan_document"), []);
+  useFocusReload(docs.reload);
   const [mode, setMode] = useState<"doc" | "manual">(docParam ? "doc" : "manual");
   const [documentId, setDocumentId] = useState<string | null>(docParam ?? null);
   const [kind, setKind] = useState<"summary" | "schedule" | "statement">((kindParam as "summary") ?? "schedule");

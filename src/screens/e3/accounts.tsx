@@ -6,6 +6,7 @@ import type { CardStatement, CreditDetails, Occurrence } from "../../api/types";
 import { AccountPicker, CategoryPicker, Choice, DateField, FlowResult, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Button, Card, Chip, Empty, ErrorBox, Field, Heading, KV, Loading, Money, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
+import { useDialog } from "../../context/DialogContext";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, isIsoDate } from "../../utils/dates";
@@ -19,6 +20,7 @@ export function ReconcileScreen() {
   const done = useDone();
   const acc = useAsync(() => api.account(id), [id]);
   const hist = useAsync(() => api.reconciliations(id), [id]);
+  useFocusReload(() => { void acc.reload(); void hist.reload(); });
   const [real, setReal] = useState("");
   const [asOf, setAsOf] = useState("");
   const [reason, setReason] = useState("");
@@ -126,10 +128,10 @@ export function StatementNewScreen() {
       <Card>
         <DateField label="Fecha de corte" value={cutoff} onChange={(v) => { setCutoff(v); save.resetKey(); }} />
         <DateField label="Fecha límite de pago" value={due} onChange={(v) => { setDue(v); save.resetKey(); }} />
-        <MoneyField label="Pago total del período" value={total} onChange={setTotal} />
-        <MoneyField label="Pago mínimo" value={min} onChange={setMin} />
-        <MoneyField label="Deuda total informada" value={balance} optional onChange={setBalance} />
-        <Field label="Nota (opcional)" value={note} onChangeText={setNote} autoCapitalize="sentences" />
+        <MoneyField label="Pago total del período" value={total} onChange={(v) => { setTotal(v); save.resetKey(); }} />
+        <MoneyField label="Pago mínimo" value={min} onChange={(v) => { setMin(v); save.resetKey(); }} />
+        <MoneyField label="Deuda total informada" value={balance} optional onChange={(v) => { setBalance(v); save.resetKey(); }} />
+        <Field label="Nota (opcional)" value={note} onChangeText={(v) => { setNote(v); save.resetKey(); }} autoCapitalize="sentences" />
       </Card>
       <Notice tone="info">El pago total del período no es toda la deuda: la deuda total solo se guarda si el banco la informa.</Notice>
       {save.error && <Notice tone="err">{save.error}</Notice>}
@@ -141,7 +143,7 @@ export function StatementScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const st = useAsync(() => api.cardStatement(id), [id]);
   const ops = useAsync(() => api.operations({ kind: "transfer", limit: 30 }), []);
-  useFocusReload(st.reload);
+  useFocusReload(() => { void st.reload(); void ops.reload(); });
   const [opId, setOpId] = useState<string | null>(null);
   const link = useSubmit(async (key: string) => api.linkCardPayment(id, opId!, key));
   const unlink = useSubmit(async (_k: string, pid: string) => api.unlinkCardPayment(pid));
@@ -190,11 +192,11 @@ export function InstallmentNewScreen() {
     <Screen title="Compra en cuotas" footer={<Button title="Registrar compra" busy={save.busy} disabled={!normalizeMoneyInput(amount) || !(k >= 2) || !isIsoDate(first) || (date !== "" && !isIsoDate(date))} onPress={async () => { if (await save.submit()) done(`/account/${id}/card`); }} />}>
       <Card>
         <MoneyField label="Total de la compra" value={amount} onChange={(v) => { setAmount(v); save.resetKey(); }} />
-        <Field label="Cantidad de cuotas (2–60)" value={n} onChangeText={setN} keyboardType="number-pad" />
-        <DateField label="Vence la primera cuota" value={first} onChange={setFirst} />
-        <DateField label="Fecha de la compra" value={date} optional onChange={setDate} />
-        <Field label="Descripción (opcional)" value={desc} onChangeText={setDesc} autoCapitalize="sentences" />
-        <CategoryPicker label="Categoría" value={cat} onChange={setCat} />
+        <Field label="Cantidad de cuotas (2–60)" value={n} onChangeText={(v) => { setN(v); save.resetKey(); }} keyboardType="number-pad" />
+        <DateField label="Vence la primera cuota" value={first} onChange={(v) => { setFirst(v); save.resetKey(); }} />
+        <DateField label="Fecha de la compra" value={date} optional onChange={(v) => { setDate(v); save.resetKey(); }} />
+        <Field label="Descripción (opcional)" value={desc} onChangeText={(v) => { setDesc(v); save.resetKey(); }} autoCapitalize="sentences" />
+        <CategoryPicker label="Categoría" value={cat} onChange={(v) => { setCat(v); save.resetKey(); }} />
       </Card>
       <Notice tone="info">Se registra UN gasto por el total (sube la deuda de la tarjeta). Las cuotas son solo el calendario.</Notice>
       {save.error && <Notice tone="err">{save.error}</Notice>}
@@ -354,9 +356,11 @@ export function RecurringDetailScreen() {
 export function OccurrenceScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const done = useDone();
+  const dialog = useDialog();
   const pend = useAsync(() => api.recurringPending(0), []);
   const occ = (pend.data?.due ?? []).find((o) => o.id === id);
   const ops = useAsync(() => api.operations({ limit: 30 }), []);
+  useFocusReload(() => { void pend.reload(); void ops.reload(); });
   const [mode, setMode] = useState<"confirm" | "link">("confirm");
   const [amount, setAmount] = useState("");
   const [account, setAccount] = useState<string | null>(null);
@@ -367,6 +371,7 @@ export function OccurrenceScreen() {
     ...(normalizeMoneyInput(amount) ? { amount: normalizeMoneyInput(amount)! } : {}), ...(account ? { accountId: account } : {}), ...(date ? { date } : {}), ...(accept ? { acceptReserveShortfall: true } : {}),
   }, key));
   const link = useSubmit(async () => api.linkOccurrence(id, opId!));
+  const skip = useSubmit(async () => api.skipOccurrence(id));
   if (pend.loading && !pend.data) return <Screen title="Ocurrencia"><Loading /></Screen>;
   if (!occ) return <Screen title="Ocurrencia"><Notice tone="info">Esta ocurrencia ya se decidió.</Notice></Screen>;
   const goalConflict = confirm.error?.includes("dinero reservado");
@@ -376,16 +381,29 @@ export function OccurrenceScreen() {
       {mode === "confirm" ? (
         <Card>
           <MoneyField label={`Importe (esperado ${formatSoles(occ.amount)})`} value={amount} optional onChange={(v) => { setAmount(v); confirm.resetKey(); }} />
-          <AccountPicker label="Cuenta (si es otra)" value={account} onChange={setAccount} />
-          <DateField label="Fecha (si no es la esperada)" value={date} optional onChange={setDate} />
+          <AccountPicker label="Cuenta (si es otra)" value={account} onChange={(v) => { setAccount(v); confirm.resetKey(); }} />
+          <DateField label="Fecha (si no es la esperada)" value={date} optional onChange={(v) => { setDate(v); confirm.resetKey(); }} />
           {goalConflict && <Button title={accept ? "Aceptado el faltante: confirma de nuevo" : "Aceptar que lo reservado supere el saldo"} variant="secondary" onPress={() => { setAccept(true); confirm.resetKey(); }} />}
           <Button title="Confirmar y registrar" busy={confirm.busy} onPress={async () => { if (await confirm.submit()) done("/recurring"); }} />
-          {confirm.error && <Notice tone="err">{confirm.error}</Notice>}
+          <Button title="Omitir esta vez" variant="secondary" busy={skip.busy} onPress={async () => { if (await skip.submit()) done("/recurring"); }} />
+          {(confirm.error || skip.error) && <Notice tone="err">{confirm.error ?? skip.error}</Notice>}
         </Card>
       ) : (
         <Card>
           <Choice select label="Movimiento ya registrado" value={opId} onChange={setOpId} options={(ops.data?.items ?? []).filter((o) => o.kind === occ.kind && o.status === "confirmed").map((o) => ({ id: o.id, label: `${humanDate(o.occurredOn)} · ${formatSoles(o.amount.replace("-", ""))}`, hint: o.description || undefined }))} />
-          <Button title="Vincular" busy={link.busy} disabled={!opId} onPress={async () => { if (await link.submit()) done("/recurring"); }} />
+          <Button title="Vincular" busy={link.busy} disabled={!opId} onPress={async () => {
+            const res = await link.submit();
+            if (res) {
+              const warns = (res.warnings as string[] | undefined) ?? [];
+              if (warns.length > 0) {
+                const notes: string[] = [];
+                if (warns.includes("AMOUNT_DIFFERS")) notes.push(`El importe vinculado (${formatSoles(String(res.actualAmount))}) difiere del esperado (${formatSoles(String(res.expectedAmount))}).`);
+                if (warns.includes("DATE_DIFFERS")) notes.push(`La fecha vinculada (${humanDate(String(res.actualDate))}) difiere de la esperada (${humanDate(String(res.expectedDate))}).`);
+                await dialog.notify({ title: "Vinculado con diferencias", message: notes.join("\n") });
+              }
+              done("/recurring");
+            }
+          }} />
           {link.error && <Notice tone="err">{link.error}</Notice>}
           <Txt size={12} muted>No se crea otro movimiento; si el importe o la fecha difieren, se informa.</Txt>
         </Card>

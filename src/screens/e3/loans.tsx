@@ -6,6 +6,7 @@ import type { LedgerCharge } from "../../api/types";
 import { AccountPicker, Choice, DateField, FlowResult, MoneyField, OptionalAccountPicker, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Button, Card, Chip, ErrorBox, Field, Heading, KV, Loading, Notice, Screen, Txt } from "../../components/v1/ui";
 import { LoanScreen } from "../e2/contact";
+import { useDialog } from "../../context/DialogContext";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, isIsoDate } from "../../utils/dates";
@@ -94,6 +95,7 @@ type Action = "pay" | "payoff" | "fees" | "capitalize" | "cancel";
 
 export function LedgerLoanScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const dialog = useDialog();
   const loanQ = useAsync(() => api.loan(id) as unknown as Promise<Record<string, any>>, [id]);
   useFocusReload(loanQ.reload);
   const [action, setAction] = useState<Action>("pay");
@@ -180,7 +182,7 @@ export function LedgerLoanScreen() {
           )}
           {action === "cancel" ? (
             <Card>
-              <ReasonField value={reason} onChange={setReason} label="Motivo de la anulación" />
+              <ReasonField value={reason} onChange={(v) => { setReason(v); cancel.resetKey(); }} label="Motivo de la anulación" />
               <Button title="Anular préstamo" variant="danger" busy={cancel.busy} disabled={!reason.trim()} onPress={async () => { if (await cancel.submit()) reload(); }} />
               {cancel.error && <Notice tone="err">{cancel.error}</Notice>}
               <Txt size={12} muted>Solo si no tiene pagos; revierte el desembolso.</Txt>
@@ -200,7 +202,20 @@ export function LedgerLoanScreen() {
         <Card key={p.id} outlined>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Txt style={{ flex: 1 }} size={13}>{humanDate(p.paidOn)} · {formatSoles(p.amount)}{p.kind === "payoff" ? " · anticipado" : ""}{p.unapplied !== "0.00" ? ` · a favor ${formatSoles(p.unapplied)}` : ""}</Txt>
-            {p.status === "active" ? <Button title="Revertir" variant="secondary" size="small" busy={reverse.busy} onPress={async () => { if (await reverse.submit(p.id)) reload(); }} /> : <Chip status="converted" label="Revertido" />}
+            {p.status === "active" ? (
+              <Button title="Revertir" variant="secondary" size="small" busy={reverse.busy} onPress={async () => {
+                const ok = await dialog.confirm({
+                  title: "¿Revertir este pago?",
+                  message: `Se revertirá el movimiento de ${formatSoles(p.amount)} y el saldo del préstamo volverá a quedar pendiente.`,
+                  confirmLabel: "Revertir",
+                  danger: true,
+                });
+                if (ok) {
+                  reverse.resetKey();
+                  if (await reverse.submit(p.id)) reload();
+                }
+              }} />
+            ) : <Chip status="converted" label="Revertido" />}
           </View>
         </Card>
       ))}

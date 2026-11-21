@@ -6,6 +6,8 @@ import { useRouter } from "expo-router";
 import { api } from "../../api/client";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
+import { useFocusReload } from "../../hooks/useFocusReload";
+import { todayLocalIso } from "../../utils/dates";
 import GeminiMark, { AI_GRADIENT } from "./GeminiMark";
 import RichText from "./RichText";
 
@@ -17,6 +19,9 @@ export default function DailyTipCard() {
   const { colors } = useAppTheme();
   const router = useRouter();
   const tip = useAsync(() => api.tipToday(), []);
+  useFocusReload(() => {
+    if (!tip.data?.tip || tip.data.date !== todayLocalIso()) void tip.reload();
+  });
 
   const Frame = ({ children }: { children: React.ReactNode }) => (
     <LinearGradient colors={[...AI_GRADIENT]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 22, padding: 1.5 }}>
