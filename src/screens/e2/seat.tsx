@@ -126,7 +126,10 @@ export function SeatQuotaScreen() {
         <MoneyField label="Cuota nueva por ciclo" value={quota} onChange={touch(setQuota)} placeholder="13.00" />
         <FutureCyclePicker subscriptionId={seat.data.subscriptionId} value={from} onChange={touch(setFrom)} />
         <Choice label="Cómo se cobra la diferencia de lo ya emitido" value={mode} onChange={touch(setMode)}
-          options={[{ id: "per_renewal", label: "En cada renovación" }, { id: "lump", label: "Todo junto, hoy" }]} />
+          options={[
+            { id: "per_renewal", label: "En cada renovación", hint: "Se ajusta cada ciclo al renovarse" },
+            { id: "lump", label: "Todo junto, hoy", hint: "Se cobra la diferencia de una vez" },
+          ]} />
         <ReasonField value={reason} onChange={touch(setReason)} />
       </Card>
       <Notice tone="info">La cuota nueva rige desde el inicio del ciclo elegido. A los cargos ya emitidos desde esa fecha se les crea un ajuste por la diferencia; si la cuota baja y ya estaba cobrada, el exceso vuelve como crédito libre.</Notice>
@@ -161,7 +164,7 @@ export function SeatCourtesyScreen() {
   const needsChoice = !!flow.data?.debtChoiceRequired && !debt;
 
   return (
-    <Screen title="Dar cortesía"
+    <Screen title="Dar cortesía" subtitle="Exime la cuota sin subirle el precio a los demás"
       footer={needsChoice
         ? <Notice tone="warn">Elige qué hacer con la deuda anterior para continuar.</Notice>
         : <PreviewFooter flow={flow} disabled={!ready} confirmLabel="Crear cortesía" onConfirm={async () => { if (await flow.confirm()) done(`/seat/${id}`); }} />}>

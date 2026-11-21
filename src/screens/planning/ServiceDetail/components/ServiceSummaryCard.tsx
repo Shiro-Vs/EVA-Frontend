@@ -66,7 +66,11 @@ export const ServiceSummaryCard: React.FC<ServiceSummaryCardProps> = ({ cycle, s
           <View style={{ backgroundColor: "rgba(0,0,0,0.22)", height: 6, borderRadius: 3, overflow: "hidden" }}>
             <View style={{ backgroundColor: colors.onPrimary, height: "100%", width: `${pct}%` }} />
           </View>
-          {!cost.estimated && <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "Asap" }}>Previsto {formatSoles(cost.projectedCost)} · Por cobrar {formatSoles(cost.pendingFromOthers)}</Text>}
+          {!cost.estimated && (
+            <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "Asap" }}>
+              Tu costo estimado: {formatSoles(cost.projectedCost)} · Faltan por cobrarte {formatSoles(cost.pendingFromOthers)}
+            </Text>
+          )}
         </View>
       )}
 
@@ -87,8 +91,8 @@ export const ServiceSummaryCard: React.FC<ServiceSummaryCardProps> = ({ cycle, s
       ) : (
         <TouchableOpacity onPress={paid ? onEditPayment : onPayService} accessibilityRole="button" activeOpacity={0.85}
           style={{ height: 46, paddingHorizontal: 16, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, backgroundColor: paid ? "rgba(0,0,0,0.20)" : colors.accent }}>
-          <Ionicons name={paid ? "create-outline" : "cash-outline"} size={18} color={paid ? colors.onPrimary : colors.onAccent} />
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontFamily: "AsapBold", fontSize: 14, color: paid ? colors.onPrimary : colors.onAccent }}>{paid ? "Corregir el pago" : "Registrar pago al proveedor"}</Text>
+          <Ionicons name={paid ? "refresh-outline" : "cash-outline"} size={18} color={paid ? colors.onPrimary : colors.onAccent} />
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontFamily: "AsapBold", fontSize: 14, color: paid ? colors.onPrimary : colors.onAccent }}>{paid ? "Revertir y corregir pago" : "Registrar pago al proveedor"}</Text>
         </TouchableOpacity>
       )}
     </View>

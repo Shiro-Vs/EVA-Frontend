@@ -116,7 +116,7 @@ const LABELS: Record<string, string> = {
   dueDate: "Vence", pendingBefore: "Pendiente antes", pendingAfter: "Pendiente después", creditFreed: "Crédito liberado", totals: "Totales", cycle: "Ciclo", start: "Inicio", end: "Fin",
   startsOn: "Empieza el", untilDate: "Hasta", cycles: "Ciclos", kind: "Tipo", waivedCharges: "Cargos eximidos", waived: "Eximido", existingDebt: "Deuda anterior", debtChoiceRequired: "Hay que elegir qué hacer con la deuda",
   debtOptions: "Opciones", label: "Plaza", currentQuota: "Cuota actual", proposedQuota: "Cuota propuesta", locked: "Bloqueada por otro cambio", suggestedQuota: "Cuota sugerida", formula: "Fórmula",
-  occupiedSeats: "Plazas ocupadas", cyclesAffected: "Ciclos afectados", seats: "Plazas", change: "Detalle del cambio", reasonCode: "Motivo del modo", usedDays: "Días usados", exitDaysLimit: "Límite L (días)",
+  occupiedSeats: "Plazas ocupadas", cyclesAffected: "Ciclos afectados", seats: "Plazas", change: "Detalle del cambio", reasonCode: "Motivo del modo", usedDays: "Días usados", exitDaysLimit: "Días mínimos para terminar el ciclo",
   supplierPaid: "Proveedor pagado", currentCycle: "Ciclo en curso", currentCharge: "Cargo del ciclo en curso", netBefore: "Cargo antes", chargeAfter: "Cargo después", voidedCharges: "Cargos cancelados",
   refunds: "Devoluciones programadas", total: "Total", items: "Detalle", loan: "Préstamo", components: "Componentes", warnings: "Avisos", statusAfter: "Estado después", oldEnd: "Fin actual", newEnd: "Fin nuevo",
   futureCycles: "Ciclos siguientes", removedCycles: "Ciclos que se eliminan", amountsUnchanged: "Los importes no cambian", old: "Antes", new: "Después", seq: "Nº", rule: "Regla", status: "Estado", hasCharges: "Tiene cargos", note: "Nota", modeAfter: "Modo después",
@@ -128,7 +128,7 @@ const LABELS: Record<string, string> = {
 // Valores técnicos de la API → texto para leer.
 const VALUES: Record<string, string> = {
   per_renewal: "En cada renovación", lump: "Todo junto, hoy", finish_cycle: "Termina el ciclo", immediate: "Baja inmediata",
-  SUPPLIER_PAID: "El proveedor ya está pagado", NO_LIMIT_DEFINED: "No hay límite L definido", LIMIT_REACHED: "Alcanzó el límite L", EARLY_EXIT: "Salida temprana", FORCED_CYCLE_END: "Fin de ciclo por cambio a individual",
+  SUPPLIER_PAID: "El proveedor ya está pagado", NO_LIMIT_DEFINED: "Sin mínimo de días configurado", LIMIT_REACHED: "Superó el mínimo de días", EARLY_EXIT: "Salida temprana", FORCED_CYCLE_END: "Fin de ciclo por cambio a individual",
   shift_renewal: "Desplazar renovación", advance_renewal: "Adelantar renovación", change_interval: "Cambiar frecuencia", suspend: "Suspender", reactivate: "Reactivar",
   cycles: "Por ciclos", until_date: "Hasta una fecha", permanent: "Permanente", keep: "Mantener en el servicio", convert: "Convertir en préstamo",
   active: "Vigente", suspended: "Suspendido", personal: "Personal", shared: "Compartido", income: "Ingreso", expense: "Gasto", transfer: "Transferencia",

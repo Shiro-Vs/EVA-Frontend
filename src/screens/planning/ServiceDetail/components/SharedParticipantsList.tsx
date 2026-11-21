@@ -12,7 +12,7 @@ interface SharedParticipantsListProps {
   onRemindParticipant: (contactId: string) => void;
 }
 
-/** Lista plana de participantes: la barra de la izquierda indica si pagó, lo que debe y el aviso por WhatsApp. */
+/** Lista plana de participantes: la barra de la izquierda indica si pagó, lo que debe y las acciones de cobro y recordatorio. */
 export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ charges, onPressCharge, onRemindParticipant }) => {
   const { colors } = useAppTheme();
 
@@ -54,15 +54,32 @@ export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ 
                     {c.paymentStatus === "exempt" ? "Sin cargo" : settled ? formatSoles(c.applied) : formatSoles(c.pending)}
                   </Text>
                 </View>
+                {settled && <Ionicons name="chevron-forward" size={16} color={colors.muted} />}
               </View>
               {partial && <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>Pagó {formatSoles(c.applied)} de {formatSoles(c.net)} · debe {formatSoles(c.pending)}</Text>}
               {hasPending && (
-                <TouchableOpacity onPress={(e) => { e.stopPropagation?.(); onRemindParticipant(c.contactId); }} accessibilityRole="button" accessibilityLabel={`Preparar mensaje de cobro para ${c.contactName}`}
-                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                  style={{ minHeight: 42, paddingHorizontal: 12, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: `${colors.income}22` }}>
-                  <Ionicons name="logo-whatsapp" size={17} color={colors.incomeStrong} />
-                  <Text style={{ color: colors.incomeStrong, fontSize: 13, fontFamily: "AsapBold" }}>Recordar por WhatsApp</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation?.(); onPressCharge(c); }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Registrar cobro de ${c.contactName}`}
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    style={{ flex: 1, minHeight: 40, paddingHorizontal: 12, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: `${colors.primary}18` }}
+                  >
+                    <Ionicons name="cash-outline" size={16} color={colors.primary} />
+                    <Text style={{ color: colors.primary, fontSize: 13, fontFamily: "AsapBold" }}>Cobrar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation?.(); onRemindParticipant(c.contactId); }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Compartir recordatorio de cobro para ${c.contactName}`}
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    style={{ flex: 1, minHeight: 40, paddingHorizontal: 12, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: `${colors.income}18` }}
+                  >
+                    <Ionicons name="share-social-outline" size={16} color={colors.incomeStrong} />
+                    <Text style={{ color: colors.incomeStrong, fontSize: 13, fontFamily: "AsapBold" }}>Recordar</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           </TouchableOpacity>

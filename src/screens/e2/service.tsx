@@ -53,12 +53,25 @@ export function ServiceManageScreen() {
         <Button title="Cambiar precio del proveedor" icon="pricetag-outline" onPress={() => router.push(`/service/${id}/price` as never)} disabled={suspended || s.status === "archived"} />
         <Button title={suspended ? "Reactivar o ver calendario" : "Calendario: desplazar, suspender…"} variant="secondary" icon="calendar-outline" onPress={() => router.push(`/service/${id}/calendar` as never)} disabled={s.status === "archived"} />
         {s.mode === "shared" && <Button title="Pasar a individual" variant="secondary" icon="person-outline" onPress={() => router.push(`/service/${id}/individual` as never)} disabled={suspended || s.status === "archived"} />}
-        {s.mode === "shared" && <Button title={full ? "Plazas completas" : "Incorporar participante"} variant="secondary" icon="person-add-outline" onPress={() => router.push({ pathname: "/service/join", params: { id } })} disabled={suspended || s.status === "archived" || full} />}
       </View>
 
       {s.mode === "shared" && (
         <>
-          <Heading>Plazas</Heading>
+          <Heading
+            action={
+              <Button
+                title={full ? "Lleno" : "Incorporar"}
+                icon="person-add-outline"
+                variant="secondary"
+                size="small"
+                disabled={suspended || s.status === "archived" || full}
+                onPress={() => router.push({ pathname: "/service/join", params: { id } })}
+              />
+            }
+          >
+            Plazas y cuotas
+          </Heading>
+          <Txt size={12} muted>Toca un participante para cambiar su cuota, darle cortesía o darlo de baja.</Txt>
           {(seats.data ?? []).map((x) => x.isOwner ? (
             <Card key={x.id} outlined>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -160,7 +173,10 @@ export function ServicePriceScreen() {
         <FutureCyclePicker subscriptionId={id} value={from} onChange={touch(setFrom)} />
         {others.length > 0 && (
           <Choice label="Cómo se cobra la diferencia de lo ya emitido" value={mode} onChange={touch(setMode)}
-            options={[{ id: "per_renewal", label: "En cada renovación" }, { id: "lump", label: "Todo junto, hoy" }]} />
+            options={[
+              { id: "per_renewal", label: "En cada renovación", hint: "Se ajusta cada ciclo al renovarse" },
+              { id: "lump", label: "Todo junto, hoy", hint: "Se cobra la diferencia de una vez" },
+            ]} />
         )}
         <ReasonField value={reason} onChange={touch(setReason)} />
       </Card>

@@ -30,7 +30,7 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({ service, cycle, 
   const active = service.status === "active";
   const advanceButton = active && cycle ? (
     <TouchableOpacity onPress={onAdvance} disabled={advancing} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ opacity: advancing ? 0.5 : 1 }}>
-      <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>+ Emitir el próximo ciclo</Text>
+      <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>+ Adelantar ciclo</Text>
     </TouchableOpacity>
   ) : null;
 
@@ -43,7 +43,7 @@ export const ServiceHistory: React.FC<ServiceHistoryProps> = ({ service, cycle, 
       {error && <Notice tone="err">{error}</Notice>}
       {!shared && advanceButton && (
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>¿Quieres adelantar o cambiar precio?</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>¿Necesitas el siguiente ciclo?</Text>
           {advanceButton}
         </View>
       )}

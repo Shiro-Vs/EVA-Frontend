@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { api, errorMessage, type SeatBody } from "../../api/client";
 import type { SeatPreview } from "../../api/types";
 import { Button, Field, KV, Notice, Screen, Txt } from "../../components/v1/ui";
 import { DateInput } from "../../components/v1/DatePicker";
 import { SelectField } from "../../components/v1/Select";
+import { useDialog } from "../../context/DialogContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 import { humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
-import { formatSoles, normalizeMoneyInput } from "../../utils/money";
+import { cmpMoney, formatSoles, normalizeMoneyInput } from "../../utils/money";
 
 const MODE_TEXT = {
   full_cycle: "Entra al inicio del ciclo: paga la cuota completa.",
@@ -26,6 +27,8 @@ const WARN_TEXT: Record<string, string> = {
 /** Alta de un participante en un servicio compartido: persona, cuota e ingreso; el cobro lo calcula el servidor y se muestra antes de confirmar. */
 export default function JoinSeatScreen() {
   const { colors } = useAppTheme();
+  const router = useRouter();
+  const dialog = useDialog();
   const { id, contactId: presetContact } = useLocalSearchParams<{ id: string; contactId?: string }>();
   const service = useAsync(() => api.subscription(id), [id]);
   const contacts = useAsync(() => api.contacts(), []);
@@ -36,6 +39,7 @@ export default function JoinSeatScreen() {
   const [addError, setAddError] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [quota, setQuota] = useState("");
+  const [quotaTouched, setQuotaTouched] = useState(false);
   const [joinDate, setJoinDate] = useState(todayLocalIso());
   const [threshold, setThreshold] = useState("");
   const [more, setMore] = useState(false);
@@ -43,14 +47,23 @@ export default function JoinSeatScreen() {
   const [preview, setPreview] = useState<SeatPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
-  // La cuota y el nombre de la plaza se sugieren a partir de las plazas que ya hay (el usuario puede cambiarlos).
+  const suggestedSplit = useMemo(() => {
+    const announced = Number(service.data?.terms?.announcedPrice);
+    const cap = service.data?.capacity ?? 0;
+    if (!Number.isFinite(announced) || announced <= 0 || cap <= 0) return null;
+    return (announced / cap).toFixed(2);
+  }, [service.data?.terms?.announcedPrice, service.data?.capacity]);
+
+  // La cuota se sugiere a partir de otro participante existente, o dividiendo el precio entre las plazas totales.
   useEffect(() => {
     const list = seats.data;
-    if (!list) return;
-    if (!quota) { const q = list.find((s) => !s.isOwner)?.quota; if (q) setQuota(q); }
-    if (!label) setLabel(`Cuenta ${list.length}`);
+    if (list && !label) setLabel(`Cuenta ${list.length}`);
+    if (quotaTouched || quota) return;
+    const existingQuota = list?.find((s) => !s.isOwner)?.quota;
+    if (existingQuota) setQuota(existingQuota);
+    else if (suggestedSplit) setQuota(suggestedSplit);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seats.data]);
+  }, [seats.data, suggestedSplit]);
 
   const quotaNorm = normalizeMoneyInput(quota);
   const body = useMemo<SeatBody | null>(() => {
@@ -82,7 +95,25 @@ export default function JoinSeatScreen() {
     return api.createSeat(id, { ...body, previewToken: preview.previewToken }, key);
   });
   const done = useDone();
-  const confirm = async () => { if (await join.submit()) done(`/service/${id}`); };
+  const confirm = async () => {
+    const created = await join.submit();
+    if (!created) return;
+    const net = preview?.calculation?.net ?? "0.00";
+    if (contactId && cmpMoney(net, "0.00") > 0) {
+      const personName = people.find((p) => p.id === contactId)?.label ?? "Esta persona";
+      const payNow = await dialog.confirm({
+        title: "Participante incorporado",
+        message: `${personName} ya ocupa su plaza. ¿Ya te pagó los ${formatSoles(net)} de este ciclo?`,
+        confirmLabel: "Registrar cobro ahora",
+        cancelLabel: "Más tarde",
+      });
+      if (payNow) {
+        router.replace({ pathname: "/receipt/new", params: { contactId } } as never);
+        return;
+      }
+    }
+    done(`/service/${id}`);
+  };
 
   const addContact = async () => {
     if (!newName.trim()) return;
@@ -121,17 +152,32 @@ export default function JoinSeatScreen() {
         )}
       </View>
 
-      <Field label="Cuota por ciclo (S/)" value={quota} onChangeText={edit(setQuota)} placeholder="10.00" keyboardType="decimal-pad" error={quota && !quotaNorm ? "Importe inválido" : undefined} />
+      <View style={{ gap: 4 }}>
+        <Field label="Cuota por ciclo (S/)" value={quota} onChangeText={(v) => { setQuotaTouched(true); setQuota(v); join.resetKey(); }} placeholder="10.00" keyboardType="decimal-pad" error={quota && !quotaNorm ? "Importe inválido" : undefined} />
+        {suggestedSplit && service.data?.terms && (
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, paddingHorizontal: 4 }}>
+            <Txt size={12} muted style={{ flex: 1 }}>
+              Sugerido: {formatSoles(suggestedSplit)} ({formatSoles(service.data.terms.announcedPrice)} ÷ {service.data.capacity} plazas)
+            </Txt>
+            {quotaNorm !== suggestedSplit && (
+              <TouchableOpacity onPress={() => { setQuota(suggestedSplit); setQuotaTouched(true); join.resetKey(); }} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>Usar</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
       <DateInput label="Ingresa el" value={joinDate} onChange={edit(setJoinDate)} />
 
       <TouchableOpacity onPress={() => setMore(!more)} accessibilityRole="button" accessibilityState={{ expanded: more }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, marginLeft: 4 }}>
         <Ionicons name={more ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
-        <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "AsapBold" }}>Más opciones</Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "AsapBold" }}>Más opciones ({label || "nombre de plaza"}, días gratis)</Text>
       </TouchableOpacity>
       {more && (
-        <View style={{ gap: 4 }}>
-          <Field label="Nombre de la plaza" value={label} onChangeText={edit(setLabel)} placeholder="Cuenta 1" autoCapitalize="sentences" />
-          <Field label="Días gratis al ingresar" value={threshold} onChangeText={edit(setThreshold)} placeholder="Los de tu perfil" keyboardType="number-pad" error={threshold.trim() !== "" && !(Number.parseInt(threshold, 10) >= 0) ? "Número entero" : undefined} />
+        <View style={{ gap: 6 }}>
+          <Field label="Nombre de la plaza (ej. Perfil 1)" value={label} onChangeText={edit(setLabel)} placeholder="Cuenta 1" autoCapitalize="sentences" />
+          <Field label="Días gratis al ingresar" value={threshold} onChangeText={edit(setThreshold)} placeholder="Según tu perfil" keyboardType="number-pad" error={threshold.trim() !== "" && !(Number.parseInt(threshold, 10) >= 0) ? "Número entero" : undefined} />
+          <Txt size={12} muted style={{ marginHorizontal: 4 }}>Si faltan estos días o menos para terminar el ciclo, ese primer tramo no se le cobra.</Txt>
         </View>
       )}
 

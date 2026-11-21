@@ -56,9 +56,13 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
   const accountName = s.detail.data?.supplierPayment?.account?.name ?? s.preferredAccount?.name ?? null;
   const run = (fn: () => void) => { setMenu(false); setTimeout(fn, 0); };
   const correctPayment = async () => {
-    const ok = await dialog.confirm({ title: "¿Corregir el pago al proveedor?", message: "Se revertirá este pago (el dinero vuelve a tu cuenta) para que puedas registrarlo de nuevo con los datos correctos. El historial se conserva.", confirmLabel: "Revertir pago" });
+    const ok = await dialog.confirm({
+      title: "¿Revertir y corregir este pago?",
+      message: "Se revertirá el pago actual (el dinero vuelve a tu cuenta) y te llevaremos a registrar el pago con los datos correctos. El historial se conserva.",
+      confirmLabel: "Revertir y corregir",
+    });
     if (!ok) return;
-    await s.reversePayment.submit();
+    if (await s.reversePayment.submit()) s.goPay();
   };
 
   return (

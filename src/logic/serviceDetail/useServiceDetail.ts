@@ -67,9 +67,10 @@ export function useServiceDetail(serviceId: string) {
 
   const reversePayment = useSubmit(async (key: string) => {
     const pid = detail.data?.supplierPayment?.id;
-    if (!pid) return;
+    if (!pid) return false;
     await api.reverseSupplierPayment(pid, "Corrección del pago desde la app", key);
     reloadAll();
+    return true;
   });
 
   const preferredAccount = (accounts.data ?? []).find((a) => a.id === sub.data?.preferredAccountId) ?? null;

@@ -110,14 +110,28 @@ export default function NewServiceScreen() {
 
   return (
     <Screen title="Nuevo servicio" footer={<Button title="Crear servicio" onPress={save} busy={create.busy} disabled={!preview} />}>
+      <Heading>Datos del plan</Heading>
       <Card>
-        <Field label="Nombre" value={name} onChangeText={edit(setName)} placeholder="Netflix" autoCapitalize="words" />
+        <Field label="Nombre" value={name} onChangeText={edit(setName)} placeholder="Netflix, Spotify, iCloud…" autoCapitalize="words" />
         <ServiceStylePicker icon={style.icon} color={style.color} onChange={(v) => { setStyle(v); setStyleTouched(true); create.resetKey(); }} />
-        <Choice label="Tipo" options={[{ id: "shared", label: "Compartido" }, { id: "personal", label: "Personal" }]} value={mode} onChange={edit(setMode)} />
+        <Choice
+          label="Tipo de suscripción"
+          options={[
+            { id: "shared", label: "Compartido", hint: "Divides el pago con otros" },
+            { id: "personal", label: "Personal", hint: "Solo lo pagas tú" },
+          ]}
+          value={mode}
+          onChange={edit(setMode)}
+        />
         <View style={{ flexDirection: "row", gap: 10 }}>
-          {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas" value={capacity} onChangeText={edit(setCapacity)} keyboardType="number-pad" /></View>}
-          <View style={{ flex: 1 }}><Field label="Precio (S/)" value={price} onChangeText={edit(setPrice)} placeholder="45.00" keyboardType="decimal-pad" error={price && !priceNorm ? "Importe inválido" : undefined} /></View>
+          {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas totales" value={capacity} onChangeText={edit(setCapacity)} keyboardType="number-pad" /></View>}
+          <View style={{ flex: 1 }}><Field label="Precio del plan (S/)" value={price} onChangeText={edit(setPrice)} placeholder="45.00" keyboardType="decimal-pad" error={price && !priceNorm ? "Importe inválido" : undefined} /></View>
         </View>
+        {mode === "shared" && <Txt size={12} muted>Incluye tu propia plaza. Podrás agregar a los demás participantes justo después de crear el servicio.</Txt>}
+      </Card>
+
+      <Heading>Calendario de cobro</Heading>
+      <Card>
         <SelectField label="Cada cuánto cobra el proveedor" value={freq} onChange={edit(setFreq)} options={FREQUENCIES.map((f) => ({ id: f.id, label: f.label }))} />
         {freq === "custom" && (
           <View style={{ flexDirection: "row", gap: 10 }}>
@@ -125,11 +139,15 @@ export default function NewServiceScreen() {
             <View style={{ flex: 1.4 }}><SelectField label="Unidad" value={customUnit} onChange={edit(setCustomUnit)} options={UNITS} /></View>
           </View>
         )}
-        <DateInput label="Inicio" value={start} onChange={edit(setStart)} />
-        <DateInput label="Siguiente pago" value={next} onChange={(t) => { setNext(t); setNextTouched(true); create.resetKey(); }} />
-        <OptionalAccountPicker label="Cuenta de pago (opcional)" value={preferred} onChange={edit(setPreferred)} />
-        <CategoryPicker label="Categoría (opcional, para presupuestos)" value={categoryId} onChange={edit(setCategoryId)} />
-        <Txt size={12} muted>El siguiente pago es el que informa tu proveedor; EVA lo compara con lo calculado.</Txt>
+        <DateInput label="Inicio del ciclo actual" value={start} onChange={edit(setStart)} />
+        <DateInput label="Siguiente pago al proveedor" value={next} onChange={(t) => { setNext(t); setNextTouched(true); create.resetKey(); }} />
+        <Txt size={12} muted>Usa la fecha que indica tu proveedor; EVA verificará si coincide con la frecuencia elegida.</Txt>
+      </Card>
+
+      <Heading>Opcional</Heading>
+      <Card>
+        <OptionalAccountPicker label="Cuenta con la que sueles pagarlo" value={preferred} onChange={edit(setPreferred)} />
+        <CategoryPicker label="Categoría (para presupuestos)" value={categoryId} onChange={edit(setCategoryId)} />
       </Card>
 
       {previewError && <Notice tone="err">{previewError}</Notice>}
@@ -145,8 +163,10 @@ export default function NewServiceScreen() {
           )}
           {mode === "shared" && (
             <Card>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                <Txt muted style={{ flex: 1, flexShrink: 1 }}>Plazas ocupadas (contándote)</Txt>
+              <Txt bold size={14}>Simulador de cuota</Txt>
+              <Txt size={12} muted>Solo es una referencia — aquí todavía no se crean participantes.</Txt>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 4 }}>
+                <Txt muted style={{ flex: 1, flexShrink: 1 }}>Si lo comparten entre (contándote)</Txt>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <TouchableOpacity
                     onPress={() => setOccupied((o) => Math.max(1, o - 1))}
@@ -169,9 +189,9 @@ export default function NewServiceScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-              <Txt muted style={{ marginTop: 4 }}>Cuota sugerida por plaza</Txt>
+              <Txt muted style={{ marginTop: 4 }}>Cuota sugerida por persona</Txt>
               <Money value={preview.suggestedQuota.amount} size={28} />
-              <Txt size={12} muted>{preview.suggestedQuota.formula}. Podrás poner la cuota que acuerdes con cada persona.</Txt>
+              <Txt size={12} muted>{preview.suggestedQuota.formula}. Al agregar a cada participante podrás fijar la cuota que acuerden.</Txt>
             </Card>
           )}
           <Heading>Primeros ciclos</Heading>
