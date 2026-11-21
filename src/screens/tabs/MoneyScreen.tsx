@@ -56,8 +56,10 @@ export default function MoneyScreen() {
   const [showArchived, setShowArchived] = useState(false);
   const list = (accounts.data ?? []).filter((a) => a.status === "active");
   const archived = (accounts.data ?? []).filter((a) => a.status === "archived");
-  const items = [...(ops.data ?? []), ...more];
   const s = summary.data;
+  const excludedCount = list.filter((a) => a.excludeFromTotal).length;
+  const includedCount = s ? s.balance.accounts : list.length - excludedCount;
+  const items = [...(ops.data ?? []), ...more];
   const accountOptions = [{ id: "all", label: "Todas las cuentas" }, ...list.map((a) => ({ id: a.id, label: a.name }))];
 
   return (
@@ -66,7 +68,9 @@ export default function MoneyScreen() {
         <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
         <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Saldo total</Text>
         <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 32, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{s ? formatSoles(s.balance.net) : "…"}</Text>
-        <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "Asap" }}>{list.length} {list.length === 1 ? "cuenta" : "cuentas"} · lo que debes en tarjetas ya está descontado</Text>
+        <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "Asap" }}>
+          {includedCount} {includedCount === 1 ? "cuenta" : "cuentas"}{excludedCount > 0 ? ` (${excludedCount} excluida${excludedCount === 1 ? "" : "s"})` : ""} · lo que debes en tarjetas ya está descontado
+        </Text>
       </View>
 
       <View style={{ flexDirection: "row", gap: 10 }}>
@@ -166,8 +170,8 @@ function AccountCard({ account: a, width, height, onPress }: { account: Account;
             </LinearGradient>
           </View>
           <View style={{ alignItems: "flex-end", flexShrink: 1 }}>
-            <Text style={{ color: soft, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2 }}>{credit ? "DEUDA" : "SALDO"}</Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: credit && owes && !brand ? colors.expenseStrong : ink, fontSize: 22, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(a.balance)}</Text>
+            <Text style={{ color: soft, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2 }}>{credit ? (owes || cmpMoney(a.balance, "0.00") === 0 ? "DEUDA" : "A FAVOR") : "SALDO"}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: credit && owes && !brand ? colors.expenseStrong : ink, fontSize: 22, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(credit && owes ? a.balance.replace("-", "") : a.balance)}</Text>
           </View>
         </View>
 

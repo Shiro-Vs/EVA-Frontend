@@ -70,7 +70,7 @@ function BudgetCard({ b, onPress }: { b: Budget; onPress: () => void }) {
   const { colors } = useAppTheme();
   const c = b.current;
   const pct = c.percent ?? 0;
-  const tone = c.exceeded ? colors.expenseStrong : pct >= 80 ? colors.warningStrong : colors.incomeStrong;
+  const tone = c.exceeded ? colors.expenseStrong : c.level !== null ? colors.warningStrong : colors.incomeStrong;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button">
       <Card style={{ gap: 8 }}>

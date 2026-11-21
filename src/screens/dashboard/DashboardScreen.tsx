@@ -62,12 +62,108 @@ export default function DashboardScreen() {
   }
 
   const flow = card<{ month: string; income: string; consumption: string; net: string }>("period_flow");
-  const accountsCard = card<{ accounts: Array<{ id: string; name: string; type: string; balance: string }> }>("accounts_balance");
-  const creditCard = card<{ cards: Array<{ id: string; name: string; debt: string }> }>("credit_debt");
-  const budgets = card<{ budgets: Array<{ id: string; name: string; percent: number | null; exceeded: boolean }> }>("budgets");
-  const goals = card<{ totals: { reserved: string; free: string } }>("goals");
   const monthName = flow ? MONTHS[Number(flow.month.slice(5)) - 1] : "";
   const go = (route: string) => router.push(route as never);
+
+  const renderCard = (c: DashboardCard) => {
+    if (c.id === "accounts_balance") {
+      const data = c.data as { accounts: Array<{ id: string; name: string; type: string; balance: string }> };
+      if (!data?.accounts?.length) return null;
+      return (
+        <View key={c.id} style={{ gap: 6 }}>
+          <SectionTitle title="Mis cuentas" action={<SeeAll label="Ver todo" onPress={() => go("/money")} />} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 24 }} style={{ marginHorizontal: -24 }} snapToInterval={140} decelerationRate="fast">
+            {data.accounts.map((a) => (
+              <TouchableOpacity key={a.id} onPress={() => go(`/account/${a.id}`)} accessibilityRole="button" style={{ width: 132, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 10, gap: 4 }}>
+                <View style={{ width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: colors.sections.money.tint }}><Ionicons name={ACCOUNT_ICON[a.type] ?? "wallet"} size={16} color={colors.sections.money.ink} /></View>
+                <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>{a.name}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(a.balance)}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      );
+    }
+    if (c.id === "credit_debt") {
+      const data = c.data as { cards: Array<{ id: string; name: string; debt: string }> };
+      if (!data?.cards?.length) return null;
+      return (
+        <View key={c.id} style={{ gap: 6 }}>
+          <SectionTitle title="Tarjetas de crédito" action={<SeeAll label="Ver todo" onPress={() => go("/money")} />} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 24 }} style={{ marginHorizontal: -24 }} snapToInterval={140} decelerationRate="fast">
+            {data.cards.map((cr) => (
+              <TouchableOpacity key={cr.id} onPress={() => go(`/account/${cr.id}`)} accessibilityRole="button" style={{ width: 132, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 10, gap: 4 }}>
+                <View style={{ width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.expense}22` }}><Ionicons name="card" size={16} color={colors.expenseStrong} /></View>
+                <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>{cr.name} · deuda</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: cmpMoney(cr.debt, "0.00") > 0 ? colors.expenseStrong : colors.text, fontSize: 16, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(cr.debt)}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      );
+    }
+    if (c.id === "budgets") {
+      const data = c.data as { budgets: Array<{ id: string; name: string; percent: number | null; level?: number | null; exceeded: boolean }> };
+      if (!data?.budgets?.length) return null;
+      return (
+        <View key={c.id} style={{ gap: 6 }}>
+          <SectionTitle title="Presupuestos" action={<SeeAll label="Ver todos" onPress={() => go("/budgets")} />} />
+          <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 10 }}>
+            {[...data.budgets].sort((a, b) => (b.percent ?? 0) - (a.percent ?? 0)).slice(0, 3).map((b) => (
+              <BudgetBar key={b.id} name={b.name} percent={b.percent ?? 0} level={b.level ?? null} exceeded={b.exceeded} onPress={() => go(`/budgets/${b.id}`)} />
+            ))}
+          </View>
+        </View>
+      );
+    }
+    if (c.id === "goals") {
+      const data = c.data as { totals: { reserved: string; free: string } };
+      if (!data?.totals) return null;
+      return (
+        <View key={c.id} style={{ gap: 6 }}>
+          <SectionTitle title="Metas y reservas" action={<SeeAll label="Planificar" onPress={() => go("/plan")} />} />
+          <TouchableOpacity onPress={() => go("/goals/accounts")} accessibilityRole="button"
+            style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 14, flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>Libre para gastar <Text style={{ color: colors.incomeStrong, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(data.totals.free)}</Text></Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>En metas <Text style={{ color: colors.text, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(data.totals.reserved)}</Text></Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    if (c.id === "loans") {
+      const data = c.data as {
+        ledger?: { lentPending: string; borrowedPending: string };
+        bankLoans?: { nextInstallments: Array<{ loanId: string; name: string; number: number; dueDate: string; remaining: string }> };
+      };
+      const lent = data?.ledger?.lentPending ?? "0.00";
+      const borrowed = data?.ledger?.borrowedPending ?? "0.00";
+      const bankNext = data?.bankLoans?.nextInstallments ?? [];
+      if (cmpMoney(lent, "0.00") === 0 && cmpMoney(borrowed, "0.00") === 0 && bankNext.length === 0) return null;
+      return (
+        <View key={c.id} style={{ gap: 6 }}>
+          <SectionTitle title="Préstamos" action={<SeeAll label="Ver todos" onPress={() => go("/loans")} />} />
+          <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 8 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
+              <TouchableOpacity onPress={() => go("/loans")} accessibilityRole="button">
+                <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>Te deben <Text style={{ color: colors.incomeStrong, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(lent)}</Text></Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => go("/loans")} accessibilityRole="button">
+                <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>Debes <Text style={{ color: cmpMoney(borrowed, "0.00") > 0 ? colors.expenseStrong : colors.text, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(borrowed)}</Text></Text>
+              </TouchableOpacity>
+            </View>
+            {bankNext.slice(0, 2).map((b) => (
+              <TouchableOpacity key={`${b.loanId}-${b.number}`} onPress={() => go(`/bank-loan/${b.loanId}`)} accessibilityRole="button"
+                style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 }}>
+                <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 13, fontFamily: "AsapMedium" }}>{b.name} · cuota {b.number}</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{humanDate(b.dueDate)} · {formatSoles(b.remaining)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      );
+    }
+    return null;
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -115,45 +211,8 @@ export default function DashboardScreen() {
 
         <DailyTipCard />
 
-        {/* Cuentas */}
-        {(accountsCard || creditCard) && (
-          <View style={{ gap: 6 }}>
-            <SectionTitle title="Mis cuentas" action={<SeeAll label="Ver todo" onPress={() => go("/money")} />} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 24 }} style={{ marginHorizontal: -24 }} snapToInterval={140} decelerationRate="fast">
-              {(accountsCard?.accounts ?? []).map((a) => (
-                <TouchableOpacity key={a.id} onPress={() => go(`/account/${a.id}`)} accessibilityRole="button" style={{ width: 132, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 10, gap: 4 }}>
-                  <View style={{ width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: colors.sections.money.tint }}><Ionicons name={ACCOUNT_ICON[a.type] ?? "wallet"} size={16} color={colors.sections.money.ink} /></View>
-                  <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>{a.name}</Text>
-                  <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(a.balance)}</Text>
-                </TouchableOpacity>
-              ))}
-              {(creditCard?.cards ?? []).map((c) => (
-                <TouchableOpacity key={c.id} onPress={() => go(`/account/${c.id}`)} accessibilityRole="button" style={{ width: 132, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 10, gap: 4 }}>
-                  <View style={{ width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.expense}22` }}><Ionicons name="card" size={16} color={colors.expenseStrong} /></View>
-                  <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>{c.name} · deuda</Text>
-                  <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: cmpMoney(c.debt, "0.00") > 0 ? colors.expenseStrong : colors.text, fontSize: 16, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(c.debt)}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Presupuestos y metas */}
-        {((budgets?.budgets.length ?? 0) > 0 || goals) && (
-          <View style={{ gap: 6 }}>
-            <SectionTitle title="Este mes" action={<SeeAll label="Planificar" onPress={() => go("/plan")} />} />
-            <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 10 }}>
-              {[...(budgets?.budgets ?? [])].sort((a, b) => (b.percent ?? 0) - (a.percent ?? 0)).slice(0, 2).map((b) => <BudgetBar key={b.id} name={b.name} percent={b.percent ?? 0} exceeded={b.exceeded} onPress={() => go(`/budgets/${b.id}`)} />)}
-              {goals && (
-                <TouchableOpacity onPress={() => go("/goals/accounts")} accessibilityRole="button" hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                  style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 8, borderTopWidth: (budgets?.budgets.length ?? 0) > 0 ? 1 : 0, borderTopColor: colors.border, paddingTop: (budgets?.budgets.length ?? 0) > 0 ? 10 : 4, paddingBottom: 4 }}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>Libre para gastar <Text style={{ color: colors.incomeStrong, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(goals.totals.free)}</Text></Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>En metas <Text style={{ color: colors.text, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(goals.totals.reserved)}</Text></Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
+        {/* Tarjetas configurables en el orden elegido en Ajustes → Panel */}
+        {cards.map(renderCard)}
 
         {/* Últimos movimientos */}
         <View style={{ gap: 6 }}>
@@ -234,9 +293,9 @@ function AttentionRow({ a, first, onPress }: { a: AttentionItem; first: boolean;
   );
 }
 
-function BudgetBar({ name, percent, exceeded, onPress }: { name: string; percent: number; exceeded: boolean; onPress: () => void }) {
+function BudgetBar({ name, percent, level, exceeded, onPress }: { name: string; percent: number; level: number | null; exceeded: boolean; onPress: () => void }) {
   const { colors } = useAppTheme();
-  const tone = exceeded ? colors.expenseStrong : percent >= 80 ? colors.warningStrong : colors.incomeStrong;
+  const tone = exceeded ? colors.expenseStrong : level !== null ? colors.warningStrong : colors.incomeStrong;
   return (
     <TouchableOpacity onPress={onPress} accessibilityRole="button" hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ gap: 5, paddingVertical: 4 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>

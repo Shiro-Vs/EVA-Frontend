@@ -37,7 +37,7 @@ export function buildAttention({ cards, recurringPending = 0, today }: Attention
   const bud = by("budgets");
   for (const b of (bud?.budgets ?? []) as Array<{ id: string; name: string; percent: number | null; exceeded: boolean; level: number | null }>) {
     if (b.exceeded) out.push({ id: `bud-${b.id}`, icon: "speedometer-outline", tone: "danger", title: `${b.name}: excedido`, text: `${Math.round(b.percent ?? 0)}% del límite`, route: `/budgets/${b.id}`, urgency: 80 });
-    else if ((b.percent ?? 0) >= 85) out.push({ id: `bud-${b.id}`, icon: "speedometer-outline", tone: "warn", title: `${b.name}: casi al límite`, text: `${Math.round(b.percent ?? 0)}% usado`, route: `/budgets/${b.id}`, urgency: 55 });
+    else if (b.level !== null) out.push({ id: `bud-${b.id}`, icon: "speedometer-outline", tone: "warn", title: `${b.name}: casi al límite`, text: `${Math.round(b.percent ?? 0)}% usado`, route: `/budgets/${b.id}`, urgency: 55 });
   }
 
   const cap = by("capture_pending");
@@ -47,14 +47,17 @@ export function buildAttention({ cards, recurringPending = 0, today }: Attention
     if (cap.acceptedToClassify > 0) out.push({ id: "cap-classify", icon: "pricetags-outline", tone: "info", title: plural(cap.acceptedToClassify, "movimiento sin categoría", "movimientos sin categoría"), route: "/classify", urgency: 30 });
   }
 
-  if (recurringPending > 0) out.push({ id: "rec", icon: "repeat-outline", tone: "warn", title: plural(recurringPending, "recurrente por decidir", "recurrentes por decidir"), text: "Confírmalos u omítelos", route: "/recurring", urgency: 60 });
+  const upcomingItems = (by("upcoming_payments")?.items ?? []) as Array<{ type: string; id: string; name: string; dueDate: string; amount: string }>;
+  const shownRecurring = upcomingItems.filter((p) => p.type === "recurring" && daysUntil(p.dueDate, today) <= 7).length;
+  const extraRecurring = Math.max(0, recurringPending - shownRecurring);
+  if (extraRecurring > 0) out.push({ id: "rec", icon: "repeat-outline", tone: "warn", title: plural(extraRecurring, "recurrente por decidir", "recurrentes por decidir"), text: "Confírmalos u omítelos", route: "/recurring", urgency: 60 });
 
   for (const r of ((by("renewals")?.items ?? []) as Array<{ subscriptionId: string; name: string; renewsOn: string; price: string }>).slice(0, 3)) {
     const d = daysUntil(r.renewsOn, today);
     if (d <= 7) out.push({ id: `ren-${r.subscriptionId}`, icon: "calendar-outline", tone: d <= 1 ? "warn" : "info", title: `${r.name} renueva ${whenText(d)}`, text: `S/ ${r.price}`, route: `/service/${r.subscriptionId}`, urgency: d <= 1 ? 85 : d <= 3 ? 70 : 50 });
   }
 
-  for (const p of ((by("upcoming_payments")?.items ?? []) as Array<{ type: string; id: string; name: string; dueDate: string; amount: string }>)) {
+  for (const p of upcomingItems) {
     const d = daysUntil(p.dueDate, today);
     if (d <= 7) out.push({ id: `pay-${p.type}-${p.id}`, icon: "card-outline", tone: d < 0 ? "danger" : d <= 1 ? "warn" : "info", title: `${p.name} ${dueText(d)}`, text: `S/ ${p.amount}`, route: p.type === "bank_loan" ? `/bank-loan/${p.id}` : `/recurring/occurrence/${p.id}`, urgency: d < 0 ? 95 : d <= 1 ? 85 : 55 });
   }

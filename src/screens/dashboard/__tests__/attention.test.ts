@@ -45,8 +45,17 @@ describe("Qué merece atención en el inicio", () => {
     expect(items).toEqual([expect.objectContaining({ id: "pay-bank_loan-l1", route: "/bank-loan/l1", title: "Préstamo BCP · cuota 6 vence en 4 días" })]);
   });
 
-  it("un presupuesto cerca del límite avisa distinto a uno excedido", () => {
-    const [i] = buildAttention({ today: TODAY, cards: [{ id: "budgets", data: { budgets: [{ id: "b", name: "Total", percent: 90, exceeded: false, level: 90 }] } }] });
+  it("un presupuesto cerca del límite avisa distinto a uno excedido y respeta el umbral del servidor", () => {
+    const [i] = buildAttention({ today: TODAY, cards: [{ id: "budgets", data: { budgets: [{ id: "b", name: "Total", percent: 75, exceeded: false, level: 70 }] } }] });
     expect(i).toMatchObject({ tone: "warn", title: "Total: casi al límite" });
+  });
+
+  it("no duplica recurrentes cuando ya aparecen en próximos pagos", () => {
+    const items = buildAttention({
+      today: TODAY,
+      recurringPending: 1,
+      cards: [{ id: "upcoming_payments", data: { items: [{ type: "recurring", id: "o1", name: "Alquiler", dueDate: "2026-10-29", amount: "900.00" }] } }],
+    });
+    expect(items.map((x) => x.id)).toEqual(["pay-recurring-o1"]);
   });
 });
