@@ -133,13 +133,6 @@ export default function DashboardScreen() {
   const displayName = profile?.displayName ?? "bienvenido";
   const initial = (profile?.displayName?.trim().charAt(0) || "E").toUpperCase();
 
-  const quickActions: Array<{ label: string; icon: IconName; color: string; to: string }> = [
-    { label: "Gasto", icon: "arrow-up-circle-outline", color: colors.expenseStrong, to: "/operation/new?kind=expense" },
-    { label: "Ingreso", icon: "arrow-down-circle-outline", color: colors.incomeStrong, to: "/operation/new?kind=income" },
-    { label: "Transferir", icon: "swap-horizontal-outline", color: colors.primary, to: "/operation/new?kind=transfer" },
-    { label: "Capturar", icon: "scan-outline", color: colors.sections.people.ink, to: "/capture/new" },
-  ];
-
   const renderCard = (c: DashboardCard) => {
     if (c.id === "accounts_balance") {
       const data = c.data as { accounts: Array<{ id: string; name: string; type: string; balance: string }> };
@@ -334,35 +327,6 @@ export default function DashboardScreen() {
               <FlowPill label={`Gastos · ${monthName}`} value={money(flow.consumption)} icon="arrow-up" />
             </TouchableOpacity>
           ) : null}
-        </View>
-
-        {/* Barra de acciones rápidas (4 accesos limpios en 1 toque) */}
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {quickActions.map((qa) => (
-            <TouchableOpacity
-              key={qa.label}
-              onPress={() => go(qa.to)}
-              activeOpacity={0.78}
-              accessibilityRole="button"
-              style={{
-                flex: 1,
-                backgroundColor: colors.card,
-                borderRadius: 18,
-                borderWidth: 1,
-                borderColor: colors.border,
-                paddingVertical: 11,
-                paddingHorizontal: 4,
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 5,
-              }}
-            >
-              <Ionicons name={qa.icon} size={22} color={qa.color} />
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ color: colors.text, fontSize: 12, fontFamily: "AsapSemiBold" }}>
-                {qa.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
         </View>
 
         {/* Por atender */}
