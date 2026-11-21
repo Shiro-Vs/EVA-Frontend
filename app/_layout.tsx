@@ -75,10 +75,8 @@ function RootLayoutContent() {
           <Stack.Protected guard={!user}>
             <Stack.Screen name="index" />
             <Stack.Screen name="register" />
+            <Stack.Screen name="forgot-password" />
           </Stack.Protected>
-          <Stack.Screen name="forgot-password" />
-          <Stack.Screen name="reset-password" />
-          <Stack.Screen name="auth-callback" />
           <Stack.Protected guard={!!user}>
             <Stack.Screen name="(main)" />
             <Stack.Screen name="categories" />
@@ -165,6 +163,8 @@ function RootLayoutContent() {
             <Stack.Screen name="settings/backups/index" />
             <Stack.Screen name="settings/backups/[id]" />
           </Stack.Protected>
+          <Stack.Screen name="reset-password" />
+          <Stack.Screen name="auth-callback" />
           <Stack.Screen name="+not-found" />
         </Stack>
       </SafeAreaProvider>
