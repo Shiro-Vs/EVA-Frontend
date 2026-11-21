@@ -153,7 +153,16 @@ export interface OperationDetail {
   id: string; kind: string; occurredOn: IsoDate; occurredTime?: string | null; description: string; status: "confirmed" | "reversed"; reversalOfId: string | null; reason: string | null; version: number; createdAt: string;
   concept?: string; contactId?: string | null; category?: { id: string; name: string } | null;
   entries: Array<{ accountId: string; amount: Money }>;
-  links: { receiptId: string | null; supplierPaymentId: string | null; refundId: string | null };
+  links: {
+    receiptId: string | null;
+    supplierPaymentId: string | null;
+    refundId: string | null;
+    bankLoanPaymentId?: string | null;
+    loanPaymentId?: string | null;
+    loanDisbursementId?: string | null;
+    cardStatementPaymentId?: string | null;
+    installmentPlanId?: string | null;
+  };
 }
 
 // ---- Entrega 3 ----

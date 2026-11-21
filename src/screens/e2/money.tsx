@@ -46,7 +46,16 @@ export function OperationScreen() {
   if (op.error || !op.data) return <Screen title="Movimiento"><ErrorBox message={op.error ?? "No se encontró el movimiento."} onRetry={op.reload} /></Screen>;
   const o = op.data;
   const editable = o.status === "confirmed" && o.kind !== "reversal";
-  const linked = !!(o.links.receiptId || o.links.supplierPaymentId || o.links.refundId);
+  const linked = !!(
+    o.links.receiptId
+    || o.links.supplierPaymentId
+    || o.links.refundId
+    || o.links.bankLoanPaymentId
+    || o.links.loanPaymentId
+    || o.links.loanDisbursementId
+    || o.links.cardStatementPaymentId
+    || o.links.installmentPlanId
+  );
   const correctable = editable && !linked && ["income", "expense", "transfer"].includes(o.kind);
   const canCategorize = editable && ["income", "expense"].includes(o.kind);
   const curCat = categoryId === undefined ? (o.category?.id ?? null) : categoryId;
@@ -84,6 +93,11 @@ export function OperationScreen() {
         {o.links.receiptId && <Button title="Ver el cobro de este movimiento" icon="cash-outline" onPress={() => router.push(`/receipt/${o.links.receiptId}` as never)} />}
         {o.links.supplierPaymentId && <Notice tone="info">Es el pago de un servicio al proveedor: se revierte desde el detalle del ciclo del servicio.</Notice>}
         {o.links.refundId && <Notice tone="info">Es la salida de una devolución: se gestiona desde Devoluciones.</Notice>}
+        {o.links.bankLoanPaymentId && <Notice tone="info">Es el pago de un préstamo bancario: se revierte desde el detalle de ese préstamo.</Notice>}
+        {o.links.loanPaymentId && <Notice tone="info">Es el pago de un préstamo: se revierte desde el detalle del préstamo.</Notice>}
+        {o.links.loanDisbursementId && <Notice tone="info">Es el desembolso de un préstamo: se anula desde el detalle del préstamo.</Notice>}
+        {o.links.cardStatementPaymentId && <Notice tone="info">Está vinculado a un estado de cuenta de tarjeta: quita primero el vínculo en la tarjeta.</Notice>}
+        {o.links.installmentPlanId && <Notice tone="info">Es una compra en cuotas con tarjeta: cancela el plan de cuotas antes de revertir o corregir.</Notice>}
         {correctable && <Button title="Corregir importe, cuenta o fecha" variant="secondary" icon="create-outline" onPress={() => router.push(`/operation/${id}/correct` as never)} />}
         {editable && !linked && <Button title="Revertir" variant="danger" icon="arrow-undo-outline" onPress={() => setMode("reverse")} />}
       </View>
