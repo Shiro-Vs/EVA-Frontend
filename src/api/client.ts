@@ -219,6 +219,7 @@ export const api = {
   chat: (id: string) => get<T.ChatDetail>(`/analysis/chats/${id}`),
   sendChat: (id: string, body: { text: string; history?: Array<{ role: "user" | "assistant"; content: string }> }) => post<T.ChatReply>(`/analysis/chats/${id}/messages`, body),
   saveChat: (id: string, body: { title?: string; messages?: Array<{ role: "user" | "assistant"; content: string }> }) => post<T.ChatSession>(`/analysis/chats/${id}/save`, body),
+  renameChat: (id: string, title: string) => post<T.ChatSession>(`/analysis/chats/${id}/rename`, { title }),
   deleteChat: (id: string) => post<{ id: string }>(`/analysis/chats/${id}/delete`),
 
   bankLoans: async (status?: string) => (await get<{ items: T.BankLoanListItem[] }>("/bank-loans", { status })).items,

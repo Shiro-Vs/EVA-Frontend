@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
 import { ApiError } from "../../api/http";
-import type { AnalysisContext, AnalysisResult, AnalysisScope, ChatDetail } from "../../api/types";
+import type { AnalysisContext, AnalysisResult, AnalysisScope, ChatDetail, ChatSession } from "../../api/types";
 import AIFrame from "../../components/common/AIFrame";
+import BottomSheet from "../../components/common/BottomSheet";
 import GeminiMark from "../../components/common/GeminiMark";
 import RichText from "../../components/common/RichText";
-import { Button, Card, Empty, ErrorBox, Heading, KV, Loading, Notice, RowLink, Screen, SwitchRow, Txt } from "../../components/v1/ui";
+import { Button, Card, Empty, ErrorBox, Field, Heading, KV, Loading, Notice, RowLink, Screen, SwitchRow, Txt } from "../../components/v1/ui";
 import { useDialog } from "../../context/DialogContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
@@ -404,34 +406,180 @@ export function SavedAnalysisScreen() {
 export function ChatsScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
+  const dialog = useDialog();
   const chats = useAsync(() => api.chats(), []);
   const saved = useAsync(() => api.analyses(), []);
   useFocusReload(() => { void chats.reload(); void saved.reload(); });
+
+  const [selected, setSelected] = useState<ChatSession | null>(null);
+  const [selectedSaved, setSelectedSaved] = useState<AnalysisResult | null>(null);
+  const [mode, setMode] = useState<"actions" | "rename">("actions");
+  const [newTitle, setNewTitle] = useState("");
+
+  const closeMenu = () => {
+    setSelected(null);
+    setSelectedSaved(null);
+    setMode("actions");
+    setNewTitle("");
+  };
+
+  const openChatMenu = (c: ChatSession) => {
+    if (Platform.OS !== "web") void Haptics.selectionAsync().catch(() => {});
+    setSelectedSaved(null);
+    setSelected(c);
+    setMode("actions");
+    setNewTitle(c.title || "");
+  };
+
+  const openSavedMenu = (a: AnalysisResult) => {
+    if (Platform.OS !== "web") void Haptics.selectionAsync().catch(() => {});
+    setSelected(null);
+    setSelectedSaved(a);
+    setMode("actions");
+  };
+
+  const rename = useSubmit(async () => {
+    if (!selected) return;
+    const trimmed = newTitle.trim();
+    if (!trimmed) throw new Error("Escribe un nombre para la conversación.");
+    const updated = await api.renameChat(selected.id, trimmed);
+    chats.setData((cur) => (cur ? cur.map((x) => (x.id === updated.id ? updated : x)) : cur));
+    closeMenu();
+  });
+
+  const deleteSelectedChat = async () => {
+    const target = selected;
+    if (!target) return;
+    closeMenu();
+    const ok = await dialog.confirm({
+      title: "¿Borrar esta conversación?",
+      message: `Se eliminará «${target.title || "Conversación"}» con todos sus mensajes y no se puede deshacer.`,
+      confirmLabel: "Borrar",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.deleteChat(target.id);
+      chats.setData((cur) => (cur ? cur.filter((x) => x.id !== target.id) : cur));
+    } catch (e) {
+      await dialog.fail(e, "No se pudo borrar");
+    }
+  };
+
+  const deleteSelectedSaved = async () => {
+    const target = selectedSaved;
+    if (!target?.id) return;
+    closeMenu();
+    const ok = await dialog.confirm({
+      title: "¿Eliminar este análisis?",
+      message: "Se borra la respuesta guardada y no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.deleteAnalysis(target.id);
+      saved.setData((cur) => (cur ? cur.filter((x) => x.id !== target.id) : cur));
+    } catch (e) {
+      await dialog.fail(e, "No se pudo eliminar");
+    }
+  };
+
   const empty = !chats.loading && (chats.data ?? []).length === 0 && !saved.loading && (saved.data ?? []).length === 0;
   return (
     <Screen title="Conversaciones" subtitle="Se guardan sin fecha de vencimiento" footer={<Button title="Nueva conversación" icon="add" onPress={() => router.replace("/analysis" as never)} />}>
-      <Notice tone="info">Las conversaciones guardadas permanecen en tu cuenta hasta que las borres. Las temporales no se almacenan.</Notice>
+      <Notice tone="info">Las conversaciones guardadas permanecen en tu cuenta hasta que las borres. Mantén presionada una conversación para cambiarle el nombre o eliminarla.</Notice>
       {(chats.loading && !chats.data) || (saved.loading && !saved.data) ? <Loading /> : chats.error || saved.error ? <ErrorBox message={(chats.error ?? saved.error)!} onRetry={() => { void chats.reload(); void saved.reload(); }} /> : empty ? (
         <Empty icon="chatbubbles-outline" title="Aún no hay conversaciones guardadas" text="Activa «Guardar esta conversación» antes de preguntar, o toca «Guardar» mientras conversas con la IA." />
       ) : (
         <>
           {(chats.data ?? []).map((c) => (
-            <RowLink key={c.id} onPress={() => router.push(`/analysis/chat/${c.id}` as never)}>
+            <RowLink key={c.id} onPress={() => router.push(`/analysis/chat/${c.id}` as never)} onLongPress={() => openChatMenu(c)}>
               <View style={{ width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}14` }}><GeminiMark size={16} id={c.id.slice(0, 6)} /></View>
               <View style={{ flex: 1 }}>
                 <Txt bold numberOfLines={1}>{c.title || "Conversación"}</Txt>
                 <Txt size={12} muted numberOfLines={1}>{scopeSummary(c.scope)} · {humanDate(c.updatedAt.slice(0, 10))}</Txt>
               </View>
+              <TouchableOpacity onPress={() => openChatMenu(c)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel={`Opciones de ${c.title || "Conversación"}`}>
+                <Ionicons name="ellipsis-vertical" size={18} color={colors.muted} />
+              </TouchableOpacity>
             </RowLink>
           ))}
           {(saved.data ?? []).length > 0 && <Heading>Respuestas guardadas</Heading>}
           {(saved.data ?? []).map((a) => (
-            <RowLink key={a.id} onPress={() => router.push(`/analysis/saved/${a.id}` as never)}>
+            <RowLink key={a.id} onPress={() => router.push(`/analysis/saved/${a.id}` as never)} onLongPress={() => openSavedMenu(a)}>
               <View style={{ flex: 1 }}><Txt bold numberOfLines={2}>{a.question}</Txt><Txt size={12} muted>{scopeSummary(a.scope)}</Txt></View>
+              <TouchableOpacity onPress={() => openSavedMenu(a)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Opciones del análisis guardado">
+                <Ionicons name="ellipsis-vertical" size={18} color={colors.muted} />
+              </TouchableOpacity>
             </RowLink>
           ))}
         </>
       )}
+
+      <BottomSheet
+        visible={!!selected || !!selectedSaved}
+        onClose={closeMenu}
+        title={mode === "rename" ? "Cambiar nombre" : (selected ? (selected.title || "Conversación") : "Análisis guardado")}
+        maxHeight={0.55}
+      >
+        {selected && mode === "rename" ? (
+          <View style={{ paddingHorizontal: 8, paddingBottom: 8, gap: 10 }}>
+            <Field
+              label="Nombre de la conversación"
+              value={newTitle}
+              onChangeText={(v) => { setNewTitle(v); rename.setError(null); }}
+              placeholder="Ej. Gastos de noviembre"
+              autoCapitalize="sentences"
+              autoFocus
+              maxLength={80}
+            />
+            {rename.error && <Notice tone="err">{rename.error}</Notice>}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Button title="Cancelar" variant="secondary" onPress={() => { setMode("actions"); rename.setError(null); }} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button title="Guardar" busy={rename.busy} disabled={!newTitle.trim()} onPress={rename.submit} />
+              </View>
+            </View>
+          </View>
+        ) : (
+          <View style={{ paddingHorizontal: 6, paddingBottom: 8, gap: 6 }}>
+            {selected && (
+              <TouchableOpacity
+                onPress={() => { setNewTitle(selected.title || ""); rename.setError(null); setMode("rename"); }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}15` }}>
+                  <Ionicons name="pencil-outline" size={18} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Txt bold size={15}>Cambiar nombre</Txt>
+                  <Txt size={12} muted>Ponle un título fácil de reconocer</Txt>
+                </View>
+                <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => { void (selected ? deleteSelectedChat() : deleteSelectedSaved()); }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+            >
+              <View style={{ width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.expense}1F` }}>
+                <Ionicons name="trash-outline" size={18} color={colors.expenseStrong} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt bold size={15} color={colors.expenseStrong}>Eliminar</Txt>
+                <Txt size={12} muted>Borra la conversación y todos sus mensajes</Txt>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+      </BottomSheet>
     </Screen>
   );
 }

@@ -218,10 +218,10 @@ export function Empty({ icon, title, text, action }: { icon: IconName; title: st
   );
 }
 
-export function RowLink({ onPress, children }: { onPress: () => void; children: React.ReactNode }) {
+export function RowLink({ onPress, onLongPress, children }: { onPress: () => void; onLongPress?: () => void; children: React.ReactNode }) {
   const { colors } = useAppTheme();
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="button"
+    <TouchableOpacity onPress={onPress} onLongPress={onLongPress} delayLongPress={350} activeOpacity={0.7} accessibilityRole="button"
       style={{ backgroundColor: `${colors.card}80`, borderRadius: 20, borderWidth: 1, borderColor: `${colors.text}10`, paddingVertical: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
       {children}
     </TouchableOpacity>
