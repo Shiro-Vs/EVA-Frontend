@@ -76,13 +76,13 @@ export function ExportScreen() {
         <Card key={id} outlined>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Txt style={{ flex: 1 }} bold>{i + 1}. {TITLE[id]}</Txt>
-            <Button title="↑" variant="secondary" disabled={i === 0} onPress={() => move(i, -1)} />
-            <Button title="↓" variant="secondary" disabled={i === order.length - 1} onPress={() => move(i, 1)} />
+            <Button title="↑" variant="secondary" size="small" disabled={i === 0} onPress={() => move(i, -1)} />
+            <Button title="↓" variant="secondary" size="small" disabled={i === order.length - 1} onPress={() => move(i, 1)} />
             <Button title="Quitar" variant="secondary" size="small" onPress={() => toggle(id)} />
           </View>
         </Card>
       ))}
-      <MultiChoice label="Agregar sección" options={inactive.map(([id, t]) => ({ id, label: t }))} value={[]} onChange={(v) => { if (v[0]) toggle(v[0] as SectionId); }} />
+      <MultiChoice label="Agregar sección" emptyText="Elegir sección…" options={inactive.map(([id, t]) => ({ id, label: t }))} value={[]} onChange={(v) => { if (v[0]) toggle(v[0] as SectionId); }} />
 
       <Card>
         <Choice label="Nivel" value={level} onChange={(v) => { setLevel(v); touch(); }} options={[{ id: "summary", label: "Resumen" }, { id: "detail", label: "Con detalle", hint: "servicios por ciclo" }]} />
@@ -96,7 +96,7 @@ export function ExportScreen() {
           {pv.async && <Notice tone="info">Es grande: se generará en segundo plano y podrás descargarla cuando esté lista.</Notice>}
           {pv.sections.map((s) => (
             <Card key={s.id} outlined>
-              <Txt bold>{s.title} · {s.rows} fila(s)</Txt>
+              <Txt bold>{s.title} · {s.rows} {s.rows === 1 ? "fila" : "filas"}</Txt>
               {s.note && <Txt size={11} muted>{s.note}</Txt>}
               {s.sample.slice(0, 4).map((r, i) => (
                 <Txt key={i} size={12}>{s.columns.slice(0, 4).map((c) => cell(r[c.key] ?? null, c.type)).filter(Boolean).join(" · ")}</Txt>
@@ -112,7 +112,7 @@ export function ExportScreen() {
       {job && (
         <Card>
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}><Chip status={job.status === "done" ? "paid" : job.status === "failed" ? "overdue" : "partial"} label={STATUS_TEXT[job.status]} />{job.rows > 0 && <Txt size={12} muted>{job.rows} filas</Txt>}</View>
-          {job.status === "failed" && <Notice tone="err">No se pudo generar ({job.errorCode ?? "error"}). Acota el periodo o las cuentas e inténtalo otra vez.</Notice>}
+          {job.status === "failed" && <Notice tone="err">No se pudo generar la exportación. Acota el periodo o las cuentas e inténtalo otra vez.</Notice>}
           {job.status === "done" && <Button title="Descargar" icon="download-outline" busy={download.busy} onPress={() => download.submit(job.id, job.filename)} />}
           {job.status === "done" && job.expiresAt && <Txt size={11} muted>El archivo se borra el {humanDate(job.expiresAt.slice(0, 10))}.</Txt>}
           <Button title="Nueva exportación" variant="secondary" onPress={() => { setJob(null); setPv(null); }} />
@@ -128,8 +128,8 @@ export function ExportScreen() {
       ) : (recent.data ?? []).map((j) => (
         <Card key={j.id} outlined>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View style={{ flex: 1 }}><Txt bold size={13}>{j.filename ?? j.format.toUpperCase()}</Txt><Txt size={11} muted>{humanDate(j.createdAt.slice(0, 10))} · {STATUS_TEXT[j.status]}</Txt></View>
-            {j.status === "done" ? <Button title="Descargar" variant="secondary" busy={download.busy} onPress={() => download.submit(j.id, j.filename)} /> : <Badge text={STATUS_TEXT[j.status]} />}
+            <View style={{ flex: 1 }}><Txt bold size={13} numberOfLines={1}>{j.filename ?? j.format.toUpperCase()}</Txt><Txt size={11} muted>{humanDate(j.createdAt.slice(0, 10))} · {STATUS_TEXT[j.status]}</Txt></View>
+            {j.status === "done" ? <Button title="Descargar" variant="secondary" size="small" busy={download.busy} onPress={() => download.submit(j.id, j.filename)} /> : <Badge text={STATUS_TEXT[j.status]} />}
           </View>
         </Card>
       ))}
@@ -146,7 +146,9 @@ export function ContactStatementExportScreen() {
   const go = useSubmit(async () => { const f = await api.contactStatementFile(id!, format); await saveAndShare(f.bytes, f.filename ?? `estado-de-cuenta.${format}`, "application/octet-stream"); });
   return (
     <Screen title="Estado de cuenta" subtitle="Un documento por contacto" footer={<Button title="Descargar" icon="download-outline" busy={go.busy} disabled={!id} onPress={go.submit} />}>
-      {contacts.loading && !contacts.data ? <Loading /> : contacts.error ? <ErrorBox message={contacts.error} onRetry={contacts.reload} /> : (
+      {contacts.loading && !contacts.data ? <Loading /> : contacts.error ? <ErrorBox message={contacts.error} onRetry={contacts.reload} /> : (contacts.data ?? []).filter((c) => c.status === "active").length === 0 ? (
+        <Empty icon="people-outline" title="Sin contactos" text="Agrega primero una persona desde la pestaña Personas." />
+      ) : (
         <Card>
           <Choice label="Contacto" value={id} onChange={setId} options={(contacts.data ?? []).filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }))} />
           <Choice label="Formato" value={format} onChange={setFormat} options={[{ id: "pdf", label: "PDF" }, { id: "xlsx", label: "Excel" }, { id: "csv", label: "CSV" }]} />

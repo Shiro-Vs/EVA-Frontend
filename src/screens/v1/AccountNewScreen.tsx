@@ -1,15 +1,12 @@
 import React, { useState } from "react";
-import { Switch, Text, TouchableOpacity, View } from "react-native";
 import { useDone } from "../../hooks/useDone";
-import { DateField } from "../../components/v1/forms";
 import { SelectField } from "../../components/v1/Select";
 import { DateInput } from "../../components/v1/DatePicker";
-import { isIsoDate, todayLocalIso } from "../../utils/dates";
+import { isIsoDate } from "../../utils/dates";
 import { api } from "../../api/client";
 import type { AccountType } from "../../api/types";
-import { Button, Card, Field, Notice, Screen, Txt, SwitchRow } from "../../components/v1/ui";
+import { Button, Card, Field, Notice, Screen, SwitchRow } from "../../components/v1/ui";
 import { BANK_PRESETS, bankPreset } from "../../constants/banks";
-import { useAppTheme } from "../../hooks/useAppTheme";
 import { useSubmit } from "../../hooks/useAsync";
 import { normalizeMoneyInput } from "../../utils/money";
 
@@ -18,7 +15,6 @@ const TYPES: Array<{ id: AccountType; label: string }> = [
 ];
 
 export default function AccountNewScreen() {
-  const { colors } = useAppTheme();
   const done = useDone();
   const [name, setName] = useState("");
   const [type, setType] = useState<AccountType>("bank");
@@ -63,15 +59,11 @@ export default function AccountNewScreen() {
     <Screen title="Nueva cuenta" footer={<Button title="Crear cuenta" onPress={save} busy={create.busy} />}>
       <Card>
         <Field label="Nombre" value={name} onChangeText={(t) => { setName(t); create.resetKey(); }} placeholder="BCP, Efectivo, Yape…" autoCapitalize="words" />
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1 }}><SelectField label="Tipo" value={type} onChange={(v) => { setType(v); create.resetKey(); }} options={TYPES} /></View>
-          <View style={{ flex: 1 }}><SelectField label="Entidad" value={other ? "other" : preset?.id ?? null} onChange={pickEntity} placeholder="Elegir" options={[...BANK_PRESETS.map((b) => ({ id: b.id, label: b.label })), { id: "other", label: "Otra o ninguna" }]} /></View>
-        </View>
+        <SelectField label="Tipo" value={type} onChange={(v) => { setType(v); create.resetKey(); }} options={TYPES} />
+        <SelectField label="Entidad" value={other ? "other" : preset?.id ?? null} onChange={pickEntity} placeholder="Elegir" options={[...BANK_PRESETS.map((b) => ({ id: b.id, label: b.label })), { id: "other", label: "Otra o ninguna" }]} />
         {other && <Field label="Nombre de la entidad (opcional)" value={institution} onChangeText={(t) => { setInstitution(t); create.resetKey(); }} placeholder="Banco, billetera…" autoCapitalize="words" />}
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1 }}><Field label={isCredit ? "Deuda actual (S/)" : "Saldo actual (S/)"} value={amountText} onChangeText={(t) => { setAmountText(t); create.resetKey(); }} placeholder="0.00" keyboardType="decimal-pad" /></View>
-          <View style={{ flex: 1 }}><DateInput label="Fecha del saldo" value={openingDate} onChange={(t) => { setOpeningDate(t); create.resetKey(); }} /></View>
-        </View>
+        <Field label={isCredit ? "Deuda actual (S/)" : "Saldo actual (S/)"} value={amountText} onChangeText={(t) => { setAmountText(t); create.resetKey(); }} placeholder="0.00" keyboardType="decimal-pad" />
+        <DateInput label="Fecha del saldo" optional value={openingDate} onChange={(t) => { setOpeningDate(t); create.resetKey(); }} />
         <SwitchRow label="Usarla como cuenta predeterminada" value={isDefault} onValueChange={(v) => { setIsDefault(v); create.resetKey(); }} />
         <SwitchRow label="Excluir del saldo total" value={exclude} onValueChange={(v) => { setExclude(v); create.resetKey(); }} />
       </Card>

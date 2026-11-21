@@ -49,17 +49,17 @@ export default function EVADialog({ spec, onResult }: { spec: DialogSpec | null;
     <Modal transparent visible animationType="fade" statusBarTranslucent onRequestClose={() => onResult(false)}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
         <Pressable style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(15,8,35,0.6)" }} onPress={() => (asks ? onResult(false) : onResult(true))} accessibilityLabel="Cerrar" />
-        <View accessibilityViewIsModal style={{ width: "100%", maxWidth: 380, borderRadius: 28, backgroundColor: isDark ? colors.card : colors.elevated, borderWidth: 1, borderColor: colors.borderStrong, paddingHorizontal: 20, paddingTop: 22, paddingBottom: 16, alignItems: "center", shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 16 }}>
+        <View accessibilityViewIsModal style={{ width: "100%", maxWidth: 380, borderRadius: 28, backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.borderStrong, paddingHorizontal: 20, paddingTop: 22, paddingBottom: 16, alignItems: "center", shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 16 }}>
           <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: `${l.accent}26`, borderWidth: 2, borderColor: `${l.accent}66`, alignItems: "center", justifyContent: "center" }}>
             <Image source={isDark ? LOGO_DARK : LOGO_LIGHT} style={{ width: 52, height: 52 }} resizeMode="contain" accessibilityIgnoresInvertColors />
-            <View style={{ position: "absolute", right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: l.badge, borderWidth: 3, borderColor: isDark ? colors.card : colors.elevated, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ position: "absolute", right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: l.badge, borderWidth: 3, borderColor: colors.elevated, alignItems: "center", justifyContent: "center" }}>
               <Ionicons name={l.icon} size={15} color={l.onBadge} />
             </View>
           </View>
           <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 19, fontFamily: "AsapBold", textAlign: "center", marginTop: 14 }}>{spec.title}</Text>
           {spec.message ? <Text style={{ color: colors.textSecondary, fontSize: 14, fontFamily: "Asap", textAlign: "center", marginTop: 6, lineHeight: 20 }}>{spec.message}</Text> : null}
           {spec.details && spec.details.length > 0 ? (
-            <View style={{ alignSelf: "stretch", marginTop: 12, padding: 12, borderRadius: 16, backgroundColor: colors.card, gap: 4 }}>
+            <View style={{ alignSelf: "stretch", marginTop: 12, padding: 12, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, gap: 4 }}>
               {spec.details.map((d, i) => (
                 <View key={i} style={{ flexDirection: "row", gap: 8 }}>
                   <Text style={{ color: l.accent, fontSize: 14, fontFamily: "AsapBold" }}>•</Text>

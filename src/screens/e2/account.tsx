@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Switch, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { api } from "../../api/client";
-import { Button, Card, ErrorBox, Field, Loading, Notice, Screen, Txt } from "../../components/v1/ui";
+import { Button, Card, ErrorBox, Field, Loading, Notice, Screen, SwitchRow, Txt } from "../../components/v1/ui";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 
@@ -32,14 +31,8 @@ export function AccountEditScreen() {
     <Screen title="Editar cuenta" subtitle={a.name} footer={<Button title="Guardar cambios" busy={save.busy} disabled={!dirty} onPress={async () => { if (await save.submit()) done(`/account/${id}`); }} />}>
       <Card>
         <Field label="Nombre" value={name ?? a.name} onChangeText={(v) => { setName(v); save.resetKey(); }} autoCapitalize="words" />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <Switch value={isDefault ?? a.isDefault} onValueChange={(v) => { setIsDefault(v); save.resetKey(); }} accessibilityLabel="Cuenta predeterminada" />
-          <Txt style={{ flex: 1 }}>Usarla como cuenta predeterminada</Txt>
-        </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <Switch value={exclude ?? a.excludeFromTotal} onValueChange={(v) => { setExclude(v); save.resetKey(); }} accessibilityLabel="Excluir del saldo total" />
-          <Txt style={{ flex: 1 }}>Excluir del saldo total</Txt>
-        </View>
+        <SwitchRow label="Usarla como cuenta predeterminada" value={isDefault ?? a.isDefault} onValueChange={(v) => { setIsDefault(v); save.resetKey(); }} />
+        <SwitchRow label="Excluir del saldo total" value={exclude ?? a.excludeFromTotal} onValueChange={(v) => { setExclude(v); save.resetKey(); }} />
       </Card>
       {save.error && <Notice tone="err">{save.error}</Notice>}
 

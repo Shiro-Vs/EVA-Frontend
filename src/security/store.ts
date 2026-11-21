@@ -7,7 +7,7 @@ import { afterAttempt, freshAttempts, isValidPin, safeEqual, waitSeconds, type A
 // La web no tiene almacenamiento seguro: el bloqueo no está disponible allí.
 export const lockAvailable = () => Platform.OS === "ios" || Platform.OS === "android";
 
-const K = { pin: "eva.lock.pin", biometric: "eva.lock.bio", attempts: "eva.lock.attempts" } as const;
+const K = { pin: "eva.lock.pin", biometric: "eva.lock.bio", attempts: "eva.lock.attempts", after: "eva.lock.after" } as const;
 const ROUNDS = 1000;
 
 interface Saved { salt: string; hash: string }
@@ -51,7 +51,18 @@ export async function verifyPin(pin: string, now = Date.now()): Promise<Verify> 
 }
 
 export async function clearLock(): Promise<void> {
-  await Promise.all([storage.remove(K.pin), storage.remove(K.biometric), storage.remove(K.attempts)]);
+  await Promise.all([storage.remove(K.pin), storage.remove(K.biometric), storage.remove(K.attempts), storage.remove(K.after)]);
+}
+
+export async function getLockAfterSeconds(): Promise<number | null> {
+  const raw = await storage.get(K.after);
+  if (raw === null) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+export async function setLockAfterSeconds(seconds: number): Promise<void> {
+  await storage.set(K.after, String(seconds));
 }
 
 export async function biometricEnabled(): Promise<boolean> {

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
@@ -47,7 +47,7 @@ function Coverage({ r }: { r: { coverage: AnalysisResult["coverage"] } }) {
   const f = r.coverage.filters;
   return (
     <View>
-      <TouchableOpacity onPress={() => setOpen((o) => !o)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36 }}>
+      <TouchableOpacity onPress={() => setOpen((o) => !o)} accessibilityRole="button" accessibilityState={{ expanded: open }} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36 }}>
         <Ionicons name="reader-outline" size={16} color={colors.textSecondary} />
         <Text style={{ flex: 1, color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>Qué datos usó · {r.coverage.movements} movimientos</Text>
         <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
@@ -171,13 +171,13 @@ function ConversationView({ chatId }: { chatId?: string }) {
 
   const canSend = text.trim().length >= 3 && ok && !send.busy;
   const IconBtn = ({ icon, label, onPress, danger }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; danger?: boolean }) => (
-    <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={{ width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: danger ? `${colors.expense}1A` : colors.card, borderWidth: 1, borderColor: colors.border }}>
+    <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }} style={{ width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: danger ? `${colors.expense}1A` : colors.card, borderWidth: 1, borderColor: colors.border }}>
       <Ionicons name={icon} size={18} color={danger ? colors.expenseStrong : colors.text} />
     </TouchableOpacity>
   );
 
   return (
-    <Screen title="Análisis con IA" subtitle="Pregunta sobre tu dinero; responde con tus datos"
+    <Screen title="Análisis con IA" subtitle="Responde con tus datos"
       right={<View style={{ flexDirection: "row", gap: 6 }}>
         {local.length > 0 && <IconBtn icon="add" label="Nueva conversación" onPress={fresh} />}
         <IconBtn icon="time-outline" label="Conversaciones anteriores" onPress={() => router.push("/analysis/chats" as never)} />
@@ -189,7 +189,7 @@ function ConversationView({ chatId }: { chatId?: string }) {
             <TextInput value={text} onChangeText={setText} multiline placeholder={local.length ? "Pregunta algo más…" : "Escribe tu pregunta…"} placeholderTextColor={colors.muted} maxLength={500} style={{ color: colors.text, fontFamily: "AsapMedium", fontSize: 15, maxHeight: 96, paddingVertical: 10 }} />
           </View>
           <TouchableOpacity onPress={() => void send.submit()} disabled={!canSend} accessibilityRole="button" accessibilityLabel="Preguntar" style={{ width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: canSend ? colors.primarySurface : `${colors.text}12` }}>
-            <Ionicons name={send.busy ? "hourglass-outline" : "arrow-up"} size={22} color={canSend ? colors.onPrimary : colors.muted} />
+            {send.busy ? <ActivityIndicator size="small" color={colors.muted} /> : <Ionicons name="arrow-up" size={22} color={canSend ? colors.onPrimary : colors.muted} />}
           </TouchableOpacity>
         </View>
       )}>
@@ -209,7 +209,7 @@ function ConversationView({ chatId }: { chatId?: string }) {
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
             {SUGGESTIONS.map((q) => (
-              <TouchableOpacity key={q} onPress={() => void send.submit(q)} accessibilityRole="button" style={{ minHeight: 36, paddingHorizontal: 14, borderRadius: 99, justifyContent: "center", backgroundColor: `${colors.primary}14`, borderWidth: 1, borderColor: `${colors.primary}33` }}>
+              <TouchableOpacity key={q} onPress={() => void send.submit(q)} accessibilityRole="button" hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }} style={{ minHeight: 36, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, justifyContent: "center", backgroundColor: `${colors.primary}14`, borderWidth: 1, borderColor: `${colors.primary}33` }}>
                 <Text style={{ color: colors.primary, fontSize: 13, fontFamily: "AsapMedium" }}>{q}</Text>
               </TouchableOpacity>
             ))}
@@ -278,7 +278,7 @@ export function SavedAnalysisScreen() {
   return (
     <Screen title="Análisis guardado" subtitle={scopeSummary(a.data.scope)}>
       <ResultView r={a.data} question={a.data.question} />
-      <Button title="Eliminar" variant="secondary" icon="trash-outline" onPress={remove} />
+      <Button title="Eliminar" variant="outlineDanger" icon="trash-outline" onPress={remove} />
     </Screen>
   );
 }

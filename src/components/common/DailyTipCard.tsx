@@ -48,7 +48,7 @@ export default function DailyTipCard() {
           <GeminiMark size={22} id="tip" />
           <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>Consejo del día</Text>
           <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: "rgba(155,114,203,0.20)" }}>
-            <Text style={{ color: colors.text, fontSize: 10, fontFamily: "AsapBold", letterSpacing: 0.6 }}>IA · GEMINI</Text>
+            <Text style={{ color: colors.text, fontSize: 11, fontFamily: "AsapBold", letterSpacing: 0.6 }}>IA · GEMINI</Text>
           </View>
           <View style={{ flex: 1 }} />
           {d.tip.focusLabel ? <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap", maxWidth: "36%" }}>{d.tip.focusLabel}</Text> : null}

@@ -14,6 +14,14 @@ import { formatSoles } from "../../utils/money";
 import { uriToBase64 } from "../e4/shared";
 
 const KIND: Record<BackupMeta["kind"], string> = { manual: "Manual", auto: "Automático", recovery: "Recuperación", imported: "Importado" };
+const TABLE_NAMES: Record<string, string> = {
+  account: "Cuentas", contact: "Contactos", subscription: "Servicios", seat: "Plazas", cycle: "Ciclos",
+  charge: "Cargos", receipt: "Cobros", financial_operation: "Movimientos", account_entry: "Asientos",
+  category: "Categorías", classification_rule: "Reglas", budget: "Presupuestos", goal: "Metas",
+  loan: "Préstamos", bank_loan: "Préstamos bancarios", recurring_template: "Recurrentes",
+  card_statement: "Estados de cuenta", installment_plan: "Compras en cuotas",
+};
+const tableLabel = (t: string) => TABLE_NAMES[t] ?? t.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 const mb = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`);
 
 // ───────────────────────── Lista ─────────────────────────
@@ -81,7 +89,7 @@ export function BackupsScreen() {
               <View style={{ flex: 1 }}><Button title="Sí, eliminar" variant="danger" busy={remove.busy} onPress={() => remove.submit(b.id)} /></View>
               <View style={{ flex: 1 }}><Button title="Cancelar" variant="secondary" onPress={() => setDelId(null)} /></View>
             </View>
-          ) : <Button title="Eliminar archivo" variant="secondary" onPress={() => setDelId(b.id)} />}
+          ) : <Button title="Eliminar archivo" variant="outlineDanger" onPress={() => setDelId(b.id)} />}
         </Card>
       ))}
       {[download.error, remove.error].filter(Boolean).map((e, i) => <Notice key={i} tone="err">{e}</Notice>)}
@@ -114,10 +122,9 @@ export function RestoreScreen() {
         <Card outlined>
           <Txt bold>Copia de recuperación</Txt>
           <Txt size={12} muted>Se guardó antes de restaurar. Si algo no es lo esperado, restáurala desde la lista de respaldos.</Txt>
-          <Button title="Ver mis respaldos" variant="secondary" onPress={() => router.replace("/settings/backups" as never)} />
         </Card>
         <Card outlined>
-          {Object.entries(done.inserted).filter(([, n]) => n > 0).map(([t, n]) => <KV key={t} label={t} value={String(n)} />)}
+          {Object.entries(done.inserted).filter(([, n]) => n > 0).map(([t, n]) => <KV key={t} label={tableLabel(t)} value={String(n)} />)}
         </Card>
       </Screen>
     );
@@ -125,7 +132,7 @@ export function RestoreScreen() {
   return (
     <Screen title="Restaurar" subtitle={b ? `${KIND[b.kind]} · ${humanDate(b.createdAt.slice(0, 10))}` : undefined}
       footer={flow.canConfirm
-        ? <View style={{ gap: 8 }}><Button title={mode === "replace" ? "Reemplazar mis datos" : "Incorporar lo que falta"} variant={mode === "replace" ? "danger" : "primary"} busy={flow.applying} onPress={async () => { const r = await flow.confirm(); if (r) setDone(r as never); }} /><Button title="Cambiar" variant="secondary" onPress={flow.invalidate} /></View>
+        ? <View style={{ gap: 8 }}><Button title={mode === "replace" ? "Reemplazar mis datos" : "Incorporar lo que falta"} variant={mode === "replace" ? "danger" : "primary"} busy={flow.applying} onPress={async () => { const r = await flow.confirm(); if (r) setDone(r as never); }} /><Button title="Cambiar datos" variant="secondary" onPress={flow.invalidate} /></View>
         : <Button title="Ver qué pasaría" busy={flow.loading} onPress={flow.run} />}>
       <Card>
         <Choice label="Cómo restaurar" value={mode} onChange={(v) => { setMode(v); flow.invalidate(); }} options={[{ id: "merge", label: "Incorporar lo que falta", hint: "no toca lo que ya tienes" }, { id: "replace", label: "Reemplazar todo", hint: "vuelve al estado del respaldo" }]} />
@@ -138,7 +145,7 @@ export function RestoreScreen() {
           <Card outlined>
             <Txt bold>Qué cambia</Txt>
             {pv.report.filter((r) => r.inBackup > 0 || r.current > 0).map((r) => (
-              <KV key={r.table} label={r.table} value={mode === "replace" ? `${r.current} → ${r.inBackup}` : `+${r.willAdd}${r.alreadyThere ? ` (ya había ${r.alreadyThere})` : ""}`} />
+              <KV key={r.table} label={tableLabel(r.table)} value={mode === "replace" ? `${r.current} → ${r.inBackup}` : `+${r.willAdd}${r.alreadyThere ? ` (ya había ${r.alreadyThere})` : ""}`} />
             ))}
           </Card>
           {mode === "replace" && (

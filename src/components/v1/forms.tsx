@@ -6,6 +6,7 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
 import { formatSoles, normalizeMoneyInput } from "../../utils/money";
+import { control, hitSlopFor } from "../../constants/Layout";
 import { Button, Card, Field, Loading, Notice, Txt } from "./ui";
 import { SelectField } from "./Select";
 import { DateInput } from "./DatePicker";
@@ -23,16 +24,17 @@ export function Choice<T extends string>({ label, options, value, onChange, sele
   const { colors } = useAppTheme();
   if (select || options.length > 4) return <SelectField label={label} options={options} value={value} onChange={onChange} />;
   return (
-    <View style={{ marginBottom: 12 }}>
+    <View style={{ marginBottom: 4 }}>
       {label && <Label>{label}</Label>}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {options.map((o) => {
           const on = value === o.id;
           return (
             <TouchableOpacity key={o.id} onPress={() => onChange(o.id)} accessibilityRole="radio" accessibilityState={{ selected: on }}
-              style={{ paddingHorizontal: 12, minHeight: 32, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
-              <Text style={{ color: on ? colors.primary : colors.text, fontFamily: "AsapMedium", fontSize: 13 }}>{o.label}</Text>
-              {o.hint ? <Text style={{ color: colors.textSecondary, fontFamily: "Asap", fontSize: 11 }}>{o.hint}</Text> : null}
+              hitSlop={hitSlopFor(control.chip)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, minHeight: control.chip, justifyContent: "center", borderRadius: o.hint ? 16 : 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
+              <Text style={{ color: on ? colors.primary : colors.text, fontFamily: "AsapMedium", fontSize: 13, flexShrink: 1 }}>{o.label}</Text>
+              {o.hint ? <Text style={{ color: colors.textSecondary, fontFamily: "Asap", fontSize: 11, flexShrink: 1 }}>{o.hint}</Text> : null}
             </TouchableOpacity>
           );
         })}
@@ -136,7 +138,7 @@ function Scalar({ k, v }: { k: string; v: unknown }) {
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, paddingVertical: 3 }}>
       <Text style={{ color: colors.textSecondary, fontFamily: "Asap", fontSize: 13, flexShrink: 1 }}>{LABELS[k] ?? k}</Text>
-      <Text style={{ color: colors.text, fontFamily: "AsapBold", fontSize: 13, textAlign: "right", flexShrink: 1 }}>{text}</Text>
+      <Text style={{ color: colors.text, fontFamily: "AsapBold", fontSize: 13, textAlign: "right", flexShrink: 1, fontVariant: ["tabular-nums"] }}>{text}</Text>
     </View>
   );
 }
@@ -182,13 +184,14 @@ export function PreviewView({ data, hide = [] }: { data: Preview; hide?: string[
  * Operaciones con vista previa: 1) "Ver vista previa" pide el cálculo al servidor; 2) "Confirmar" aplica exactamente lo visto
  * con su `previewToken` y una clave de idempotencia. Cualquier cambio en el formulario invalida la vista previa.
  */
-export function usePreviewFlow<R = unknown>(opts: { preview: () => Promise<Preview>; apply: (previewToken: string, key: string) => Promise<R> }) {
+export function usePreviewFlow<R = unknown>(opts: { preview: () => Promise<Preview>; apply: (previewToken: string, key: string) => Promise<R>; requireToken?: boolean }) {
   const [data, setData] = useState<Preview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const seq = useRef(0);
   const optsRef = useRef(opts);
   optsRef.current = opts;
+  const requireToken = opts.requireToken ?? true;
   const submit = useSubmit(async (key: string, token: string) => optsRef.current.apply(token, key));
 
   const run = useCallback(async () => {
@@ -205,8 +208,9 @@ export function usePreviewFlow<R = unknown>(opts: { preview: () => Promise<Previ
   }, []);
   /** Llamar cuando cambia cualquier campo del formulario. */
   const invalidate = useCallback(() => { seq.current++; setData(null); setError(null); setLoading(false); submit.resetKey(); }, [submit]);
-  const confirm = useCallback(async (): Promise<R | undefined> => (data?.previewToken ? (submit.submit(data.previewToken) as Promise<R | undefined>) : undefined), [data, submit]);
-  return { data, error, loading, run, invalidate, confirm, applying: submit.busy, applyError: submit.error, canConfirm: !!data?.previewToken };
+  const canConfirm = !!data && (!requireToken || !!data.previewToken);
+  const confirm = useCallback(async (): Promise<R | undefined> => (canConfirm ? (submit.submit(data?.previewToken ?? "") as Promise<R | undefined>) : undefined), [canConfirm, data, submit]);
+  return { data, error, loading, run, invalidate, confirm, applying: submit.busy, applyError: submit.error, canConfirm };
 }
 
 /** Pie estándar de un formulario con vista previa: dos botones. */

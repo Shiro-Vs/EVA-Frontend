@@ -26,7 +26,7 @@ export function MultiSelectField({ label, options, value, onChange, emptyText = 
   const close = () => { setOpen(false); setQ(""); };
 
   return (
-    <View style={{ marginBottom: 12 }}>
+    <View style={{ marginBottom: 4 }}>
       {label ? <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "AsapSemiBold", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6, marginLeft: 4 }}>{label}</Text> : null}
       <TouchableOpacity onPress={() => setOpen(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`${label ?? "Elegir"}: ${summary}`}
         style={{ minHeight: 44, borderRadius: 16, borderWidth: 1, borderColor: value.length ? colors.primary : colors.borderStrong, backgroundColor: colors.card, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -56,17 +56,17 @@ export function MultiSelectField({ label, options, value, onChange, emptyText = 
                 {on ? <Ionicons name="checkmark" size={15} color={colors.onPrimary} /> : null}
               </View>
               <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 15, fontFamily: o.indent ? "Asap" : "AsapMedium" }}>{o.indent && !q.trim() ? short(o.label) : o.label}</Text>
-              {o.hint ? <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{o.hint}</Text> : null}
+              {o.hint ? <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap", maxWidth: "40%" }}>{o.hint}</Text> : null}
             </TouchableOpacity>
           );
         })}
         {shown.length === 0 && <Text style={{ color: colors.textSecondary, fontFamily: "Asap", padding: 16, textAlign: "center" }}>Sin resultados.</Text>}
         <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 8, paddingTop: 10, paddingBottom: 4 }}>
-          <TouchableOpacity onPress={() => onChange([])} disabled={value.length === 0} accessibilityRole="button" style={{ flex: 1, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}14`, opacity: value.length === 0 ? 0.5 : 1 }}>
-            <Text style={{ color: colors.primary, fontFamily: "AsapBold", fontSize: 14 }}>Quitar selección</Text>
+          <TouchableOpacity onPress={() => onChange([])} disabled={value.length === 0} accessibilityRole="button" style={{ flex: 1, height: 44, paddingHorizontal: 12, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.primary}14`, opacity: value.length === 0 ? 0.5 : 1 }}>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ color: colors.primary, fontFamily: "AsapBold", fontSize: 14 }}>Quitar selección</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={close} accessibilityRole="button" style={{ flex: 1, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: colors.primarySurface }}>
-            <Text style={{ color: colors.onPrimary, fontFamily: "AsapBold", fontSize: 14 }}>Listo</Text>
+          <TouchableOpacity onPress={close} accessibilityRole="button" style={{ flex: 1, height: 44, paddingHorizontal: 12, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: colors.primarySurface }}>
+            <Text numberOfLines={1} style={{ color: colors.onPrimary, fontFamily: "AsapBold", fontSize: 14 }}>Listo</Text>
           </TouchableOpacity>
         </View>
       </BottomSheet>

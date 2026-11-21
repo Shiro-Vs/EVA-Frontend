@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Keyboard, Linking, Platform, Text, TouchableOpacity, View } from "react-native";
 import Constants from "expo-constants";
 import { api } from "../../api/client";
@@ -13,23 +13,11 @@ type Kind = "idea" | "problem" | "other";
 const KINDS: Array<{ id: Kind; label: string }> = [{ id: "idea", label: "Idea" }, { id: "problem", label: "Algo no funciona" }, { id: "other", label: "Otro" }];
 const MAX = 2000;
 
-/** Altura del teclado: la hoja es un modal y no se redimensiona sola, así que se deja ese espacio al final para no tapar el botón. */
-function useKeyboardHeight() {
-  const [h, setH] = useState(0);
-  useEffect(() => {
-    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", (e) => setH(e.endCoordinates.height));
-    const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setH(0));
-    return () => { show.remove(); hide.remove(); };
-  }, []);
-  return h;
-}
-
 /** Hoja para enviar una sugerencia o reporte al desarrollador: le llega por correo con el nombre y el correo de la cuenta. */
 export function SuggestionSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors } = useAppTheme();
   const { profile } = useAuth();
   const dialog = useDialog();
-  const keyboard = useKeyboardHeight();
   const [kind, setKind] = useState<Kind>("idea");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -68,8 +56,9 @@ export function SuggestionSheet({ visible, onClose }: { visible: boolean; onClos
             const on = kind === k.id;
             return (
               <TouchableOpacity key={k.id} onPress={() => setKind(k.id)} accessibilityRole="radio" accessibilityState={{ selected: on }} activeOpacity={0.8}
-                style={{ flex: 1, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: on ? colors.primarySurface : `${colors.primary}14` }}>
-                <Text numberOfLines={1} style={{ color: on ? colors.onPrimary : colors.primary, fontSize: 12.5, fontFamily: "AsapBold" }}>{k.label}</Text>
+                hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }}
+                style={{ flex: 1, minHeight: 40, paddingHorizontal: 8, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: on ? colors.primarySurface : `${colors.primary}14` }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={{ color: on ? colors.onPrimary : colors.primary, fontSize: 12.5, fontFamily: "AsapBold" }}>{k.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -92,7 +81,6 @@ export function SuggestionSheet({ visible, onClose }: { visible: boolean; onClos
             <View style={{ flex: 1 }}><Button title="WhatsApp" icon="logo-whatsapp" variant="outline" size="compact" onPress={() => open(whatsappLink(`${who}Te escribo desde la app EVA: `))} /></View>
           </View>
         </View>
-        {keyboard > 0 && <View style={{ height: keyboard }} />}
       </View>
     </BottomSheet>
   );

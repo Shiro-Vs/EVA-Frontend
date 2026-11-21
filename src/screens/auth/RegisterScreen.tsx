@@ -1,13 +1,11 @@
-import React, { useState, useRef } from "react";
+import React, { useRef } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
-  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
@@ -34,7 +32,6 @@ export default function RegisterScreen() {
     setConfirmPassword,
     showPassword,
     setShowPassword,
-    isKeyboardVisible,
     isAuthenticating,
     errors,
     setErrors,
@@ -49,29 +46,29 @@ export default function RegisterScreen() {
   const confirmPasswordRef = useRef<TextInput>(null);
 
   return (
-    <KeyboardAvoidingView
-      behavior="padding"
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-      className="flex-1"
-    >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: colors.background }}
-        scrollEnabled={isKeyboardVisible}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={{ flex: 1 }}
       >
-        <SafeAreaView className="flex-1 px-6 pt-20 pb-12">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          style={{ backgroundColor: colors.background }}
+        >
           {/* Back Button */}
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="absolute top-16 left-6 z-10 p-2"
-          >
-            <Ionicons
-              name="chevron-back"
-              size={28}
-              color={colors.text}
-            />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Volver"
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
 
           {/* Logo Section */}
           <View className="items-center mb-6">
@@ -181,9 +178,9 @@ export default function RegisterScreen() {
                 <TextInput
                   ref={passwordRef}
                   placeholder="••••••••"
-                  placeholderTextColor={colors.textSecondary}
-                  className="flex-1 ml-3 font-asap text-base"
-                  style={{ color: colors.text }}
+                  placeholderTextColor={colors.muted}
+                  className="flex-1 ml-3 text-base"
+                  style={{ fontFamily: fonts.family.regular, color: colors.text }}
                   secureTextEntry={!showPassword}
                   returnKeyType="next"
                   onSubmitEditing={() => confirmPasswordRef.current?.focus()}
@@ -196,6 +193,9 @@ export default function RegisterScreen() {
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
@@ -216,7 +216,7 @@ export default function RegisterScreen() {
               </Text>
               <View
                 className="flex-row items-center rounded-2xl px-4"
-                style={{ minHeight: 48, backgroundColor: colors.card, borderWidth: errors.confirmPassword ? 1 : 0, borderColor: colors.expense }}
+                style={{ minHeight: 48, backgroundColor: colors.card, borderWidth: errors.confirmPassword ? 1 : 0, borderColor: colors.expenseStrong }}
               >
                 <Ionicons
                   name="shield-checkmark-outline"
@@ -226,9 +226,9 @@ export default function RegisterScreen() {
                 <TextInput
                   ref={confirmPasswordRef}
                   placeholder="••••••••"
-                  placeholderTextColor={colors.textSecondary}
-                  className="flex-1 ml-3 font-asap text-base"
-                  style={{ color: colors.text }}
+                  placeholderTextColor={colors.muted}
+                  className="flex-1 ml-3 text-base"
+                  style={{ fontFamily: fonts.family.regular, color: colors.text }}
                   secureTextEntry={!showPassword}
                   returnKeyType="done"
                   onSubmitEditing={handleRegister}
@@ -240,6 +240,9 @@ export default function RegisterScreen() {
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
@@ -257,44 +260,49 @@ export default function RegisterScreen() {
             <TouchableOpacity
               onPress={handleRegister}
               disabled={isAuthenticating}
-              className="rounded-2xl h-12 items-center justify-center shadow-lg mt-6"
+              accessibilityRole="button"
+              className="rounded-2xl h-12 px-4 items-center justify-center shadow-lg mt-6"
               style={{ backgroundColor: colors.primarySurface, opacity: isAuthenticating ? 0.7 : 1 }}
               activeOpacity={0.8}
             >
-              <Text className="text-lg" style={{ fontFamily: fonts.family.bold, color: colors.onPrimary }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} className="text-lg" style={{ fontFamily: fonts.family.bold, color: colors.onPrimary }}>
                 {isAuthenticating ? "Creando cuenta..." : "Crear Cuenta"}
               </Text>
             </TouchableOpacity>
           </View>
 
           {/* Footer */}
-          <View className="mt-3 mb-6 flex-row justify-center">
+          <View className="mt-4 mb-6 flex-row justify-center items-center">
             <Text className="text-base" style={{ fontFamily: fonts.family.regular, color: colors.textSecondary }}>
               ¿Ya tienes una cuenta?{" "}
             </Text>
-            <TouchableOpacity onPress={() => router.back()}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            >
               <Text className="text-base" style={{ fontFamily: fonts.family.bold, color: colors.primary }}>
                 Inicia Sesión
               </Text>
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
-      </ScrollView>
+        </ScrollView>
 
-      {/* Alerta Genérica */}
-      <EVAAlert
-        visible={alertConfig.visible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        iconName={alertConfig.iconName}
-        onClose={() => {
-          setAlertConfig({ ...alertConfig, visible: false });
-          if (alertConfig.type === "success") {
-            router.replace("/"); // Redirigir al login si fue exitoso
-          }
-        }}
-      />
-    </KeyboardAvoidingView>
+        {/* Alerta Genérica */}
+        <EVAAlert
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          iconName={alertConfig.iconName}
+          onClose={() => {
+            setAlertConfig({ ...alertConfig, visible: false });
+            if (alertConfig.type === "success") {
+              router.replace("/"); // Redirigir al login si fue exitoso
+            }
+          }}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

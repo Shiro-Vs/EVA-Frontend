@@ -29,8 +29,8 @@ export const ServicePayments: React.FC<ServicePaymentsProps> = ({ cycles, loadin
 
   const Line = ({ label, value, strong }: { label: string; value: string; strong?: boolean }) => (
     <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-      <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>{label}</Text>
-      <Text style={{ color: colors.text, fontSize: 13, fontFamily: strong ? "AsapBold" : "AsapMedium" }}>{value}</Text>
+      <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", flexShrink: 1 }}>{label}</Text>
+      <Text style={{ color: colors.text, fontSize: 13, fontFamily: strong ? "AsapBold" : "AsapMedium", flexShrink: 1, textAlign: "right", fontVariant: ["tabular-nums"] }}>{value}</Text>
     </View>
   );
 
@@ -85,7 +85,7 @@ export const ServicePayments: React.FC<ServicePaymentsProps> = ({ cycles, loadin
                       return (
                         <View key={ch.obligationId} style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
                           <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 13, fontFamily: "AsapMedium" }}>{ch.contactName}</Text>
-                          <Text style={{ color: st.color, fontSize: 13, fontFamily: "AsapMedium" }}>{st.text}</Text>
+                          <Text style={{ color: st.color, fontSize: 13, fontFamily: "AsapMedium", flexShrink: 1, textAlign: "right", fontVariant: ["tabular-nums"] }}>{st.text}</Text>
                         </View>
                       );
                     })}

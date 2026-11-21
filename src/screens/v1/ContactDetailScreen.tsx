@@ -6,7 +6,7 @@ import { Button, Card, Chip, ErrorBox, Heading, KV, Loading, Money, Screen, Txt 
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, humanRange } from "../../utils/dates";
-import { cmpMoney } from "../../utils/money";
+import { cmpMoney, formatSoles } from "../../utils/money";
 
 async function shareText(text: string) {
   if (Platform.OS === "web") {
@@ -33,8 +33,8 @@ export default function ContactDetailScreen({ contactId }: { contactId: string }
   return (
     <Screen title={s.contact.name} footer={<Button title="Registrar cobro" icon="cash-outline" onPress={() => router.push({ pathname: "/receipt/new", params: { contactId } })} />}>
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <Card style={{ flex: 1 }}><Txt muted size={13}>Pendiente</Txt><Money value={s.totals.pending} size={24} tone={owes ? "expense" : undefined} />{cmpMoney(s.totals.overdue, "0.00") > 0 && <Txt size={12} muted>S/ {s.totals.overdue} vencido</Txt>}</Card>
-        <Card style={{ flex: 1 }}><Txt muted size={13}>Crédito</Txt><Money value={credit.data?.total ?? "0.00"} size={24} tone="income" />{cmpMoney(s.totals.creditReserved, "0.00") > 0 && <Txt size={12} muted>S/ {s.totals.creditReserved} reservado</Txt>}</Card>
+        <Card style={{ flex: 1 }}><Txt muted size={13}>Pendiente</Txt><Money value={s.totals.pending} size={24} numberOfLines={1} adjustsFontSizeToFit tone={owes ? "expense" : undefined} />{cmpMoney(s.totals.overdue, "0.00") > 0 && <Txt size={12} muted>{formatSoles(s.totals.overdue)} vencido</Txt>}</Card>
+        <Card style={{ flex: 1 }}><Txt muted size={13}>Crédito</Txt><Money value={credit.data?.total ?? "0.00"} size={24} numberOfLines={1} adjustsFontSizeToFit tone="income" />{cmpMoney(s.totals.creditReserved, "0.00") > 0 && <Txt size={12} muted>{formatSoles(s.totals.creditReserved)} reservado</Txt>}</Card>
       </View>
 
       {s.services.length === 0 && <Card><Txt muted>Sin servicios ni cargos todavía.</Txt></Card>}
@@ -42,17 +42,19 @@ export default function ContactDetailScreen({ contactId }: { contactId: string }
         <View key={svc.subscriptionId} style={{ gap: 8 }}>
           <Heading>{svc.name}</Heading>
           <Card outlined>
-            {svc.seats.map((seat) => <KV key={seat.seatId} label={`${seat.label} · cuota S/ ${seat.quota}`} value={cmpMoney(seat.pending, "0.00") > 0 ? `debe S/ ${seat.pending}` : "al día"} />)}
+            {svc.seats.map((seat) => <KV key={seat.seatId} label={`${seat.label} · cuota ${formatSoles(seat.quota)}`} value={cmpMoney(seat.pending, "0.00") > 0 ? `debe ${formatSoles(seat.pending)}` : "al día"} />)}
           </Card>
           {svc.charges.map((c) => (
             <Card key={c.obligationId} outlined>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Txt bold size={14}>{c.seatLabel} · {humanRange(c.cycle.start, c.cycle.end)}</Txt>
-                  <Txt size={12} muted>Vence el {humanDate(c.dueDate)} · cargo S/ {c.net}{c.applied !== "0.00" ? ` · pagado S/ ${c.applied}` : ""}</Txt>
+                  <Txt size={12} muted>Vence el {humanDate(c.dueDate)} · cargo {formatSoles(c.net)}{c.applied !== "0.00" ? ` · pagado ${formatSoles(c.applied)}` : ""}</Txt>
                 </View>
-                {c.overdue ? <Chip status="overdue" /> : <Chip status={c.paymentStatus} />}
-                <Money value={c.pending} size={14} />
+                <View style={{ alignItems: "flex-end", gap: 4 }}>
+                  {c.overdue ? <Chip status="overdue" /> : <Chip status={c.paymentStatus} />}
+                  <Money value={c.pending} size={14} />
+                </View>
               </View>
             </Card>
           ))}
@@ -63,7 +65,7 @@ export default function ContactDetailScreen({ contactId }: { contactId: string }
         <>
           <Heading>Crédito reservado</Heading>
           <Card outlined>
-            {credit.data!.reservations.map((r) => <KV key={r.id} label={`Para ${r.subscriptionName}`} value={`S/ ${r.amount}`} />)}
+            {credit.data!.reservations.map((r) => <KV key={r.id} label={`Para ${r.subscriptionName}`} value={formatSoles(r.amount)} />)}
           </Card>
         </>
       )}
@@ -73,7 +75,7 @@ export default function ContactDetailScreen({ contactId }: { contactId: string }
         <Button title="Convertir deuda en préstamo" variant="secondary" icon="swap-horizontal-outline" onPress={() => router.push(`/contact/${contactId}/convert` as never)} />
         <Button title="Préstamos" variant="secondary" icon="cash-outline" onPress={() => router.push({ pathname: "/loans", params: { contactId } })} />
       </View>
-      <Button title={copied ? "Texto listo para pegar" : "Compartir estado de cuenta"} variant="secondary" icon="share-outline" onPress={async () => { await shareText(s.shareText); setCopied(true); setTimeout(() => setCopied(false), 2500); }} />
+      <Button title={copied ? (Platform.OS === "web" ? "Texto listo para pegar" : "Estado compartido") : "Compartir estado de cuenta"} variant="secondary" icon="share-outline" onPress={async () => { await shareText(s.shareText); setCopied(true); setTimeout(() => setCopied(false), 2500); }} />
       <Txt size={12} muted>Prepara un texto discreto para ti: EVA no envía mensajes por su cuenta.</Txt>
     </Screen>
   );

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -63,13 +63,14 @@ export default function PlanningScreen() {
       <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 16, overflow: "hidden" }}>
         <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
         <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Comprometido este ciclo</Text>
-        <Text style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold" }}>{formatSoles(s?.subscriptions.currentCycleTotal)}</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(s?.subscriptions.currentCycleTotal)}</Text>
         <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
-          <Stat label="Servicios" value={`${all.length}`} sub={sharedCount ? `${sharedCount} compartidos` : "personales"} />
+          <Stat label="Servicios" value={`${all.length}`} sub={sharedCount ? (sharedCount === 1 ? "1 compartido" : `${sharedCount} compartidos`) : "personales"} />
           <Stat label="Por cobrar" value={formatSoles(s?.receivable.pending)} sub={s && Number(s.receivable.overdue) > 0 ? `${formatSoles(s.receivable.overdue)} vencido` : "al día"} />
         </View>
         {next && nextDays !== null && (
-          <TouchableOpacity onPress={() => router.push(`/service/${next.id}` as never)} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, backgroundColor: "rgba(255,255,255,0.14)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
+          <TouchableOpacity onPress={() => router.push(`/service/${next.id}` as never)} accessibilityRole="button" hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, minHeight: 40, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
             <Ionicons name="time-outline" size={16} color={colors.onPrimary} />
             <Text numberOfLines={1} style={{ flex: 1, color: colors.onPrimary, fontSize: 13, fontFamily: "AsapMedium" }}>Próxima renovación: <Text style={{ fontFamily: "AsapBold" }}>{next.name} {whenText(nextDays)}</Text></Text>
             <Ionicons name="chevron-forward" size={14} color={colors.onPrimaryMuted} />
@@ -79,19 +80,21 @@ export default function PlanningScreen() {
 
       {/* Filtros y vista */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <View style={{ flex: 1, flexDirection: "row", gap: 6 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: 6, alignItems: "center", paddingVertical: 2 }}>
           {([["all", "Todos"], ["shared", "Compartidos"], ["personal", "Personales"]] as Array<[Filter, string]>).map(([id, label]) => {
             const on = filter === id;
             return (
-              <TouchableOpacity key={id} onPress={() => setFilter(id)} accessibilityRole="button" accessibilityState={{ selected: on }} style={{ minHeight: 32, paddingHorizontal: 12, borderRadius: 99, justifyContent: "center", backgroundColor: on ? colors.primarySurface : `${colors.primary}12` }}>
+              <TouchableOpacity key={id} onPress={() => setFilter(id)} accessibilityRole="button" accessibilityState={{ selected: on }} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
+                style={{ minHeight: 34, paddingHorizontal: 12, borderRadius: 99, justifyContent: "center", backgroundColor: on ? colors.primarySurface : `${colors.primary}12` }}>
                 <Text style={{ color: on ? colors.onPrimary : colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>{label}</Text>
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
         <View style={{ flexDirection: "row", backgroundColor: colors.card, borderRadius: 12, padding: 3, borderWidth: 1, borderColor: colors.border }}>
           {([["cards", "grid-outline", "Ver como tarjetas"], ["list", "list-outline", "Ver como lista"]] as Array<[View_, keyof typeof Ionicons.glyphMap, string]>).map(([id, icon, label]) => (
-            <TouchableOpacity key={id} onPress={() => chooseView(id)} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: view === id }} style={{ width: 34, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: view === id ? colors.primarySurface : "transparent" }}>
+            <TouchableOpacity key={id} onPress={() => chooseView(id)} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: view === id }} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+              style={{ width: 36, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: view === id ? colors.primarySurface : "transparent" }}>
               <Ionicons name={icon} size={17} color={view === id ? colors.onPrimary : colors.textSecondary} />
             </TouchableOpacity>
           ))}
@@ -116,9 +119,9 @@ export default function PlanningScreen() {
 function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.14)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
+    <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
       <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium" }}>{label}</Text>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 17, fontFamily: "AsapBold" }}>{value}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 17, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
       <Text numberOfLines={1} style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "Asap" }}>{sub}</Text>
     </View>
   );
@@ -162,8 +165,8 @@ function ServiceCard({ sub, today, isDark, onPress }: { sub: Subscription; today
       <View>
         <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{sub.name}</Text>
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 2 }}>
-          <Text style={{ color: colors.text, fontSize: 18, fontFamily: "AsapBold" }}>{formatSoles(sub.terms?.announcedPrice)}</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{per(sub.terms?.interval)}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: colors.text, fontSize: 18, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], flexShrink: 1 }}>{formatSoles(sub.terms?.announcedPrice)}</Text>
+          <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap", flexShrink: 1 }}>{per(sub.terms?.interval)}</Text>
         </View>
       </View>
       <View style={{ gap: 4 }}>

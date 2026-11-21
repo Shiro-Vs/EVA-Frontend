@@ -36,7 +36,7 @@ export default function OfflineBanner() {
         <Text style={{ color: colors.text, fontFamily: "AsapBold", fontSize: 12 }}>Sin conexión</Text>
         <Text style={{ color: colors.text, fontFamily: "Asap", fontSize: 11 }}>Estás viendo datos guardados{when ? ` del ${when}` : ""}. Registrar y editar se habilita al reconectar.</Text>
       </View>
-      <TouchableOpacity onPress={retry} disabled={busy} accessibilityRole="button" style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: colors.alert.warning.border }}>
+      <TouchableOpacity onPress={retry} disabled={busy} accessibilityRole="button" hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ minHeight: 34, justifyContent: "center", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: colors.alert.warning.border }}>
         <Text style={{ color: colors.text, fontFamily: "AsapMedium", fontSize: 12 }}>{busy ? "…" : "Reintentar"}</Text>
       </TouchableOpacity>
     </View>

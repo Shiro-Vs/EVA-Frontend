@@ -77,14 +77,14 @@ function BudgetCard({ b, onPress }: { b: Budget; onPress: () => void }) {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <View style={{ flex: 1 }}>
             <Txt bold numberOfLines={1}>{b.name}</Txt>
-            <Txt size={12} muted>{PERIOD[b.period]}{b.category ? ` · ${b.category.name}` : " · todo el gasto"}</Txt>
+            <Txt size={12} muted numberOfLines={1}>{PERIOD[b.period]}{b.category ? ` · ${b.category.name}` : " · todo el gasto"}</Txt>
           </View>
           <Txt bold color={tone}>{c.exceeded ? "Excedido" : `${Math.round(pct)}%`}</Txt>
         </View>
         <Bar pct={pct} color={tone} />
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Txt size={12} muted>Gastado {formatSoles(c.spent)} de {formatSoles(c.available)}</Txt>
-          <Txt size={12} bold color={c.exceeded ? colors.expenseStrong : colors.text}>{c.exceeded ? `+${formatSoles(c.overBy)}` : `Quedan ${formatSoles(c.remaining)}`}</Txt>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 6 }}>
+          <Txt size={12} muted style={{ flexShrink: 1 }}>Gastado {formatSoles(c.spent)} de {formatSoles(c.available)}</Txt>
+          <Txt size={12} bold color={c.exceeded ? colors.expenseStrong : colors.text} style={{ flexShrink: 1 }}>{c.exceeded ? `+${formatSoles(c.overBy)}` : `Quedan ${formatSoles(c.remaining)}`}</Txt>
         </View>
       </Card>
     </TouchableOpacity>
@@ -100,16 +100,16 @@ function GoalCard({ g, onPress }: { g: Goal; onPress: () => void }) {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={{ flex: 1 }}>
             <Txt bold numberOfLines={1}>{g.name}</Txt>
-            <Txt size={12} muted>Objetivo {formatSoles(g.targetAmount)}{g.targetDate ? ` · hasta ${humanDate(g.targetDate)}` : ""}</Txt>
+            <Txt size={12} muted numberOfLines={1}>Objetivo {formatSoles(g.targetAmount)}{g.targetDate ? ` · hasta ${humanDate(g.targetDate)}` : ""}</Txt>
           </View>
           <View style={{ padding: 8, borderRadius: 12, backgroundColor: `${tone}1A` }}>
             <Ionicons name={g.achieved ? "checkmark-circle-outline" : "flag-outline"} size={22} color={tone} />
           </View>
         </View>
         <Bar pct={g.percent} color={tone} />
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Txt size={12} muted>{g.achieved ? "¡Meta cumplida!" : `${g.percent}% completado`}</Txt>
-          <Txt size={12} bold>{formatSoles(g.saved)}</Txt>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 6 }}>
+          <Txt size={12} muted style={{ flexShrink: 1 }}>{g.achieved ? "¡Meta cumplida!" : `${g.percent}% completado`}</Txt>
+          <Txt size={12} bold style={{ flexShrink: 1 }}>{formatSoles(g.saved)}</Txt>
         </View>
       </Card>
     </TouchableOpacity>

@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import type { Budget, BudgetStatus } from "../../api/types";
 import { AccountPicker, CategoryPicker, Choice, DateField, MoneyField } from "../../components/v1/forms";
 import { Button, Card, Chip, Empty, ErrorBox, Field, Heading, KV, Loading, Money, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import { useDialog } from "../../context/DialogContext";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -15,9 +16,9 @@ const PERIOD: Record<string, string> = { weekly: "semanal", monthly: "mensual", 
 
 function StatusLine({ s }: { s: BudgetStatus }) {
   return (
-    <View>
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <Txt bold>{formatSoles(s.spent)} de {formatSoles(s.available)}</Txt>
+    <View style={{ gap: 4 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+        <Txt bold style={{ flexShrink: 1 }}>{formatSoles(s.spent)} de {formatSoles(s.available)}</Txt>
         <Chip status={s.exceeded ? "overdue" : s.level ? "partial" : "paid"} label={s.exceeded ? `Pasado por ${formatSoles(s.overBy)}` : s.percent === null ? "—" : `${s.percent}%`} />
       </View>
       <Txt size={12} muted>{humanDate(s.period.start)} → {humanDate(s.period.end)} · queda {formatSoles(s.remaining)}{s.carry !== "0.00" ? ` · arrastre ${formatSoles(s.carry)}` : ""}</Txt>
@@ -115,6 +116,7 @@ export function BudgetDetailScreen() {
         {save.error && <Notice tone="err">{save.error}</Notice>}
       </Card>
       <Button title={d.status === "active" ? "Archivar presupuesto" : "Restaurar presupuesto"} variant="secondary" busy={archive.busy} onPress={async () => { if (await archive.submit()) void b.reload(); }} />
+      {archive.error && <Notice tone="err">{archive.error}</Notice>}
     </Screen>
   );
 }
@@ -123,7 +125,8 @@ export function BudgetDetailScreen() {
 
 export function GoalsScreen() {
   const router = useRouter();
-  const goals = useAsync(() => api.goals(), []);
+  const [status, setStatus] = useState<"active" | "archived">("active");
+  const goals = useAsync(() => api.goals(status), [status]);
   const ov = useAsync(() => api.goalsOverview(), []);
   useFocusReload(() => { void goals.reload(); void ov.reload(); });
   return (
@@ -137,12 +140,13 @@ export function GoalsScreen() {
         </Card>
       ))}
       <Heading>Mis metas</Heading>
+      <Choice value={status} onChange={setStatus} options={[{ id: "active", label: "Activas" }, { id: "archived", label: "Archivadas" }]} />
       {goals.loading && !goals.data ? <Loading /> : goals.error ? <ErrorBox message={goals.error} onRetry={goals.reload} /> : (goals.data ?? []).length === 0 ? (
-        <Empty icon="flag-outline" title="Sin metas" text="Crea una meta y reserva dinero que ya tienes en tus cuentas." />
+        <Empty icon="flag-outline" title={status === "active" ? "Sin metas" : "Sin metas archivadas"} text={status === "active" ? "Crea una meta y reserva dinero que ya tienes en tus cuentas." : "Las metas que archives aparecerán aquí por si quieres restaurarlas."} />
       ) : (goals.data ?? []).map((g) => (
         <RowLink key={g.id} onPress={() => router.push(`/goals/${g.id}` as never)}>
           <View style={{ flex: 1 }}><Txt bold>{g.name}</Txt><Txt size={12} muted>{formatSoles(g.saved)} de {formatSoles(g.targetAmount)}{g.targetDate ? ` · hasta ${humanDate(g.targetDate)}` : ""}</Txt></View>
-          <Chip status={g.achieved ? "paid" : "partial"} label={`${g.percent}%`} />
+          <Chip status={g.status === "archived" ? "converted" : g.achieved ? "paid" : "partial"} label={g.status === "archived" ? "Archivada" : `${g.percent}%`} />
         </RowLink>
       ))}
     </Screen>
@@ -171,6 +175,7 @@ export function GoalNewScreen() {
 
 export function GoalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const dialog = useDialog();
   const g = useAsync(() => api.goal(id), [id]);
   const transfers = useAsync(() => api.operations({ kind: "transfer", limit: 20 }), []);
   useFocusReload(g.reload);
@@ -191,6 +196,13 @@ export function GoalDetailScreen() {
         {d.achieved && <Chip status="paid" label="Meta cumplida" />}
         {d.accounts.map((a) => <View key={a.accountId}><KV label={a.name} value={formatSoles(a.reserved)} />{a.overReserved && <Notice tone="warn">Lo reservado en {a.name} supera su saldo.</Notice>}</View>)}
       </Card>
+      {d.status === "archived" && (
+        <Notice tone="info">
+          {d.saved !== "0.00"
+            ? `Esta meta está archivada: los ${formatSoles(d.saved)} guardados aquí ya cuentan como dinero libre en tus cuentas. Si la restauras, volverán a apartarse.`
+            : "Esta meta está archivada. Puedes restaurarla cuando quieras."}
+        </Notice>
+      )}
       {d.status === "active" && (
         <Card>
           <Choice label="Qué quieres hacer" value={mode} onChange={setMode} options={[{ id: "reserve", label: "Reservar dinero" }, { id: "release", label: "Liberar dinero" }, { id: "link", label: "Vincular una transferencia" }]} />
@@ -213,8 +225,22 @@ export function GoalDetailScreen() {
         </Card>
       )}
       <Heading>Historial</Heading>
-      {(d.contributions ?? []).map((c) => <Card key={c.id} outlined><View style={{ flexDirection: "row", justifyContent: "space-between" }}><Txt size={13}>{c.accountName} · {c.kind === "reserve" ? "reserva" : c.kind === "release" ? "liberación" : c.kind === "transfer" ? "transferencia" : "gasto"}</Txt><Txt bold size={13}>{formatSoles(c.amount)}</Txt></View></Card>)}
-      <Button title={d.status === "active" ? "Archivar meta" : "Restaurar meta"} variant="secondary" busy={archive.busy} onPress={async () => { if (await archive.submit()) void g.reload(); }} />
+      {(d.contributions ?? []).map((c) => <Card key={c.id} outlined><View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}><Txt size={13} style={{ flex: 1, flexShrink: 1 }}>{c.accountName} · {c.kind === "reserve" ? "reserva" : c.kind === "release" ? "liberación" : c.kind === "transfer" ? "transferencia" : "gasto"}</Txt><Txt bold size={13} style={{ fontVariant: ["tabular-nums"] }}>{formatSoles(c.amount)}</Txt></View></Card>)}
+      <Button title={d.status === "active" ? "Archivar meta" : "Restaurar meta"} variant="secondary" busy={archive.busy} onPress={async () => {
+        if (d.status === "active") {
+          const ok = await dialog.confirm({
+            title: "¿Archivar esta meta?",
+            message: d.saved !== "0.00"
+              ? `Mientras esté archivada, los ${formatSoles(d.saved)} reservados volverán a contar como dinero libre en tus cuentas. Podrás restaurarla desde Metas → Archivadas.`
+              : "Dejará de aparecer en tus metas activas, pero podrás restaurarla desde Metas → Archivadas.",
+            confirmLabel: "Archivar",
+            cancelLabel: "Cancelar",
+          });
+          if (!ok) return;
+        }
+        if (await archive.submit()) void g.reload();
+      }} />
+      {archive.error && <Notice tone="err">{archive.error}</Notice>}
     </Screen>
   );
 }

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { useRouter } from "expo-router";
 import { api } from "../../api/client";
-import { session } from "../../api/http";
 import { Button, Card, ErrorBox, Field, Heading, KV, Loading, Notice, Screen, Txt } from "../../components/v1/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
+import { useFocusReload } from "../../hooks/useFocusReload";
 
 const NAMES: Record<string, string> = {
   account: "Cuentas", account_entry: "Asientos de cuentas", financial_operation: "Movimientos", contact: "Contactos", subscription: "Servicios", receipt: "Cobros", loan: "Préstamos",
@@ -17,11 +17,11 @@ export function AccountPrivacyScreen() {
   const router = useRouter();
   const { logout, profile } = useAuth();
   const prev = useAsync(() => api.deletionPreview(), []);
+  useFocusReload(prev.reload);
   const [phrase, setPhrase] = useState("");
   const [open, setOpen] = useState(false);
   const del = useSubmit(async () => {
     const r = await api.deleteAccount({ previewToken: prev.data!.previewToken, confirm: phrase });
-    await session.setToken(null);
     await logout();
     return r;
   });
@@ -50,7 +50,12 @@ export function AccountPrivacyScreen() {
               <Field label="Frase de confirmación" value={phrase} onChangeText={setPhrase} autoCapitalize="characters" placeholder={p.confirmPhrase} />
               <Button title="Eliminar todo definitivamente" variant="danger" busy={del.busy} disabled={phrase.trim().toUpperCase() !== p.confirmPhrase} onPress={del.submit} />
               <Button title="Cancelar" variant="secondary" onPress={() => { setOpen(false); setPhrase(""); }} />
-              {del.error && <Notice tone="err">{del.error}</Notice>}
+              {del.error && (
+                <>
+                  <Notice tone="err">{del.error}</Notice>
+                  <Button title="Actualizar resumen" variant="secondary" size="small" onPress={() => { del.resetKey(); void prev.reload(); }} />
+                </>
+              )}
             </Card>
           )}
         </>

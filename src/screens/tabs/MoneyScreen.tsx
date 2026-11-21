@@ -15,7 +15,7 @@ import { humanDate } from "../../utils/dates";
 import { cmpMoney, formatSoles } from "../../utils/money";
 
 const ICON: Record<string, keyof typeof Ionicons.glyphMap> = { bank: "business", savings: "save", cash: "cash", wallet: "phone-portrait", credit: "card" };
-const KINDS: Array<[string | undefined, string]> = [[undefined, "Todos"], ["income", "Ingresos"], ["expense", "Gastos"], ["transfer", "Traspasos"]];
+const KINDS: Array<[string | undefined, string]> = [[undefined, "Todos"], ["income", "Ingresos"], ["expense", "Gastos"], ["transfer", "Transferencias"]];
 const PAGE = 12;
 const CARD_GAP = 12;
 
@@ -63,7 +63,7 @@ export default function MoneyScreen() {
       <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 18, overflow: "hidden", gap: 4 }}>
         <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
         <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Saldo total</Text>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 32, fontFamily: "AsapBold" }}>{s ? formatSoles(s.balance.net) : "…"}</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 32, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{s ? formatSoles(s.balance.net) : "…"}</Text>
         <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "Asap" }}>{list.length} {list.length === 1 ? "cuenta" : "cuentas"} · lo que debes en tarjetas ya está descontado</Text>
       </View>
 
@@ -88,9 +88,9 @@ export default function MoneyScreen() {
       )}
 
       <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold", marginTop: 4 }}>Movimientos</Text>
-      <View style={{ flexDirection: "row", gap: 8, marginTop: -6 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -24, marginTop: -4 }} contentContainerStyle={{ paddingHorizontal: 24, gap: 8, paddingVertical: 2 }}>
         {KINDS.map(([k, label]) => <FilterChip key={label} label={label} active={kind === k} onPress={() => setKind(k)} />)}
-      </View>
+      </ScrollView>
       {list.length > 1 && (
         <View style={{ marginTop: -6, marginBottom: -12 }}>
           <SelectField value={accountId ?? "all"} options={accountOptions} onChange={(v) => setAccountId(v === "all" ? undefined : v)} />
@@ -144,14 +144,14 @@ function AccountCard({ account: a, width, height, onPress }: { account: Account;
             </LinearGradient>
           </View>
           <View style={{ alignItems: "flex-end", flexShrink: 1 }}>
-            <Text style={{ color: soft, fontSize: 10, fontFamily: "AsapMedium", letterSpacing: 1.2 }}>{credit ? "DEUDA" : "SALDO"}</Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: credit && owes && !brand ? colors.expenseStrong : ink, fontSize: 22, fontFamily: "AsapBold" }}>{formatSoles(a.balance)}</Text>
+            <Text style={{ color: soft, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2 }}>{credit ? "DEUDA" : "SALDO"}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: credit && owes && !brand ? colors.expenseStrong : ink, fontSize: 22, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(a.balance)}</Text>
           </View>
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <Text numberOfLines={1} style={{ flex: 1, color: ink, fontSize: 12, fontFamily: "AsapMedium", letterSpacing: 1.5, textTransform: "uppercase" }}>{a.name}</Text>
-          <Text style={{ color: soft, fontSize: 10, fontFamily: "AsapBold", letterSpacing: 1.2 }}>{kind}</Text>
+          <Text style={{ color: soft, fontSize: 11, fontFamily: "AsapBold", letterSpacing: 1.2 }}>{kind}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -175,7 +175,8 @@ function LinkTile({ icon, title, text, onPress }: { icon: keyof typeof Ionicons.
 function FilterChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   const { colors } = useAppTheme();
   return (
-    <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: active }} style={{ minHeight: 32, paddingHorizontal: 12, justifyContent: "center", borderRadius: 99, backgroundColor: active ? colors.primarySurface : `${colors.primary}12` }}>
+    <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: active }} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+      style={{ minHeight: 34, paddingHorizontal: 12, justifyContent: "center", borderRadius: 99, backgroundColor: active ? colors.primarySurface : `${colors.primary}12` }}>
       <Txt size={12} bold color={active ? colors.onPrimary : colors.primary}>{label}</Txt>
     </TouchableOpacity>
   );

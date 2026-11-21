@@ -24,9 +24,16 @@ if (/localhost|127\.0\.0\.1|192\.168\./.test(env.EXPO_PUBLIC_API_URL)) {
 }
 
 console.log(`Publicando en el canal «${channel}»: ${message}`);
-const r = spawnSync("npx", ["eas-cli", "update", "--channel", channel, "--message", message], {
-  stdio: "inherit",
-  shell: true,
-  env: { ...process.env, ...env },
-});
+const args = ["--yes", "eas-cli", "update", "--channel", channel, "--message", message];
+const isWin = process.platform === "win32";
+const r = isWin
+  ? spawnSync(`npx ${args.map((a) => `"${a.replace(/["\r\n]/g, "'")}"`).join(" ")}`, {
+      stdio: "inherit",
+      shell: true,
+      env: { ...process.env, ...env },
+    })
+  : spawnSync("npx", args, {
+      stdio: "inherit",
+      env: { ...process.env, ...env },
+    });
 process.exit(r.status ?? 1);

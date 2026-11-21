@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -34,27 +33,29 @@ export default function ForgotPasswordScreen() {
   } = useForgotPassword();
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1"
-    >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: colors.background }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={{ flex: 1 }}
       >
-        <SafeAreaView className="flex-1 px-6 pt-20 pb-12">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          style={{ backgroundColor: colors.background }}
+        >
           {/* Back Button */}
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="absolute top-16 left-6 z-10 p-2"
-          >
-            <Ionicons
-              name="chevron-back"
-              size={28}
-              color={colors.text}
-            />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Volver"
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
 
           {/* Logo Section */}
           <View className="items-center mb-6">
@@ -110,12 +111,13 @@ export default function ForgotPasswordScreen() {
 
             <TouchableOpacity
               onPress={handleResetPassword}
-              className="rounded-2xl h-12 items-center justify-center shadow-lg mt-6"
+              accessibilityRole="button"
+              className="rounded-2xl h-12 px-4 items-center justify-center shadow-lg mt-6"
               style={{ backgroundColor: colors.primarySurface, opacity: secondsLeft > 0 ? 0.5 : 1 }}
               activeOpacity={0.8}
               disabled={secondsLeft > 0}
             >
-              <Text className="text-lg" style={{ fontFamily: fonts.family.bold, color: colors.onPrimary }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} className="text-lg" style={{ fontFamily: fonts.family.bold, color: colors.onPrimary }}>
                 {secondsLeft > 0 ? `Espera ${secondsLeft} s para pedir otro` : "Enviar código"}
               </Text>
             </TouchableOpacity>
@@ -127,23 +129,23 @@ export default function ForgotPasswordScreen() {
               ¿No recibiste el correo? Revisa tu carpeta de spam o intenta de nuevo en unos minutos.
             </Text>
           </View>
-        </SafeAreaView>
-      </ScrollView>
+        </ScrollView>
 
-      {/* Alerta de Éxito */}
-      <EVAAlert
-        visible={alertConfig.visible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        iconName={alertConfig.iconName}
-        onClose={() => {
-          setAlertConfig({ ...alertConfig, visible: false });
-          if (alertConfig.type === "success") {
-            router.replace({ pathname: "/reset-password", params: { email: email.trim() } });
-          }
-        }}
-      />
-    </KeyboardAvoidingView>
+        {/* Alerta de Éxito */}
+        <EVAAlert
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          iconName={alertConfig.iconName}
+          onClose={() => {
+            setAlertConfig({ ...alertConfig, visible: false });
+            if (alertConfig.type === "success") {
+              router.replace({ pathname: "/reset-password", params: { email: email.trim() } });
+            }
+          }}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

@@ -7,7 +7,7 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 import { EVAInput } from "../common/EVAInput";
 import { formatSoles } from "../../utils/money";
 import type { SectionKey } from "../../constants/Colors";
-import { control, minTouch, radius } from "../../constants/Layout";
+import { control, hitSlopFor, minTouch, radius } from "../../constants/Layout";
 
 // Componentes base de las pantallas nuevas. Reproducen el lenguaje visual de la app: botón de volver circular,
 // tarjetas rounded-3xl con borde tenue, botones rounded-2xl con primarySurface y chips pequeños en mayúsculas.
@@ -35,7 +35,7 @@ export function Screen({ title, children, back = true, right, footer, subtitle }
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
      {/* El teclado empuja la pantalla (con la barra de abajo de Android a pantalla completa no se redimensiona sola): así el campo enfocado nunca queda tapado. */}
      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 24, marginTop: 16, marginBottom: 12 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 24, marginTop: 16, marginBottom: 12 }}>
         {back && <BackButton />}
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.text, fontSize: 22, fontFamily: "AsapBold" }} accessibilityRole="header" numberOfLines={1}>{title}</Text>
@@ -55,7 +55,7 @@ export function Screen({ title, children, back = true, right, footer, subtitle }
 export function Card({ children, outlined, style }: { children: React.ReactNode; outlined?: boolean; style?: ViewStyle }) {
   const { colors } = useAppTheme();
   return (
-    <View style={[{ backgroundColor: outlined ? `${colors.card}80` : colors.card, borderRadius: 24, padding: 14, borderWidth: 1, borderColor: outlined ? `${colors.text}10` : `${colors.text}05` }, style]}>
+    <View style={[{ backgroundColor: outlined ? `${colors.card}80` : colors.card, borderRadius: 24, padding: 14, gap: 8, borderWidth: 1, borderColor: outlined ? `${colors.text}10` : `${colors.text}05` }, style]}>
       {children}
     </View>
   );
@@ -76,8 +76,8 @@ export function HeroCard({ children, style }: { children: React.ReactNode; style
 export function Heading({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-      <Text style={{ color: colors.text, fontSize: 20, fontFamily: "AsapBold" }}>{children}</Text>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 8 }}>
+      <Text style={{ color: colors.text, fontSize: 20, fontFamily: "AsapBold", flexShrink: 1 }}>{children}</Text>
       {action}
     </View>
   );
@@ -91,17 +91,17 @@ export function Txt({ children, bold, size = 15, color, muted, style, numberOfLi
 export function KV({ label, value, strong, color }: { label: string; value: string; strong?: boolean; color?: string }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: `${colors.text}08`, gap: 12 }}>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 2, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: `${colors.text}08`, gap: 12 }}>
       <Text style={{ color: colors.textSecondary, fontSize: 14, fontFamily: "Asap", flexShrink: 1 }}>{label}</Text>
-      <Text style={{ color: color ?? colors.text, fontSize: 14, fontFamily: strong ? "AsapBold" : "AsapMedium" }}>{value}</Text>
+      <Text style={{ color: color ?? colors.text, fontSize: 14, fontFamily: strong ? "AsapBold" : "AsapMedium", flexShrink: 1, textAlign: "right", fontVariant: ["tabular-nums"] }}>{value}</Text>
     </View>
   );
 }
 
-export function Money({ value, size = 16, bold = true, tone }: { value: string; size?: number; bold?: boolean; tone?: "income" | "expense" | "muted" }) {
+export function Money({ value, size = 16, bold = true, tone, numberOfLines, adjustsFontSizeToFit }: { value: string; size?: number; bold?: boolean; tone?: "income" | "expense" | "muted"; numberOfLines?: number; adjustsFontSizeToFit?: boolean }) {
   const { colors } = useAppTheme();
   const color = tone === "expense" ? colors.expenseStrong : tone === "income" ? colors.incomeStrong : tone === "muted" ? colors.textSecondary : colors.text;
-  return <Text style={{ color, fontSize: size, fontFamily: bold ? "AsapBold" : "Asap" }}>{formatSoles(value)}</Text>;
+  return <Text numberOfLines={numberOfLines} adjustsFontSizeToFit={adjustsFontSizeToFit} style={{ color, fontSize: size, fontFamily: bold ? "AsapBold" : "Asap", fontVariant: ["tabular-nums"] }}>{formatSoles(value)}</Text>;
 }
 
 /**
@@ -120,11 +120,13 @@ export function Button({ title, onPress, variant = "primary", busy, disabled, ic
   const dim = !!disabled && !busy;
   const outline = variant === "outline" || variant === "outlineDanger";
   const fg = dim ? colors.muted : primary || danger ? colors.onPrimary : variant === "outline" ? colors.text : variant === "outlineDanger" ? colors.expenseStrong : colors.primary;
+  const h = small ? control.small : compact ? control.compact : control.regular;
   return (
     <TouchableOpacity
       onPress={onPress} disabled={off} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ disabled: !!off, busy: !!busy }}
+      hitSlop={h < minTouch ? hitSlopFor(h) : undefined}
       style={{
-        height: small ? control.small : compact ? control.compact : control.regular, paddingHorizontal: small ? 12 : compact ? 16 : 0, borderRadius: radius.md, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: busy ? 0.85 : 1,
+        height: h, minWidth: small ? 38 : compact ? 44 : 48, paddingHorizontal: small ? 12 : 16, borderRadius: radius.md, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, opacity: busy ? 0.85 : 1,
         backgroundColor: dim ? `${colors.text}12` : primary ? colors.primarySurface : danger ? colors.dangerSurface : outline ? "transparent" : `${colors.primary}15`,
         ...(dim ? { borderWidth: 1, borderColor: `${colors.text}1F`, borderStyle: "dashed" as const } : outline ? { borderWidth: 1.5, borderColor: variant === "outlineDanger" ? colors.expenseStrong : colors.borderStrong } : {}),
         shadowColor: primary && !dim ? colors.primary : "transparent", shadowOpacity: primary && !dim ? 0.2 : 0, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
@@ -133,7 +135,7 @@ export function Button({ title, onPress, variant = "primary", busy, disabled, ic
       {busy ? <ActivityIndicator color={fg} /> : (
         <>
           {icon && <Ionicons name={icon} size={small ? 14 : compact ? 15 : 17} color={fg} />}
-          <Text style={{ color: fg, fontSize: small ? 12 : compact ? 13 : 15, fontFamily: "AsapBold" }}>{title}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={{ color: fg, fontSize: small ? 12 : compact ? 13 : 15, fontFamily: "AsapBold", flexShrink: 1, textAlign: "center" }}>{title}</Text>
         </>
       )}
     </TouchableOpacity>
@@ -157,6 +159,7 @@ export function Notice({ tone, children }: { tone: keyof typeof TONES; children:
 const CHIPS: Record<string, { text: string; tone: "ok" | "warn" | "info" | "err" | "muted" }> = {
   paid: { text: "Pagado", tone: "ok" }, partial: { text: "Parcial", tone: "warn" }, unpaid: { text: "Pendiente", tone: "muted" },
   exempt: { text: "Cortesía", tone: "info" }, converted: { text: "Convertido", tone: "muted" }, overdue: { text: "Vencido", tone: "err" },
+  pending: { text: "Pendiente", tone: "warn" }, accepted: { text: "Aceptada", tone: "ok" }, linked: { text: "Vinculada", tone: "info" }, discarded: { text: "Descartada", tone: "muted" },
 };
 /** Etiqueta pequeña en mayúsculas, como "COMPARTIDO" o "PAGADO" en tus pantallas. */
 export function Chip({ status, label }: { status: string; label?: string }) {
@@ -164,7 +167,7 @@ export function Chip({ status, label }: { status: string; label?: string }) {
   const c = CHIPS[status] ?? { text: status, tone: "muted" as const };
   const col = c.tone === "ok" ? colors.incomeStrong : c.tone === "warn" ? colors.warningStrong : c.tone === "err" ? colors.expenseStrong : c.tone === "info" ? colors.primary : colors.textSecondary;
   return (
-    <View style={{ backgroundColor: `${col}15`, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 }}>
+    <View style={{ alignSelf: "flex-start", backgroundColor: `${col}15`, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 }}>
       <Text style={{ color: col, fontSize: 11, fontFamily: "AsapBold", textTransform: "uppercase" }}>{label ?? c.text}</Text>
     </View>
   );
@@ -176,9 +179,9 @@ export function Badge({ text, icon, color, tone }: { text: string; icon?: IconNa
   // `tone` usa los colores semánticos del tema (con contraste verificado); `color` queda para colores de marca (p. ej. el de un servicio).
   const c = tone === "danger" ? colors.expenseStrong : tone === "warn" ? colors.warningStrong : tone === "info" ? colors.primary : tone === "ok" ? colors.incomeStrong : color ?? colors.textSecondary;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: `${c}12`, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+    <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", backgroundColor: `${c}12`, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, maxWidth: "100%" }}>
       {icon && <Ionicons name={icon} size={12} color={c} />}
-      <Text style={{ color: c, fontSize: 11, fontFamily: "AsapBold", marginLeft: icon ? 4 : 0 }}>{text}</Text>
+      <Text style={{ color: c, fontSize: 11, fontFamily: "AsapBold", marginLeft: icon ? 4 : 0, flexShrink: 1 }}>{text}</Text>
     </View>
   );
 }
@@ -245,7 +248,7 @@ export function SummaryTile({ label, value, tone, icon, onPress }: { label: stri
         {icon && <Ionicons name={icon} size={14} color={colors.textSecondary} />}
         <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "AsapMedium", textTransform: "uppercase", letterSpacing: 0.5, flexShrink: 1 }}>{label}</Text>
       </View>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color, fontSize: 18, fontFamily: "AsapBold" }}>{value}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color, fontSize: 18, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
     </View>
   );
   return onPress ? <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.75} onPress={onPress} accessibilityRole="button">{body}</TouchableOpacity> : <View style={{ flex: 1 }}>{body}</View>;
@@ -279,7 +282,13 @@ export function SwitchRow({ label, hint, value, onValueChange, accessibilityLabe
         <Text style={{ color: colors.text, fontSize: 14, fontFamily: "Asap" }}>{label}</Text>
         {hint ? <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{hint}</Text> : null}
       </View>
-      <Switch value={value} onValueChange={onValueChange} accessibilityLabel={accessibilityLabel ?? label} />
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        accessibilityLabel={accessibilityLabel ?? label}
+        trackColor={{ false: colors.border, true: colors.primarySurface }}
+        thumbColor={value ? colors.onPrimary : colors.elevated}
+      />
     </View>
   );
 }

@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -42,15 +41,22 @@ export default function EVAModal({
 }: EVAModalProps) {
   const { colors, fonts, isDark } = useAppTheme();
 
+  const primaryBg = isSuccess
+    ? colors.successSurface
+    : isDestructive
+      ? colors.dangerSurface
+      : colors.primarySurface;
+
   return (
     <Modal
       transparent
       visible={visible}
       animationType="fade"
       statusBarTranslucent
+      onRequestClose={onClose}
     >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      <KeyboardAvoidingView
+        behavior="padding"
         style={styles.overlay}
       >
         <Pressable
@@ -61,79 +67,124 @@ export default function EVAModal({
           onPress={onClose}
         />
         
-        <View 
-          className="w-[88%] max-h-[85%] rounded-3xl p-5 shadow-2xl flex flex-col"
-          style={{ backgroundColor: colors.background, borderColor: colors.border, borderWidth: isDark ? 1 : 0 }}
+        <View
+          accessibilityViewIsModal
+          style={{
+            width: "88%",
+            maxWidth: 420,
+            maxHeight: "85%",
+            borderRadius: 24,
+            padding: 20,
+            backgroundColor: colors.elevated,
+            borderColor: colors.border,
+            borderWidth: 1,
+            shadowColor: "#000",
+            shadowOpacity: 0.25,
+            shadowRadius: 20,
+            shadowOffset: { width: 0, height: 10 },
+            elevation: 14,
+          }}
         >
           {/* Header */}
-          <View className="flex-row justify-between items-center mb-6">
-            <Text 
-              className="text-xl"
-              style={{ color: colors.text, fontFamily: fonts.family.bold }}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <Text
+              numberOfLines={2}
+              accessibilityRole="header"
+              style={{ flex: 1, fontSize: 20, color: colors.text, fontFamily: fonts.family.bold }}
             >
               {title}
             </Text>
-            <TouchableOpacity onPress={onClose} className="p-1" activeOpacity={0.6}>
+            <TouchableOpacity
+              onPress={onClose}
+              activeOpacity={0.6}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar"
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" }}
+            >
               <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {/* Content */}
-          <ScrollView 
-            showsVerticalScrollIndicator={false} 
-            className="mb-4" 
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={{ marginBottom: 12 }}
+            contentContainerStyle={{ gap: 8 }}
             nestedScrollEnabled={true}
             scrollEnabled={scrollEnabled}
+            keyboardShouldPersistTaps="handled"
           >
             {children}
           </ScrollView>
 
           {/* Buttons Section */}
-          <View className="flex-row gap-3 pt-2">
-            {secondaryButtonText && (
-              <TouchableOpacity
-                onPress={onSecondaryAction || onClose}
-                className="flex-1 h-12 rounded-2xl items-center justify-center"
-                style={{ backgroundColor: colors.card }}
-                activeOpacity={0.7}
-              >
-                <Text 
-                  className="text-base"
-                  style={{ color: colors.text, fontFamily: fonts.family.bold }}
+          {(secondaryButtonText || (primaryButtonText && onPrimaryAction)) && (
+            <View style={{ flexDirection: "row", gap: 10, paddingTop: 4 }}>
+              {secondaryButtonText ? (
+                <TouchableOpacity
+                  onPress={onSecondaryAction || onClose}
+                  accessibilityRole="button"
+                  style={{
+                    flex: 1,
+                    height: 48,
+                    paddingHorizontal: 14,
+                    borderRadius: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: colors.card,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                  activeOpacity={0.7}
                 >
-                  {secondaryButtonText}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {primaryButtonText && onPrimaryAction && (
-              <TouchableOpacity
-                onPress={onPrimaryAction}
-                style={{
-                  flex: 1,
-                  height: 48,
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: isSuccess ? colors.income : (isDestructive ? colors.expense : colors.primary),
-                  shadowColor: isSuccess ? colors.income : (isDestructive ? colors.expense : colors.primary),
-                  shadowOpacity: 0.2,
-                  shadowRadius: 10,
-                  shadowOffset: { width: 0, height: 4 },
-                }}
-                activeOpacity={0.8}
-                disabled={isSuccess}
-              >
-                {isSuccess ? (
-                  <Ionicons name="checkmark-circle" size={28} color="white" />
-                ) : (
-                  <Text className="text-white text-base" style={{ fontFamily: fonts.family.bold }}>
-                    {primaryButtonText}
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
+                    style={{ fontSize: 15, color: colors.text, fontFamily: fonts.family.bold }}
+                  >
+                    {secondaryButtonText}
                   </Text>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
+                </TouchableOpacity>
+              ) : null}
+
+              {primaryButtonText && onPrimaryAction ? (
+                <TouchableOpacity
+                  onPress={onPrimaryAction}
+                  accessibilityRole="button"
+                  style={{
+                    flex: 1,
+                    height: 48,
+                    paddingHorizontal: 14,
+                    borderRadius: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: primaryBg,
+                    shadowColor: primaryBg,
+                    shadowOpacity: 0.2,
+                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: 4 },
+                  }}
+                  activeOpacity={0.8}
+                  disabled={isSuccess}
+                >
+                  {isSuccess ? (
+                    <Ionicons name="checkmark-circle" size={26} color={colors.onPrimary} />
+                  ) : (
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.85}
+                      style={{ color: colors.onPrimary, fontSize: 15, fontFamily: fonts.family.bold }}
+                    >
+                      {primaryButtonText}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>

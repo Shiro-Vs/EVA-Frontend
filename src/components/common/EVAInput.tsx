@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TextInput, TextInputProps } from "react-native";
 import { useAppTheme } from "../../hooks/useAppTheme";
+import { control, radius } from "../../constants/Layout";
 
 interface EVAInputProps extends TextInputProps {
   label?: string;
@@ -9,39 +10,80 @@ interface EVAInputProps extends TextInputProps {
   rightAction?: React.ReactNode;
 }
 
-export function EVAInput({ label, error, icon, rightAction, style, ...props }: EVAInputProps) {
+export function EVAInput({ label, error, icon, rightAction, style, onFocus, onBlur, editable, multiline, ...props }: EVAInputProps) {
   const { colors, fonts } = useAppTheme();
+  const [focused, setFocused] = useState(false);
+  const disabled = editable === false;
+  const borderColor = error
+    ? colors.expenseStrong
+    : focused
+      ? colors.primary
+      : disabled
+        ? colors.border
+        : colors.borderStrong;
 
   return (
-    <View className="mb-3 w-full">
+    <View style={{ marginBottom: 4, width: "100%" }}>
       {label && (
-        <Text 
-          className="text-[11px] uppercase tracking-widest mb-1.5 ml-1"
-          style={{ color: colors.textSecondary, fontFamily: fonts.family.semiBold }}
+        <Text
+          style={{
+            fontSize: 11,
+            textTransform: "uppercase",
+            letterSpacing: 1.2,
+            marginBottom: 6,
+            marginLeft: 4,
+            color: colors.textSecondary,
+            fontFamily: fonts.family.semiBold,
+          }}
         >
           {label}
         </Text>
       )}
       <View
-        className="flex-row items-center px-4 rounded-2xl border"
-        style={{ 
-          backgroundColor: colors.card, 
-          borderColor: error ? colors.expenseStrong : colors.borderStrong,
-          borderWidth: 1,
-          minHeight: 44,
+        style={{
+          flexDirection: "row",
+          alignItems: multiline ? "flex-start" : "center",
+          paddingHorizontal: 14,
+          paddingVertical: multiline ? 10 : 8,
+          borderRadius: radius.md,
+          backgroundColor: colors.card,
+          borderColor,
+          borderWidth: focused && !error ? 1.5 : 1,
+          minHeight: control.field,
+          opacity: disabled ? 0.7 : 1,
         }}
       >
-        {icon && <View className="mr-3">{icon}</View>}
+        {icon && <View style={{ marginRight: 10, marginTop: multiline ? 2 : 0 }}>{icon}</View>}
         <TextInput
-          className="flex-1 text-[15px]"
           placeholderTextColor={colors.muted}
-          style={[{ color: colors.text, fontFamily: fonts.family.bold }, style]}
+          editable={editable}
+          multiline={multiline}
+          textAlignVertical={multiline ? "top" : "center"}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          style={[
+            {
+              flex: 1,
+              fontSize: 15,
+              paddingTop: 0,
+              paddingBottom: 0,
+              color: disabled ? colors.muted : colors.text,
+              fontFamily: fonts.family.medium,
+            },
+            style,
+          ]}
           {...props}
         />
-        {rightAction && <View className="ml-2">{rightAction}</View>}
+        {rightAction && <View style={{ marginLeft: 8 }}>{rightAction}</View>}
       </View>
       {error && (
-        <Text className="text-[11px] mt-1 ml-1" style={{ color: colors.expenseStrong, fontFamily: fonts.family.regular }}>
+        <Text style={{ fontSize: 11, marginTop: 4, marginLeft: 4, color: colors.expenseStrong, fontFamily: fonts.family.regular }}>
           {error}
         </Text>
       )}

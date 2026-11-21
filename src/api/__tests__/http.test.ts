@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { _cacheReset, cacheRead, cacheWrite } from "../cache";
-import { ApiError, devLogin, newKey, request, session } from "../http";
+import { ApiError, devLogin, newKey, request, requestBytes, session } from "../http";
 
 jest.mock("@react-native-async-storage/async-storage", () => require("@react-native-async-storage/async-storage/jest/async-storage-mock"));
 jest.mock("../storage", () => {
@@ -142,6 +142,32 @@ describe("renovación del token ante un 401", () => {
     expect(await cacheRead("/me")).not.toBeNull();
     await session.setToken(jwt("u2"));
     expect(await cacheRead("/me")).toBeNull();
+  });
+
+  it("requestBytes renueva el token ante un 401 y reintenta la descarga sin cerrar sesión", async () => {
+    const cb = jest.fn();
+    session.onUnauthorized(cb);
+    const refresher = jest.fn(async () => { await session.setToken("tok-pdf"); return "tok-pdf"; });
+    session.setRefresher(refresher);
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: { code: "UNAUTHENTICATED", message: "expired" } }),
+        headers: { get: () => null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+        headers: { get: (k: string) => (k.toLowerCase() === "content-disposition" ? 'attachment; filename="reporte.pdf"' : null) },
+      });
+    const r = await requestBytes("/reports/monthly/pdf", { month: "2026-10" });
+    expect(refresher).toHaveBeenCalledTimes(1);
+    expect(cb).not.toHaveBeenCalled();
+    expect(r.filename).toBe("reporte.pdf");
+    expect(Array.from(r.bytes)).toEqual([1, 2, 3]);
+    expect((fetchMock.mock.calls[1] as [string, FetchInit])[1].headers.Authorization).toBe("Bearer tok-pdf");
   });
 });
 

@@ -22,7 +22,7 @@ export function SelectField<T extends string>({ label, value, options, onChange,
   const pick = (fn: () => void) => { fn(); close(); };
 
   return (
-    <View style={{ marginBottom: 12 }}>
+    <View style={{ marginBottom: 4 }}>
       {label ? <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "AsapSemiBold", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6, marginLeft: 4 }}>{label}</Text> : null}
       <TouchableOpacity onPress={() => setOpen(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`${label ?? "Elegir"}: ${current?.label ?? "sin elegir"}`}
         style={{ minHeight: 44, borderRadius: 16, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.card, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -52,7 +52,7 @@ function Row({ label, hint, selected, onPress, muted }: { label: string; hint?: 
     <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="radio" accessibilityState={{ selected }}
       style={{ minHeight: 48, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, borderRadius: 14, backgroundColor: selected ? `${colors.primary}14` : "transparent" }}>
       <Text numberOfLines={1} style={{ flex: 1, color: muted ? colors.textSecondary : colors.text, fontSize: 15, fontFamily: selected ? "AsapBold" : "Asap" }}>{label}</Text>
-      {hint ? <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{hint}</Text> : null}
+      {hint ? <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap", maxWidth: "40%" }}>{hint}</Text> : null}
       {selected ? <Ionicons name="checkmark" size={18} color={colors.primary} /> : null}
     </TouchableOpacity>
   );

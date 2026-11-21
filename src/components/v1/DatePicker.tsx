@@ -106,7 +106,7 @@ export function DateInput({ label, value, onChange, optional, placeholder, error
         maxLength={10}
         error={error ?? (bad ? "Esa fecha no existe" : incomplete ? "Escribe AAAA-MM-DD o usa el calendario" : undefined)}
         rightAction={
-          <TouchableOpacity onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={`Abrir calendario: ${label}`} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={`Abrir calendario: ${label}`} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Ionicons name="calendar-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
         }

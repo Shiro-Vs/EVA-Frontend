@@ -11,7 +11,8 @@ import { saveAndShare } from "../../utils/files";
 import { formatSoles } from "../../utils/money";
 import { MultiChoice } from "../e4/shared";
 
-const MES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const MES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+const KIND_LABEL: Record<string, string> = { income: "Ingreso", expense: "Gasto", transfer: "Transferencia", opening: "Saldo inicial", adjustment: "Ajuste", reversal: "Reversión" };
 const monthTitle = (m: string) => `${MES[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
 const shift = (m: string, d: number) => { const t = Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7)) - 1 + d; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`; };
 
@@ -72,7 +73,7 @@ export function ReportBody({ d }: { d: MonthlyData }) {
           {d.operations.map((o, i) => (
             <Card key={i} outlined>
               <View style={{ flexDirection: "row", gap: 8 }}>
-                <View style={{ flex: 1 }}><Txt size={13} bold>{o.description || o.kind}{o.status === "reversed" ? " (revertido)" : ""}</Txt><Txt size={11} muted>{humanDate(o.date)}{o.time ? ` · ${o.time}` : ""} · {o.account}{o.category ? ` · ${o.category}` : ""}</Txt></View>
+                <View style={{ flex: 1 }}><Txt size={13} bold>{o.description || (KIND_LABEL[o.kind] ?? o.kind)}{o.status === "reversed" ? " (revertido)" : ""}</Txt><Txt size={11} muted>{humanDate(o.date)}{o.time ? ` · ${o.time}` : ""} · {o.account}{o.category ? ` · ${o.category}` : ""}</Txt></View>
                 <Txt bold size={13}>{formatSoles(o.amount)}</Txt>
               </View>
             </Card>
@@ -112,7 +113,7 @@ export function MonthlyReportScreen() {
     <Screen title="Resumen mensual" subtitle={monthTitle(month)}>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <View style={{ flex: 1 }}><Button title="Mes anterior" variant="secondary" icon="chevron-back" onPress={() => { setMonth(shift(month, -1)); setMsg(null); }} /></View>
-        <View style={{ flex: 1 }}><Button title="Mes siguiente" variant="secondary" disabled={month >= current} onPress={() => { setMonth(shift(month, 1)); setMsg(null); }} /></View>
+        <View style={{ flex: 1 }}><Button title="Mes siguiente" variant="secondary" icon="chevron-forward" disabled={month >= current} onPress={() => { setMonth(shift(month, 1)); setMsg(null); }} /></View>
       </View>
       <Card>
         <MultiChoice label="Cuentas (ninguna = todas)" options={(accounts.data ?? []).map((a) => ({ id: a.id, label: a.name }))} value={accountIds} onChange={(v) => { setAccountIds(v); setMsg(null); }} />
@@ -122,7 +123,7 @@ export function MonthlyReportScreen() {
       {rep.loading && !d ? <Loading /> : rep.error || !d ? <ErrorBox message={rep.error ?? "No se pudo cargar el resumen."} onRetry={rep.reload} /> : (
         <>
           <Card>
-            <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}><Chip status="partial" label="Vista viva" /><Txt size={12} muted>Se recalcula con tus datos actuales</Txt></View>
+            <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}><Chip status="partial" label="Vista viva" /><Txt size={12} muted style={{ flex: 1, flexShrink: 1 }}>Se recalcula con tus datos actuales</Txt></View>
             {d.differsFromLatestSaved === true && <Notice tone="warn">Cambió desde la última versión guardada (por ejemplo, por una corrección posterior). Puedes guardar una nueva versión.</Notice>}
             <View style={{ flexDirection: "row", gap: 8 }}>
               <View style={{ flex: 1 }}><Button title="Guardar versión" icon="save-outline" busy={save.busy} onPress={save.submit} /></View>

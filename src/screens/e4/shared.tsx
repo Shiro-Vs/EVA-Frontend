@@ -5,6 +5,7 @@ import type { AnalysisScope } from "../../api/types";
 import { Choice, DateField, Label } from "../../components/v1/forms";
 import { MultiSelectField } from "../../components/v1/MultiSelect";
 import { Loading, Txt } from "../../components/v1/ui";
+import { control, hitSlopFor } from "../../constants/Layout";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { todayLocalIso } from "../../utils/dates";
@@ -24,20 +25,21 @@ export const hhmm = (t: string | null | undefined) => (t ? t.slice(0, 5) : "");
 export const isHHMM = (s: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
 
 /** Selección múltiple con chips. */
-export function MultiChoice({ label, options, value, onChange, empty, select }: { label?: string; options: Array<{ id: string; label: string }>; value: string[]; onChange: (v: string[]) => void; empty?: string; select?: boolean }) {
+export function MultiChoice({ label, options, value, onChange, empty, emptyText, select }: { label?: string; options: Array<{ id: string; label: string }>; value: string[]; onChange: (v: string[]) => void; empty?: string; emptyText?: string; select?: boolean }) {
   const { colors } = useAppTheme();
   if (options.length === 0) return empty ? <Txt size={12} muted>{empty}</Txt> : null;
-  if (select || options.length > 6) return <MultiSelectField label={label} options={options} value={value} onChange={onChange} />;
+  if (select || options.length > 6) return <MultiSelectField label={label} options={options} value={value} onChange={onChange} emptyText={emptyText} />;
   return (
-    <View style={{ marginBottom: 14 }}>
+    <View style={{ marginBottom: 4 }}>
       {label && <Label>{label}</Label>}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {options.map((o) => {
           const on = value.includes(o.id);
           return (
             <TouchableOpacity key={o.id} onPress={() => onChange(on ? value.filter((x) => x !== o.id) : [...value, o.id])} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
-              style={{ paddingHorizontal: 12, minHeight: 32, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
-              <Text style={{ color: on ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{on ? "✓ " : ""}{o.label}</Text>
+              hitSlop={hitSlopFor(control.chip)}
+              style={{ paddingHorizontal: 12, paddingVertical: 6, minHeight: control.chip, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
+              <Text style={{ color: on ? colors.primary : colors.text, fontSize: 13, fontFamily: "AsapMedium" }}>{on ? "✓ " : ""}{o.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -61,7 +63,13 @@ export function ScopeForm({ value, onChange, accountsOnly }: { value: AnalysisSc
   const accounts = useAsync(() => api.accounts(), []);
   const cats = useAsync(() => api.categories("active"), []);
   const subs = useAsync(() => api.subscriptions(), []);
-  const [preset, setPreset] = React.useState<Preset>("month");
+  const [preset, setPreset] = React.useState<Preset>(() => {
+    for (const p of ["month", "prev", "30"] as const) {
+      const r = presetRange(p);
+      if (r.from === value.from && r.to === value.to) return p;
+    }
+    return "custom";
+  });
   const set = (patch: Partial<AnalysisScope>) => onChange({ ...value, ...patch });
   const choose = (p: Preset) => { setPreset(p); if (p !== "custom") onChange({ ...value, ...presetRange(p) }); };
   if ((accounts.loading && !accounts.data) || (cats.loading && !cats.data)) return <Loading />;

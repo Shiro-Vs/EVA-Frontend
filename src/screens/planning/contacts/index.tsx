@@ -94,21 +94,26 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
       <View style={{ flex: 1, paddingHorizontal: 24 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 20, marginBottom: 14 }}>
           {!asTab && (
-            <TouchableOpacity onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Volver" style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+            <TouchableOpacity onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Volver" hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }} style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
               <Ionicons name="chevron-back" size={22} color={colors.primary} />
             </TouchableOpacity>
           )}
-          <Text style={{ flex: 1, color: colors.text, fontSize: 24, fontFamily: fonts.family.bold }}>{asTab ? "Personas" : "Mis contactos"}</Text>
-          <View style={{ minWidth: 104 }}><Button title="Nueva" icon="add" size="compact" onPress={handleNewContact} /></View>
+          <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 24, fontFamily: fonts.family.bold }}>{asTab ? "Personas" : "Mis contactos"}</Text>
+          <Button title={asTab ? "Nueva" : "Nuevo"} icon="add" size="compact" onPress={handleNewContact} />
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never" contentContainerStyle={{ gap: 14, paddingBottom: asTab ? 120 : 24 }}>
+        <ScrollView showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never" keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 14, paddingBottom: asTab ? 120 : 24 }}>
           <ContactsHeader totalDeuda={stats.totalDeudaGlobal} count={stats.totalCount} debtorCount={stats.debtorCount} onRemindPress={() => setIsRemindModalVisible(true)} />
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, height: 44, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.card }}>
               <Ionicons name="search" size={18} color={colors.muted} />
-              <TextInput placeholder="Buscar persona…" placeholderTextColor={colors.muted} style={{ flex: 1, color: colors.text, fontFamily: fonts.family.regular, fontSize: 15 }} value={searchQuery} onChangeText={setSearchQuery} />
+              <TextInput placeholder="Buscar persona…" placeholderTextColor={colors.muted} accessibilityLabel="Buscar persona" style={{ flex: 1, color: colors.text, fontFamily: fonts.family.regular, fontSize: 15 }} value={searchQuery} onChangeText={setSearchQuery} />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery("")} accessibilityRole="button" accessibilityLabel="Limpiar búsqueda" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close-circle" size={18} color={colors.muted} />
+                </TouchableOpacity>
+              )}
             </View>
             <TouchableOpacity onPress={() => setSortBy(sortBy === "name" ? "debt" : "name")} accessibilityRole="button" accessibilityLabel={sortBy === "name" ? "Ordenado de la A a la Z; cambiar a deuda" : "Ordenado por deuda; cambiar a A-Z"}
               style={{ height: 44, paddingHorizontal: 12, borderRadius: 16, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: `${colors.primary}1A` }}>

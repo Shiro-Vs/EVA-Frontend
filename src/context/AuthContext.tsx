@@ -23,6 +23,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<{ needsConfirmation: boolean }>;
   signInWithGoogle: () => Promise<void>;
   setProfile: (p: Profile) => void;
+  refreshProfile: () => Promise<Profile | null>;
   /** @deprecated Camino del login simulado anterior; no guarda token. */
   login: (user: User) => Promise<void>;
   logout: () => Promise<void>;
@@ -145,9 +146,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (u: User) => { setLegacyUser(u); }, []);
 
+  const refreshProfile = useCallback(async () => {
+    try {
+      const p = await api.me();
+      setProfile(p);
+      return p;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const value = useMemo<AuthContextType>(
-    () => ({ user: profile ? toUser(profile) : legacyUser, profile, isLoadingSession, signInWithToken, signInWithPassword, signUp, signInWithGoogle, setProfile, login, logout }),
-    [profile, legacyUser, isLoadingSession, signInWithToken, signInWithPassword, signUp, signInWithGoogle, login, logout],
+    () => ({ user: profile ? toUser(profile) : legacyUser, profile, isLoadingSession, signInWithToken, signInWithPassword, signUp, signInWithGoogle, setProfile, refreshProfile, login, logout }),
+    [profile, legacyUser, isLoadingSession, signInWithToken, signInWithPassword, signUp, signInWithGoogle, refreshProfile, login, logout],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

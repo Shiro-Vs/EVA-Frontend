@@ -72,8 +72,10 @@ export function SeatScreen() {
               <Txt bold size={14}>{humanRange(c.cycle.start, c.cycle.end)}</Txt>
               <Txt size={12} muted>Vence {humanDate(c.dueDate)} · cargo {formatSoles(c.net)}{cmpMoney(c.adjustments, "0.00") !== 0 ? ` · ajustes ${formatSoles(c.adjustments)}` : ""}{cmpMoney(c.applied, "0.00") > 0 ? ` · pagado ${formatSoles(c.applied)}` : ""}</Txt>
             </View>
-            {c.overdue ? <Chip status="overdue" /> : <Chip status={c.paymentStatus} />}
-            <Money value={c.pending} size={14} />
+            <View style={{ alignItems: "flex-end", gap: 4 }}>
+              {c.overdue ? <Chip status="overdue" /> : <Chip status={c.paymentStatus} />}
+              <Money value={c.pending} size={14} />
+            </View>
           </View>
         </Card>
       ))}
@@ -142,10 +144,11 @@ export function SeatCourtesyScreen() {
   const flow = usePreviewFlow({
     preview: () => api.previewCourtesy(id, body()),
     apply: (_token, key) => api.createCourtesy(id, body(), key),
+    requireToken: false,
   });
   const n = Number.parseInt(cycles, 10);
   const ready = reason.trim().length > 0 && (kind !== "cycles" || (Number.isInteger(n) && n >= 1)) && (kind !== "until_date" || isIsoDate(until));
-  const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); flow.invalidate(); };
+  const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); setDebt(null); flow.invalidate(); };
   const needsChoice = !!flow.data?.debtChoiceRequired && !debt;
 
   return (
@@ -163,11 +166,11 @@ export function SeatCourtesyScreen() {
       {flow.data?.debtChoiceRequired && (
         <Card>
           <Label>La persona ya debe {formatSoles(String(flow.data.existingDebt))} en esta plaza</Label>
-          <Choice value={debt} onChange={(v) => { setDebt(v); flow.invalidate(); void flow.run(); }}
+          <Choice value={debt} onChange={setDebt}
             options={[{ id: "keep", label: "Mantener la deuda en el servicio" }, { id: "convert", label: "Convertirla en préstamo" }]} />
         </Card>
       )}
-      <Notice tone="info">La cortesía empieza en el siguiente ciclo: el ciclo en curso se sigue cobrando. Los cargos quedan en 0.00 con una exención igual al cobro. Su costo no se reparte entre los demás.</Notice>
+      <Notice tone="info">La cortesía empieza en el siguiente ciclo: el ciclo en curso se sigue cobrando. Los cargos quedan en S/ 0.00 con una exención igual al cobro. Su costo no se reparte entre los demás.</Notice>
       <FlowResult flow={flow} />
     </Screen>
   );
@@ -189,7 +192,7 @@ export function SeatExitScreen() {
         <ReasonField value={reason} onChange={(v) => setReason(v)} label="Motivo de la baja" />
         {flow.canConfirm && reason.trim().length === 0 && <Notice tone="warn">Escribe el motivo para poder confirmar.</Notice>}
       </Card>
-      <Notice tone="info">Si el ciclo ya está pagado al proveedor, o la persona lleva ≥ L días, termina el ciclo sin devolución del período actual. Si no, la baja es inmediata con cobro proporcional. Los ciclos futuros pagados se devuelven y lo que deba pasa a un préstamo.</Notice>
+      <Notice tone="info">Si el ciclo ya está pagado al proveedor, o la persona lleva el mínimo de días configurado en tus ajustes, termina el ciclo sin devolución del período actual. Si no, la baja es inmediata con cobro proporcional. Los ciclos futuros pagados se devuelven y lo que deba pasa a un préstamo.</Notice>
       <FlowResult flow={flow} />
     </Screen>
   );

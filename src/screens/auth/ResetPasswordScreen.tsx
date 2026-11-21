@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Button, Field, Notice, Screen, Txt } from "../../components/v1/ui";
 import { useAppTheme } from "../../hooks/useAppTheme";
@@ -17,6 +18,7 @@ export default function ResetPasswordScreen() {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -56,15 +58,26 @@ export default function ResetPasswordScreen() {
     }
   };
 
+  const eyeBtn = (
+    <TouchableOpacity
+      onPress={() => setShowPass((v) => !v)}
+      accessibilityRole="button"
+      accessibilityLabel={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+    >
+      <Ionicons name={showPass ? "eye-off-outline" : "eye-outline"} size={20} color={colors.textSecondary} />
+    </TouchableOpacity>
+  );
+
   return (
     <Screen title="Nueva contraseña" footer={<Button title="Cambiar contraseña" busy={busy} onPress={submit} />}>
       <Txt muted size={14}>Escribe el código de 6 dígitos que enviamos a {email || "tu correo"} y elige tu contraseña nueva.</Txt>
       {error ? <Notice tone="err">{error}</Notice> : null}
       {info ? <Notice tone="ok">{info}</Notice> : null}
       <Field label="Código del correo" value={code} onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 10))} keyboardType="number-pad" placeholder="123456" />
-      <Field label="Contraseña nueva" value={password} onChangeText={setPassword} secureTextEntry placeholder="Mínimo 8, una mayúscula y un número" />
-      <Field label="Repite la contraseña" value={repeat} onChangeText={setRepeat} secureTextEntry onSubmitEditing={submit} />
-      <TouchableOpacity onPress={resend} disabled={cooldown.left > 0} accessibilityRole="button" style={{ paddingVertical: 8, opacity: cooldown.left > 0 ? 0.5 : 1 }}>
+      <Field label="Contraseña nueva" value={password} onChangeText={setPassword} secureTextEntry={!showPass} rightAction={eyeBtn} placeholder="Mínimo 8 caracteres" />
+      <Field label="Repite la contraseña" value={repeat} onChangeText={setRepeat} secureTextEntry={!showPass} rightAction={eyeBtn} onSubmitEditing={submit} />
+      <TouchableOpacity onPress={resend} disabled={cooldown.left > 0} accessibilityRole="button" hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }} style={{ minHeight: 44, justifyContent: "center", opacity: cooldown.left > 0 ? 0.5 : 1 }}>
         <Text style={{ color: colors.primary, fontSize: 14, fontFamily: "AsapSemiBold", textAlign: "center" }}>{cooldown.left > 0 ? `Podrás pedir otro código en ${cooldown.left} s` : "¿No llegó? Enviar otro código"}</Text>
       </TouchableOpacity>
     </Screen>

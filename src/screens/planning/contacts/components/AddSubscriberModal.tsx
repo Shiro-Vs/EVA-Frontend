@@ -5,7 +5,7 @@ import EVAModal from "../../../../components/common/EVAModal";
 import EVAAlert from "../../../../components/common/EVAAlert";
 import { Contact } from "../../../../interfaces/Contact";
 import { useAddSubscriber } from "../../../../logic/contacts/useAddSubscriber";
-import { ServiceIcon } from "../../../../utils/serviceIcons";
+import { getAdjustedColor, ServiceIcon } from "../../../../utils/serviceIcons";
 
 import { useAppTheme } from "../../../../hooks/useAppTheme";
 
@@ -17,7 +17,7 @@ interface AddSubscriberModalProps {
 }
 
 export function AddSubscriberModal({ visible, onClose, contact }: AddSubscriberModalProps) {
-  const { colors, fonts } = useAppTheme();
+  const { colors, fonts, isDark } = useAppTheme();
   
   const {
     services,
@@ -38,63 +38,68 @@ export function AddSubscriberModal({ visible, onClose, contact }: AddSubscriberM
         title={`Asignar a ${contact.nombre}`}
         onClose={onClose}
         primaryButtonText={
-          services.length === 0 
-            ? "Entendido" 
+          services.length === 0
+            ? "Entendido"
             : (selectedServiceId ? "Continuar" : undefined)
         }
         onPrimaryAction={services.length === 0 ? onClose : handleSave}
-        secondaryButtonText="Cerrar"
+        secondaryButtonText={services.length === 0 ? "" : "Cerrar"}
       >
-        <View className="mb-6">
-          <Text 
-            className="text-[10px] uppercase tracking-widest mb-4 ml-1"
-            style={{ color: colors.textSecondary, fontFamily: fonts.family.semiBold }}
+        <View style={{ marginBottom: 8 }}>
+          <Text
+            style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 12, marginLeft: 4, color: colors.textSecondary, fontFamily: fonts.family.semiBold }}
           >
-            Elegir Servicio
+            Elegir servicio
           </Text>
 
           {loading ? (
-            <ActivityIndicator color={colors.primary} className="py-4" />
+            <ActivityIndicator color={colors.primary} style={{ paddingVertical: 16 }} />
           ) : services.length === 0 ? (
-            <View 
-              className="p-4 rounded-2xl items-center"
-              style={{ backgroundColor: colors.card }}
+            <View
+              style={{ padding: 16, borderRadius: 16, alignItems: "center", backgroundColor: colors.card }}
             >
-              <Ionicons name="checkmark-done-circle-outline" size={32} color={colors.income} />
-              <Text 
-                className="text-[11px] text-center mt-2"
-                style={{ color: colors.textSecondary, fontFamily: fonts.family.regular }}
+              <Ionicons name="checkmark-done-circle-outline" size={32} color={colors.incomeStrong} />
+              <Text
+                style={{ fontSize: 12, textAlign: "center", marginTop: 8, color: colors.textSecondary, fontFamily: fonts.family.regular }}
               >
                 No hay servicios compartidos con plazas libres
               </Text>
             </View>
           ) : (
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
-              className="flex-row -mx-2 px-2"
+              contentContainerStyle={{ gap: 10, paddingHorizontal: 2, paddingVertical: 2 }}
             >
-              {services.map((s) => (
-                <TouchableOpacity
-                  key={s.id}
-                  onPress={() => setSelectedServiceId(s.id)}
-                  className="mr-3 items-center p-3 rounded-2xl border"
-                  style={{ 
-                    width: 100,
-                    backgroundColor: selectedServiceId === s.id ? `${colors.primary}15` : colors.card,
-                    borderColor: selectedServiceId === s.id ? colors.primary : "transparent"
-                  }}
-                >
-                  <ServiceIcon name={s.icon ?? "receipt"} color={s.color ?? "#3B82F6"} size={24} />
-                  <Text 
-                    className="text-[10px] text-center mt-2"
-                    style={{ color: selectedServiceId === s.id ? colors.primary : colors.textSecondary, fontFamily: fonts.family.bold }}
-                    numberOfLines={1}
+              {services.map((s) => {
+                const selected = selectedServiceId === s.id;
+                const iconColor = getAdjustedColor(s.color || colors.primary, isDark);
+                return (
+                  <TouchableOpacity
+                    key={s.id}
+                    onPress={() => setSelectedServiceId(s.id)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    style={{
+                      width: 104,
+                      alignItems: "center",
+                      padding: 12,
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      backgroundColor: selected ? `${colors.primary}15` : colors.card,
+                      borderColor: selected ? colors.primary : colors.border,
+                    }}
                   >
-                    {s.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <ServiceIcon name={s.icon ?? "receipt"} color={iconColor} size={24} />
+                    <Text
+                      style={{ fontSize: 11, textAlign: "center", marginTop: 8, color: selected ? colors.primary : colors.textSecondary, fontFamily: fonts.family.bold }}
+                      numberOfLines={1}
+                    >
+                      {s.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           )}
         </View>

@@ -132,13 +132,14 @@ export function LoanScreen() {
 }
 
 function RefundCard({ r, onChanged }: { r: Refund; onChanged: () => void }) {
-  const [mode, setMode] = useState<"pay" | "cancel" | null>(null);
+  const [mode, setMode] = useState<"pay" | "cancel" | "reverse" | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
   const [paidOn, setPaidOn] = useState("");
   const [note, setNote] = useState("");
   const [reason, setReason] = useState("");
   const pay = useSubmit(async (key: string) => api.payRefund(r.id, { accountId: accountId!, ...(paidOn ? { paidOn } : {}), ...(note.trim() ? { note: note.trim() } : {}) }, key));
   const cancel = useSubmit(async (key: string) => api.cancelRefund(r.id, reason.trim(), key));
+  const reverse = useSubmit(async (key: string) => api.reverseRefund(r.id, reason.trim(), key));
   const STATUS = { planned: "Programada", paid: "Pagada", cancelled: "Cancelada" } as const;
   return (
     <Card outlined>
@@ -154,6 +155,11 @@ function RefundCard({ r, onChanged }: { r: Refund; onChanged: () => void }) {
         <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
           <View style={{ flex: 1 }}><Button title="Pagar" icon="cash-outline" onPress={() => setMode("pay")} /></View>
           <View style={{ flex: 1 }}><Button title="Cancelar" variant="secondary" onPress={() => setMode("cancel")} /></View>
+        </View>
+      )}
+      {r.status === "paid" && !mode && (
+        <View style={{ marginTop: 10 }}>
+          <Button title="Revertir devolución" variant="outlineDanger" size="small" icon="return-up-back-outline" onPress={() => { setReason(""); setMode("reverse"); }} />
         </View>
       )}
       {mode === "pay" && (
@@ -176,6 +182,16 @@ function RefundCard({ r, onChanged }: { r: Refund; onChanged: () => void }) {
           <Button title="Cancelar devolución" variant="danger" busy={cancel.busy} disabled={reason.trim().length === 0} onPress={async () => { if (await cancel.submit()) onChanged(); }} />
           <View style={{ height: 8 }} /><Button title="Volver" variant="secondary" onPress={() => setMode(null)} />
           {cancel.error && <Notice tone="err">{cancel.error}</Notice>}
+        </View>
+      )}
+      {mode === "reverse" && (
+        <View style={{ marginTop: 10 }}>
+          <ReasonField value={reason} onChange={(v) => { setReason(v); reverse.resetKey(); }} label="Motivo de la reversión" />
+          <Notice tone="warn">Se revierte la salida en tu cuenta y el dinero vuelve al crédito libre de la persona.</Notice>
+          <View style={{ height: 8 }} />
+          <Button title="Confirmar reversión" variant="danger" busy={reverse.busy} disabled={reason.trim().length === 0} onPress={async () => { if (await reverse.submit()) onChanged(); }} />
+          <View style={{ height: 8 }} /><Button title="Volver" variant="secondary" onPress={() => setMode(null)} />
+          {reverse.error && <Notice tone="err">{reverse.error}</Notice>}
         </View>
       )}
     </Card>

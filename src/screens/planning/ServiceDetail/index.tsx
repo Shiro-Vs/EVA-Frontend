@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { ActivityIndicator, PanResponder, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomSheet from "../../../components/common/BottomSheet";
-import { ErrorBox, MenuRow } from "../../../components/v1/ui";
+import { BackButton, ErrorBox, MenuRow, Notice } from "../../../components/v1/ui";
 import { useDialog } from "../../../context/DialogContext";
 import { useAppTheme } from "../../../hooks/useAppTheme";
 import { useServiceDetail, type ServiceTab } from "../../../logic/serviceDetail/useServiceDetail";
@@ -32,13 +32,27 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
     },
   })).current;
 
-  if (s.sub.error) return <View style={{ flex: 1, backgroundColor: colors.background, padding: 24, justifyContent: "center" }}><ErrorBox message={s.sub.error} onRetry={s.reloadAll} /></View>;
-  if (!service) return <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center" }}><ActivityIndicator color={colors.primary} /></View>;
+  const back = () => (s.router.canGoBack() ? s.router.back() : s.router.replace("/planning"));
+
+  if (s.sub.error) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, padding: 24 }}>
+        <View style={{ marginTop: 10 }}><BackButton onPress={back} /></View>
+        <View style={{ flex: 1, justifyContent: "center" }}><ErrorBox message={s.sub.error} onRetry={s.reloadAll} /></View>
+      </SafeAreaView>
+    );
+  }
+  if (!service) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center" }}>
+        <ActivityIndicator color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   const shared = service.mode === "shared";
   const full = (s.seats.data ?? []).length >= service.capacity;
   const accountName = s.detail.data?.supplierPayment?.account?.name ?? s.preferredAccount?.name ?? null;
-  const back = () => (s.router.canGoBack() ? s.router.back() : s.router.replace("/planning"));
   const run = (fn: () => void) => { setMenu(false); setTimeout(fn, 0); };
   const correctPayment = async () => {
     const ok = await dialog.confirm({ title: "¿Corregir el pago al proveedor?", message: "Se revertirá este pago (el dinero vuelve a tu cuenta) para que puedas registrarlo de nuevo con los datos correctos. El historial se conserva.", confirmLabel: "Revertir pago" });
@@ -70,7 +84,11 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
       <BottomSheet visible={menu} onClose={() => setMenu(false)} title={service.name} maxHeight={0.6}>
         <View style={{ paddingHorizontal: 4, paddingBottom: 4, gap: 6 }}>
           <MenuRow icon="create-outline" title="Editar nombre, ícono y color" onPress={() => run(() => s.setEditVisible(true))} />
-          {shared && <MenuRow icon="person-add-outline" title="Incorporar participante" text={full ? "No quedan plazas libres" : undefined} onPress={() => run(s.goJoin)} />}
+          {shared && (full ? (
+            <Notice tone="info">Todas las plazas de este servicio están ocupadas.</Notice>
+          ) : (
+            <MenuRow icon="person-add-outline" title="Incorporar participante" onPress={() => run(s.goJoin)} />
+          ))}
           <MenuRow icon="options-outline" title="Gestionar servicio" text="Precio, calendario, cuotas, archivar…" onPress={() => run(() => s.router.push(`/service/${serviceId}/manage` as never))} />
         </View>
       </BottomSheet>

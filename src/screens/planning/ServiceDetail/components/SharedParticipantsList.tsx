@@ -57,8 +57,9 @@ export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ 
               </View>
               {partial && <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>Pagó {formatSoles(c.applied)} de {formatSoles(c.net)} · debe {formatSoles(c.pending)}</Text>}
               {hasPending && (
-                <TouchableOpacity onPress={() => onRemindParticipant(c.contactId)} accessibilityRole="button" accessibilityLabel={`Preparar mensaje de cobro para ${c.contactName}`}
-                  style={{ height: 38, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: `${colors.income}22` }}>
+                <TouchableOpacity onPress={(e) => { e.stopPropagation?.(); onRemindParticipant(c.contactId); }} accessibilityRole="button" accessibilityLabel={`Preparar mensaje de cobro para ${c.contactName}`}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  style={{ minHeight: 42, paddingHorizontal: 12, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: `${colors.income}22` }}>
                   <Ionicons name="logo-whatsapp" size={17} color={colors.incomeStrong} />
                   <Text style={{ color: colors.incomeStrong, fontSize: 13, fontFamily: "AsapBold" }}>Recordar por WhatsApp</Text>
                 </TouchableOpacity>

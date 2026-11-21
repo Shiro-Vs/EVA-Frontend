@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { api } from "../../api/client";
-import { Button, Card, ErrorBox, Field, Loading, Notice, Screen, Txt } from "../../components/v1/ui";
+import { Label, MoneyField } from "../../components/v1/forms";
+import { Button, Card, ErrorBox, Loading, Notice, Screen } from "../../components/v1/ui";
 import { DateInput } from "../../components/v1/DatePicker";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
@@ -39,18 +40,18 @@ export default function SupplierPayScreen() {
       {accounts.loading && !accounts.data ? <Loading /> : accounts.error ? <ErrorBox message={accounts.error} onRetry={accounts.reload} /> : (
         <>
           <Card>
-            <Txt size={12} muted style={{ marginBottom: 6 }}>PAGADO CON</Txt>
-            <View style={{ gap: 8, marginBottom: 14 }}>
+            <Label>Pagado con</Label>
+            <View style={{ gap: 8 }}>
               {list.map((a) => (
                 <TouchableOpacity key={a.id} onPress={() => { setAccountId(a.id); pay.resetKey(); }} accessibilityRole="radio" accessibilityState={{ selected: accountId === a.id }}
-                  style={{ padding: 12, borderRadius: 12, borderWidth: 1, borderColor: accountId === a.id ? colors.primary : colors.border, backgroundColor: accountId === a.id ? `${colors.primary}14` : "transparent", flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ color: colors.text, fontFamily: "AsapMedium" }}>{a.name}</Text>
-                  <Text style={{ color: colors.textSecondary, fontFamily: "Asap" }}>{formatSoles(a.balance)}</Text>
+                  style={{ minHeight: 46, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, borderWidth: 1, borderColor: accountId === a.id ? colors.primary : colors.border, backgroundColor: accountId === a.id ? `${colors.primary}14` : "transparent", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 15, fontFamily: "AsapMedium" }}>{a.name}</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 14, fontFamily: "Asap", fontVariant: ["tabular-nums"] }}>{formatSoles(a.balance)}</Text>
                 </TouchableOpacity>
               ))}
               {list.length === 0 && <Notice tone="warn">Primero crea una cuenta desde Inicio.</Notice>}
             </View>
-            <Field label="Importe realmente cobrado (S/)" value={amount} onChangeText={(t) => { setAmount(t); pay.resetKey(); }} keyboardType="decimal-pad" />
+            <MoneyField label="Importe realmente cobrado" value={amount} onChange={(t) => { setAmount(t); pay.resetKey(); }} />
             <DateInput label="Fecha del pago" value={date} onChange={(t) => { setDate(t); pay.resetKey(); }} />
           </Card>
           <Notice tone="info">Puede diferir del precio anunciado (por ejemplo 47 en vez de 45). Pagar tarde no mueve la renovación del servicio. Si pagas con una tarjeta de crédito, aumenta la deuda de la tarjeta.</Notice>

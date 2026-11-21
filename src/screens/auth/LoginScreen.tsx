@@ -1,11 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useRef } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -43,16 +42,17 @@ export default function LoginScreen() {
   const passwordRef = useRef<TextInput>(null);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1"
-    >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: colors.background }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={{ flex: 1 }}
       >
-        <SafeAreaView className="flex-1 px-6 pt-20 pb-10">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 32, paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          style={{ backgroundColor: colors.background }}
+        >
           {/* Logo Section */}
           <View className="items-center mb-5">
             <Image
@@ -94,7 +94,7 @@ export default function LoginScreen() {
                 />
                 <TextInput
                   placeholder="ejemplo@correo.com"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={colors.muted}
                   className="flex-1 ml-3 text-base"
                   style={{ fontFamily: fonts.family.regular, color: colors.text }}
                   keyboardType="email-address"
@@ -140,7 +140,7 @@ export default function LoginScreen() {
                 <TextInput
                   ref={passwordRef}
                   placeholder="••••••••"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={colors.muted}
                   className="flex-1 ml-3 text-base"
                   style={{ fontFamily: fonts.family.regular, color: colors.text }}
                   secureTextEntry={!showPassword}
@@ -154,6 +154,9 @@ export default function LoginScreen() {
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <Ionicons
                     name={showPassword ? "eye-off-outline" : "eye-outline"}
@@ -168,7 +171,9 @@ export default function LoginScreen() {
                 </Text>
               ) : null}
               <TouchableOpacity
-                className="mt-3 items-end"
+                className="mt-2 items-end py-2"
+                accessibilityRole="button"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 onPress={() => router.push("/forgot-password")}
               >
                 <Text className="text-sm" style={{ fontFamily: fonts.family.medium, color: colors.primary }}>
@@ -181,11 +186,12 @@ export default function LoginScreen() {
             <TouchableOpacity
               onPress={handleLogin}
               disabled={isAuthenticating}
-              className="rounded-2xl h-12 items-center justify-center shadow-lg mt-3"
+              accessibilityRole="button"
+              className="rounded-2xl h-12 px-4 items-center justify-center shadow-lg mt-2"
               style={{ backgroundColor: colors.primarySurface, opacity: isAuthenticating ? 0.7 : 1 }}
               activeOpacity={0.8}
             >
-              <Text className="text-lg" style={{ fontFamily: fonts.family.bold, color: colors.onPrimary }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} className="text-lg" style={{ fontFamily: fonts.family.bold, color: colors.onPrimary }}>
                 {isAuthenticating ? "Iniciando sesión..." : "Iniciar Sesión"}
               </Text>
             </TouchableOpacity>
@@ -237,31 +243,35 @@ export default function LoginScreen() {
           )}
 
           {/* Footer */}
-          <View className="mt-4 mb-6 flex-row justify-center">
+          <View className="mt-4 mb-6 flex-row justify-center items-center">
             <Text className="text-base" style={{ fontFamily: fonts.family.regular, color: colors.textSecondary }}>
               ¿No tienes una cuenta?{" "}
             </Text>
-            <TouchableOpacity onPress={() => router.push("/register")}>
+            <TouchableOpacity
+              onPress={() => router.push("/register")}
+              accessibilityRole="button"
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            >
               <Text className="text-base" style={{ fontFamily: fonts.family.bold, color: colors.primary }}>
                 Regístrate
               </Text>
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
-      </ScrollView>
+        </ScrollView>
 
-      {/* Alerta Genérica */}
-      <EVAAlert
-        visible={alertConfig.visible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        iconName={alertConfig.iconName}
-        onClose={() => {
-          // Con sesión iniciada, el guardián (Stack.Protected) abre la app; navegar a mano aquí provoca el aviso «REPLACE no manejado».
-          setAlertConfig({ ...alertConfig, visible: false });
-        }}
-      />
-    </KeyboardAvoidingView>
+        {/* Alerta Genérica */}
+        <EVAAlert
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          iconName={alertConfig.iconName}
+          onClose={() => {
+            // Con sesión iniciada, el guardián (Stack.Protected) abre la app; navegar a mano aquí provoca el aviso «REPLACE no manejado».
+            setAlertConfig({ ...alertConfig, visible: false });
+          }}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

@@ -21,9 +21,9 @@ interface ServiceHeaderProps {
 
 function Chip({ icon, text, color, bg }: { icon: keyof typeof Ionicons.glyphMap; text: string; color: string; bg: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, maxWidth: "100%" }}>
       <Ionicons name={icon} size={12} color={color} />
-      <Text style={{ color, fontSize: 11, fontFamily: "AsapBold" }}>{text}</Text>
+      <Text numberOfLines={1} style={{ color, fontSize: 11, fontFamily: "AsapBold", flexShrink: 1 }}>{text}</Text>
     </View>
   );
 }
@@ -70,10 +70,10 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
           const on = activeTab === tab;
           const meta = tab === "ciclo" ? { label: "Ciclo", icon: "sync-outline" } : tab === "historial" ? { label: "Historial", icon: "time-outline" } : { label: "Personas", icon: "people-outline" };
           return (
-            <TouchableOpacity key={tab} onPress={() => onSwitchTab(tab)} accessibilityRole="tab" accessibilityState={{ selected: on }} activeOpacity={0.7} style={{ flex: 1, alignItems: "center", paddingTop: 8 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingBottom: 10 }}>
-                <Ionicons name={meta.icon as keyof typeof Ionicons.glyphMap} size={17} color={on ? colors.primary : colors.muted} />
-                <Text style={{ fontFamily: on ? "AsapBold" : "AsapMedium", fontSize: 14, color: on ? colors.text : colors.textSecondary }}>{meta.label}</Text>
+            <TouchableOpacity key={tab} onPress={() => onSwitchTab(tab)} accessibilityRole="tab" accessibilityState={{ selected: on }} activeOpacity={0.7} style={{ flex: 1, minHeight: 44, justifyContent: "flex-end", alignItems: "center", paddingTop: 8 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingBottom: 10, paddingHorizontal: 4 }}>
+                <Ionicons name={meta.icon as keyof typeof Ionicons.glyphMap} size={16} color={on ? colors.primary : colors.muted} />
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontFamily: on ? "AsapBold" : "AsapMedium", fontSize: 14, color: on ? colors.text : colors.textSecondary, flexShrink: 1 }}>{meta.label}</Text>
               </View>
               <View style={{ height: 3, width: "60%", borderTopLeftRadius: 3, borderTopRightRadius: 3, backgroundColor: on ? colors.primary : "transparent", marginBottom: -1 }} />
             </TouchableOpacity>

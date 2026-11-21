@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import React from "react";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import EVAModal from "../../../../components/common/EVAModal";
 import { Contact } from "../../../../interfaces/Contact";
@@ -8,6 +8,12 @@ import { useContactModal } from "../../../../logic/contacts/useContactModal";
 import { useAppTheme } from "../../../../hooks/useAppTheme";
 import { EVAInput } from "../../../../components/common/EVAInput";
 import { EVASeparator } from "../../../../components/common/EVASeparator";
+
+const isLightHex = (hex: string) => {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return false;
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 165;
+};
 
 interface ContactModalProps {
   visible: boolean;
@@ -32,14 +38,14 @@ export function ContactModal({
   return (
     <EVAModal
       visible={visible}
-      title={isEditing ? "Editar Contacto" : "Nuevo Contacto"}
+      title={isEditing ? "Editar contacto" : "Nuevo contacto"}
       onClose={onClose}
       primaryButtonText={isEditing ? "Guardar" : "Crear"}
       onPrimaryAction={validateAndSave}
     >
-      <ScrollView showsVerticalScrollIndicator={false} className="px-2">
+      <View style={{ gap: 4 }}>
         <EVAInput
-          label="Nombre Completo"
+          label="Nombre completo"
           value={contactDraft.nombre}
           onChangeText={(text) => {
             setContactDraft((prev) => ({ ...prev, nombre: text }));
@@ -51,34 +57,42 @@ export function ContactModal({
 
         <EVASeparator />
         <Text
-          className="text-[10px] uppercase tracking-widest mb-3 ml-1"
-          style={{ color: colors.textSecondary, fontFamily: fonts.family.semiBold }}
+          style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8, marginLeft: 4, color: colors.textSecondary, fontFamily: fonts.family.semiBold }}
         >
-          Color Identificador
+          Color identificador
         </Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="flex-row mb-8 -mx-2 px-2"
+          contentContainerStyle={{ gap: 10, paddingVertical: 4, paddingHorizontal: 2 }}
+          style={{ marginBottom: 8 }}
         >
           {PRESET_COLORS.map((c) => {
             const adjustedColor = getAdjustedColor(c, isDark);
             const isSelected = contactDraft.color === c;
+            const checkColor = isLightHex(adjustedColor) ? "#06141B" : "#FFFFFF";
             return (
               <TouchableOpacity
                 key={c}
                 onPress={() => setContactDraft((prev) => ({ ...prev, color: c }))}
-                style={{ 
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`Color ${c}`}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  alignItems: "center",
+                  justifyContent: "center",
                   backgroundColor: adjustedColor,
                   borderWidth: isSelected ? 3 : 0,
-                  borderColor: isSelected ? 'rgba(255,255,255,0.8)' : 'transparent',
-                  opacity: isSelected ? 1 : 0.8
+                  borderColor: colors.text,
+                  opacity: isSelected ? 1 : 0.85,
                 }}
-                className="w-11 h-11 rounded-full items-center justify-center mr-3"
                 activeOpacity={0.8}
               >
                 {isSelected && (
-                  <Ionicons name="checkmark" size={20} color="white" />
+                  <Ionicons name="checkmark" size={20} color={checkColor} />
                 )}
               </TouchableOpacity>
             );
@@ -87,10 +101,9 @@ export function ContactModal({
 
         <EVASeparator />
         <Text
-          className="text-[10px] uppercase tracking-widest mb-3 ml-1"
-          style={{ color: colors.textSecondary, fontFamily: fonts.family.semiBold }}
+          style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8, marginLeft: 4, color: colors.textSecondary, fontFamily: fonts.family.semiBold }}
         >
-          Información Opcional
+          Información opcional
         </Text>
         <EVAInput
           icon={<Ionicons name="call-outline" size={20} color={colors.muted} />}
@@ -113,7 +126,7 @@ export function ContactModal({
           onChangeText={(text) => setContactDraft((prev) => ({ ...prev, notas: text }))}
           placeholder="Notas (opcional)"
         />
-      </ScrollView>
+      </View>
     </EVAModal>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Switch, View } from "react-native";
+import { View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { Account } from "../../api/types";
@@ -186,7 +186,7 @@ export function OperationNewScreen() {
             options={(contacts.data ?? []).filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }))} />
         )}
       </Card>
-      <Notice tone="info">Un ingreso o gasto sueltos no son cobros de servicios: para cobrar a alguien usa «Registrar cobro» desde su ficha. Toca de nuevo a la persona para quitarla.</Notice>
+      <Notice tone="info">Un ingreso o gasto suelto no es un cobro de servicio: para cobrar a alguien usa «Registrar cobro» desde su ficha. Toca de nuevo a la persona para quitarla.</Notice>
       {conflict && (
         <Card>
           <Txt bold>Este gasto usa {formatSoles(conflict.eaten)} reservados para metas</Txt>
@@ -194,7 +194,7 @@ export function OperationNewScreen() {
           {conflict.goals.map((g) => (
             <MoneyField key={g.goalId} label={`${g.name} · reservado ${formatSoles(g.reserved)}`} value={deduct[g.goalId] ?? ""} optional onChange={(v) => { setDeduct((d) => ({ ...d, [g.goalId]: v })); create.resetKey(); }} />
           ))}
-          <Choice label="O" value={shortfall ? "short" : "pick"} onChange={(v) => { setShortfall(v === "short"); create.resetKey(); }} options={[{ id: "pick", label: "Descontar de las metas elegidas" }, { id: "short", label: "Aceptar el faltante en las metas" }]} />
+          <Choice label="Cómo resolverlo" value={shortfall ? "short" : "pick"} onChange={(v) => { setShortfall(v === "short"); create.resetKey(); }} options={[{ id: "pick", label: "Descontar de las metas elegidas" }, { id: "short", label: "Aceptar el faltante en las metas" }]} />
         </Card>
       )}
       {create.error && <Notice tone="err">{create.error}</Notice>}
@@ -245,8 +245,8 @@ export function ReceiptDetailScreen() {
       <Heading>Cómo se aplicó</Heading>
       {r.allocations.length === 0 ? <Card><Txt muted>Sin aplicaciones: todo el importe quedó como crédito.</Txt></Card> : r.allocations.map((a) => (
         <Card key={a.id} outlined>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Txt size={13} muted>{a.origin === "reservation" ? "Desde una reserva" : a.origin === "system" ? "Reajuste del sistema" : "Aplicación"}{a.status === "released" ? ` · liberada (${a.releasedReason ?? ""})` : ""}</Txt>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <Txt size={13} muted style={{ flex: 1, flexShrink: 1 }}>{a.origin === "reservation" ? "Desde una reserva" : a.origin === "system" ? "Reajuste del sistema" : "Aplicación"}{a.status === "released" ? ` · liberada (${a.releasedReason ?? ""})` : ""}</Txt>
             <Money value={a.amount} size={14} />
           </View>
         </Card>

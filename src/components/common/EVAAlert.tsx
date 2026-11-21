@@ -5,12 +5,9 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "../../hooks/useAppTheme";
-
-const { width } = Dimensions.get("window");
 
 interface EVAAlertProps {
   visible: boolean;
@@ -68,11 +65,22 @@ export default function EVAAlert({
       }
     }
 
+    const buttonStyle =
+      type === "success"
+        ? { bg: colors.successSurface, fg: "#FFFFFF" }
+        : type === "error"
+          ? { bg: colors.dangerSurface, fg: "#FFFFFF" }
+          : type === "warning"
+            ? { bg: colors.warningSurface, fg: colors.onWarning }
+            : { bg: colors.primarySurface, fg: colors.onPrimary };
+
     return {
       name: iconNameStr,
       bg: alertTheme.bg,
       border: alertTheme.border,
       iconColor: alertTheme.icon,
+      buttonBg: buttonStyle.bg,
+      buttonFg: buttonStyle.fg,
     };
   };
 
@@ -100,25 +108,45 @@ export default function EVAAlert({
           ]}
         />
 
-        <View 
-          className="w-[88%] rounded-3xl p-5 items-center shadow-2xl border"
-          style={{ 
-            backgroundColor: colors.card,
-            borderColor: `${colors.text}05`
+        <View
+          accessibilityViewIsModal
+          style={{
+            width: "88%",
+            maxWidth: 400,
+            borderRadius: 24,
+            padding: 20,
+            alignItems: "center",
+            backgroundColor: colors.elevated,
+            borderWidth: 1,
+            borderColor: colors.border,
+            shadowColor: "#000",
+            shadowOpacity: 0.25,
+            shadowRadius: 20,
+            shadowOffset: { width: 0, height: 10 },
+            elevation: 14,
           }}
         >
           {/* Icon Section */}
           <View
-            className="mb-4 p-3 rounded-full border"
-            style={{ backgroundColor: themeVars.bg, borderColor: themeVars.border }}
+            style={{
+              marginBottom: 16,
+              padding: 12,
+              borderRadius: 999,
+              borderWidth: 1,
+              backgroundColor: themeVars.bg,
+              borderColor: themeVars.border,
+            }}
           >
             <Ionicons name={themeVars.name as any} size={32} color={themeVars.iconColor} />
           </View>
 
           {/* Text Section */}
           <Text
-            className="text-2xl text-center mb-2"
+            accessibilityRole="header"
             style={{
+              fontSize: 22,
+              textAlign: "center",
+              marginBottom: 8,
               fontFamily: fonts.family.bold,
               color: colors.text,
             }}
@@ -126,26 +154,50 @@ export default function EVAAlert({
             {title}
           </Text>
           <Text
-            className="text-center text-base leading-6 mb-5 px-2"
-            style={{ fontFamily: fonts.family.regular, color: colors.textSecondary }}
+            style={{
+              textAlign: "center",
+              fontSize: 15,
+              lineHeight: 22,
+              marginBottom: 20,
+              paddingHorizontal: 8,
+              fontFamily: fonts.family.regular,
+              color: colors.textSecondary,
+            }}
           >
             {message}
           </Text>
 
           {/* Buttons Section */}
           <View
-            className={`w-full ${horizontalButtons ? "flex-row gap-4" : "space-y-3"}`}
+            style={{
+              width: "100%",
+              flexDirection: horizontalButtons ? "row" : "column",
+              gap: 10,
+            }}
           >
             {secondaryButtonText && (
               <TouchableOpacity
                 onPress={onSecondaryAction}
-                className={`${horizontalButtons ? "flex-1" : "w-full"} h-12 rounded-2xl items-center justify-center`}
-                style={{ backgroundColor: `${colors.muted}15` }}
+                accessibilityRole="button"
+                style={{
+                  flex: horizontalButtons ? 1 : undefined,
+                  width: horizontalButtons ? undefined : "100%",
+                  height: 48,
+                  paddingHorizontal: 16,
+                  borderRadius: 16,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: colors.card,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
                 activeOpacity={0.7}
               >
-                <Text 
-                  className="text-base"
-                  style={{ fontFamily: fonts.family.semiBold, color: colors.text }}
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                  style={{ fontSize: 15, fontFamily: fonts.family.semiBold, color: colors.text }}
                 >
                   {secondaryButtonText}
                 </Text>
@@ -154,19 +206,28 @@ export default function EVAAlert({
 
             <TouchableOpacity
               onPress={onClose}
-              className={`${horizontalButtons ? "flex-1" : "w-full"} h-12 rounded-2xl items-center justify-center shadow-lg`}
+              accessibilityRole="button"
               style={{
-                backgroundColor: themeVars.iconColor,
-                shadowColor: themeVars.iconColor,
+                flex: horizontalButtons ? 1 : undefined,
+                width: horizontalButtons ? undefined : "100%",
+                height: 48,
+                paddingHorizontal: 16,
+                borderRadius: 16,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: themeVars.buttonBg,
+                shadowColor: themeVars.buttonBg,
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.2,
                 shadowRadius: 8,
               }}
               activeOpacity={0.8}
             >
-              <Text 
-                className="text-white text-lg"
-                style={{ fontFamily: fonts.family.bold }}
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                style={{ color: themeVars.buttonFg, fontSize: 16, fontFamily: fonts.family.bold }}
               >
                 {buttonText}
               </Text>

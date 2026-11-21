@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Platform, Switch, View } from "react-native";
+import { Platform, Switch, Text, View } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api, errorMessage } from "../../api/client";
 import type { Preview, Proposal } from "../../api/types";
 import { CategoryPicker, Choice, DateField, MoneyField, OptionalAccountPicker, ReasonField, usePreviewFlow } from "../../components/v1/forms";
-import { Badge, Button, Card, Chip, Empty, ErrorBox, Field, Heading, KV, Loading, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import { Badge, Button, Card, Chip, Empty, ErrorBox, Field, Heading, KV, Loading, Notice, RowLink, Screen, SwitchRow, Txt } from "../../components/v1/ui";
+import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, isIsoDate } from "../../utils/dates";
@@ -40,6 +41,7 @@ function ProposalRow({ p, onPress }: { p: Proposal; onPress: () => void }) {
 // ───────────────────────── Bandeja ─────────────────────────
 
 export function CaptureInboxScreen() {
+  const { colors } = useAppTheme();
   const router = useRouter();
   const addr = useAsync(() => api.inboxAddress(), []);
   const usage = useAsync(() => api.captureUsage(), []);
@@ -60,7 +62,7 @@ export function CaptureInboxScreen() {
     <Screen title="Bandeja de captura" subtitle="La captura propone; tú confirmas">
       <Card>
         <Txt size={12} muted>Uso de IA hoy</Txt>
-        {usage.data ? <Txt bold>{usage.data.today.used} de {usage.data.today.limit} tareas · {usage.data.provider.name === "none" ? "sin modelo configurado" : usage.data.provider.model}</Txt> : <Txt muted>—</Txt>}
+        {usage.data ? <Txt bold>{usage.data.today.used} de {usage.data.today.limit} tareas · {usage.data.provider.name === "none" ? "IA no disponible" : "IA activa"}</Txt> : <Txt muted>—</Txt>}
       </Card>
 
       <View style={{ flexDirection: "row", gap: 8 }}>
@@ -107,7 +109,7 @@ export function CaptureInboxScreen() {
 
       <Heading>Tu dirección de recepción</Heading>
       <Card>
-        {addr.data ? <Txt bold>{addr.data.address}</Txt> : addr.error ? <Notice tone="err">{addr.error}</Notice> : <Loading />}
+        {addr.data ? <Text selectable style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{addr.data.address}</Text> : addr.error ? <Notice tone="err">{addr.error}</Notice> : <Loading />}
         <Txt size={12} muted>Reenvía a esta dirección los comprobantes y estados de cuenta. Si se filtra, rótala: la anterior deja de recibir.</Txt>
         {confirmRotate ? (
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -292,10 +294,7 @@ export function CaptureProposalScreen() {
                   </View>
                 </View>
               ))}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <Switch value={ack} onValueChange={(v) => { setAck(v); flow.invalidate(); }} />
-                <Txt size={13} style={{ flex: 1 }}>Es otra operación: aceptar de todos modos</Txt>
-              </View>
+              <SwitchRow label="Es otra operación: aceptar de todos modos" value={ack} onValueChange={(v) => { setAck(v); flow.invalidate(); }} />
               {link.error && <Notice tone="err">{link.error}</Notice>}
             </Card>
           )}
@@ -309,10 +308,7 @@ export function CaptureProposalScreen() {
           {flow.error && <Notice tone="err">{flow.error}</Notice>}
           {flow.applyError && <Notice tone="err">{flow.applyError}</Notice>}
           {flow.applyError?.toLowerCase().includes("meta") && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Switch value={shortfall} onValueChange={(v) => { setShortfall(v); }} />
-              <Txt size={13} style={{ flex: 1 }}>Aceptar aunque deje metas con faltante</Txt>
-            </View>
+            <SwitchRow label="Aceptar aunque deje metas con faltante" value={shortfall} onValueChange={(v) => { setShortfall(v); }} />
           )}
           {flow.canConfirm
             ? <Button title="Aceptar y registrar" busy={flow.applying} onPress={async () => { if (await flow.confirm()) await after(); }} />
@@ -396,7 +392,7 @@ export function CaptureDocumentScreen() {
       {x.runs.length > 0 && (
         <>
           <Heading>Intentos de lectura</Heading>
-          {x.runs.map((r, i) => <Card key={i} outlined><Txt size={13}>{r.status === "ok" ? "Correcto" : `Falló (${r.errorCode ?? "error"})`} · {r.provider} {r.model}</Txt><Txt size={12} muted>{r.tokensIn} / {r.tokensOut} tokens</Txt></Card>)}
+          {x.runs.map((r, i) => <Card key={i} outlined><Txt size={13} bold>{r.status === "ok" ? "Lectura correcta" : "No se pudo leer"}</Txt><Txt size={12} muted>{r.status === "ok" ? "El comprobante se procesó correctamente." : "Puedes reintentar o registrar el movimiento a mano."}</Txt></Card>)}
         </>
       )}
     </Screen>

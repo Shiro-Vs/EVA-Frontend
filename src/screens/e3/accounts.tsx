@@ -94,7 +94,7 @@ export function CardScreen() {
           <Chip status={s.status === "paid" ? "paid" : s.overdue ? "overdue" : s.status === "partial" ? "partial" : s.status === "void" ? "converted" : "unpaid"} label={s.overdue ? "Vencido" : undefined} />
         </RowLink>
       ))}
-      {voidSt.error && <Notice tone="err">{voidSt.error}</Notice>}
+      {(voidSt.error || cancel.error) && <Notice tone="err">{voidSt.error ?? cancel.error}</Notice>}
       <Heading>Compras en cuotas</Heading>
       {(plans.data ?? []).map((p) => (
         <Card key={p.id} outlined>
@@ -155,7 +155,7 @@ export function StatementScreen() {
         <KV label="Pago total del período" value={formatSoles(s.periodTotal)} strong /><KV label="Pago mínimo" value={formatSoles(s.minimumPayment)} />
         {s.totalBalance && <KV label="Deuda total informada" value={formatSoles(s.totalBalance)} />}
         <KV label="Pagado" value={formatSoles(s.paid)} /><KV label="Falta" value={formatSoles(s.remaining)} strong />
-        <View style={{ flexDirection: "row", gap: 6, marginTop: 6 }}><Chip status={s.status === "paid" ? "paid" : s.status === "partial" ? "partial" : "unpaid"} />{s.minimumCovered && <Chip status="paid" label="Mínimo cubierto" />}{s.overdue && <Chip status="overdue" />}</View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}><Chip status={s.status === "paid" ? "paid" : s.status === "partial" ? "partial" : "unpaid"} />{s.minimumCovered && <Chip status="paid" label="Mínimo cubierto" />}{s.overdue && <Chip status="overdue" />}</View>
       </Card>
       <Heading>Pagos vinculados</Heading>
       {s.payments.length === 0 ? <Card><Txt muted>Ningún pago vinculado.</Txt></Card> : s.payments.map((p) => (
@@ -215,7 +215,7 @@ export function RecurringScreen() {
       <Heading>Por decidir</Heading>
       {(pend.data?.due ?? []).length === 0 ? <Card><Txt muted>No hay nada por decidir.</Txt></Card> : pend.data!.due.map((o) => (
         <Card key={o.id} outlined>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}><Txt bold>{o.templateName}</Txt><Money value={o.amount} size={15} tone={o.kind === "income" ? "income" : "expense"} /></View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}><Txt bold style={{ flex: 1, flexShrink: 1 }}>{o.templateName}</Txt><Money value={o.amount} size={15} tone={o.kind === "income" ? "income" : "expense"} /></View>
           <Txt size={12} muted>{o.kind === "income" ? "Ingreso" : "Gasto"} del {humanDate(o.dueDate)}</Txt>
           <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
             <View style={{ flex: 1 }}><Button title="Confirmar" onPress={() => router.push(`/recurring/occurrence/${o.id}` as never)} /></View>
@@ -267,7 +267,7 @@ export function RecurringNewScreen() {
       </Card>
       <Card>
         <Choice label="Se repite cada…" value={unit} onChange={setUnit} options={UNITS.map((u) => ({ id: u.id, label: u.label }))} />
-        <Field label="Cada cuántas unidades" value={count} onChangeText={setCount} keyboardType="number-pad" />
+        <Field label="Cantidad" value={count} onChangeText={setCount} keyboardType="number-pad" />
         <DateField label="Primera fecha" value={start} onChange={setStart} />
         <DateField label="Hasta" value={end} optional onChange={setEnd} />
       </Card>

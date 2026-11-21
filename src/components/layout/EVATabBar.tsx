@@ -1,23 +1,23 @@
 import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, Platform, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { quickAdd } from "../../screens/tabs/quickAdd";
 import type { SectionKey } from "../../constants/Colors";
 
 const SECTION_OF: Record<string, SectionKey> = { index: "home", money: "money", planning: "services", people: "people", plan: "plan", more: "more" };
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring,
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
   withRepeat,
   withTiming,
-  withSequence
 } from "react-native-reanimated";
 
 export default function EVATabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const { colors, fonts, isDark } = useAppTheme();
+  const { colors, fonts } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   // Animación de pulso para el botón central
   const scale = useSharedValue(1);
@@ -55,10 +55,10 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { bottom: Math.max(insets.bottom, 12) + 8 }]}>
       <View style={[
-        styles.tabBar, 
-        { backgroundColor: colors.card, shadowColor: isDark ? "#000" : "#000" }
+        styles.tabBar,
+        { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, shadowColor: "#000" }
       ]}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
@@ -121,19 +121,29 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
 
           const labelText = typeof label === "string" ? label : route.name;
 
+          const shownLabel = labelText === "index" ? "Inicio" : labelText;
+
           return (
             <TouchableOpacity
               key={route.key}
               onPress={onPress}
               style={styles.tabItem}
               activeOpacity={0.7}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isFocused }}
+              accessibilityLabel={shownLabel}
             >
               {getIcon(route.name, isFocused)}
-              <Text numberOfLines={1} style={[
-                styles.tabLabel, 
-                { color: isFocused ? colors.sections[SECTION_OF[route.name] ?? "home"].ink : colors.textSecondary, fontFamily: fonts.family.medium }
-              ]}>
-                {labelText === "index" ? "Inicio" : labelText}
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                style={[
+                  styles.tabLabel,
+                  { color: isFocused ? colors.sections[SECTION_OF[route.name] ?? "home"].ink : colors.textSecondary, fontFamily: fonts.family.medium }
+                ]}
+              >
+                {shownLabel}
               </Text>
             </TouchableOpacity>
           );
@@ -169,6 +179,8 @@ const styles = StyleSheet.create({
   tabItem: {
     flex: 1,
     minWidth: 0,
+    height: "100%",
+    paddingHorizontal: 2,
     alignItems: "center",
     justifyContent: "center",
   },

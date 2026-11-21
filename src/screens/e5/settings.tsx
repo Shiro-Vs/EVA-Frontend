@@ -28,7 +28,7 @@ export function SettingsMenuScreen() {
     ["Tarjetas del panel", "Elegir y ordenar", "/settings/dashboard"],
     ["Avisos y recordatorios", "Qué avisar, cuándo y con qué detalle", "/settings/notifications"],
     ["PIN y huella", "Bloquear la app en este teléfono", "/settings/lock"],
-    ["Bloqueo y captura", "Re-bloqueo, revisión de propuestas y duplicados", "/settings/general"],
+    ["Bloqueo y captura", "Bloqueo automático, revisión de propuestas y duplicados", "/settings/general"],
     ["Respaldos", "Copias, restaurar y exportar", "/settings/backups"],
     ["Resumen mensual", "Flujo de dinero, resultado, versiones y PDF", "/reports"],
     ["Exportar", "CSV, Excel y PDF con lo que elijas", "/export"],
@@ -76,7 +76,7 @@ export function PanelScreen() {
   const dash = useAsync(() => api.dashboard(), []);
   useFocusReload(dash.reload);
   return (
-    <Screen title="Panel" subtitle={dash.data ? `Al ${humanDate(dash.data.asOf)}` : undefined} right={<Button title="Editar" variant="secondary" onPress={() => router.push("/settings/dashboard" as never)} />}>
+    <Screen title="Panel" subtitle={dash.data ? `Al ${humanDate(dash.data.asOf)}` : undefined} right={<Button title="Editar" variant="secondary" size="compact" onPress={() => router.push("/settings/dashboard" as never)} />}>
       {dash.loading && !dash.data ? <Loading /> : dash.error || !dash.data ? <ErrorBox message={dash.error ?? "No se pudo cargar el panel."} onRetry={dash.reload} /> : dash.data.cards.length === 0 ? (
         <Empty icon="grid-outline" title="Sin tarjetas" text="Elige qué mostrar en «Tarjetas del panel»." />
       ) : dash.data.cards.map((c) => <Card key={c.id}><Txt bold>{c.title}</Txt><CardView c={c} /></Card>)}
@@ -100,10 +100,10 @@ export function DashboardSettingsScreen() {
       {cards.map((c, i) => (
         <Card key={c.id} outlined>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Switch value={c.enabled} onValueChange={(v) => { setCards(cards.map((x) => (x.id === c.id ? { ...x, enabled: v } : x))); setSaved(false); }} />
+            <Switch value={c.enabled} accessibilityLabel={`Mostrar ${titles[c.id] ?? c.id}`} onValueChange={(v) => { setCards(cards.map((x) => (x.id === c.id ? { ...x, enabled: v } : x))); setSaved(false); }} />
             <Txt style={{ flex: 1 }} bold>{titles[c.id] ?? c.id}</Txt>
-            <Button title="↑" variant="secondary" disabled={i === 0} onPress={() => move(i, -1)} />
-            <Button title="↓" variant="secondary" disabled={i === cards.length - 1} onPress={() => move(i, 1)} />
+            <Button title="↑" variant="secondary" size="small" disabled={i === 0} onPress={() => move(i, -1)} />
+            <Button title="↓" variant="secondary" size="small" disabled={i === cards.length - 1} onPress={() => move(i, 1)} />
           </View>
         </Card>
       ))}
@@ -134,7 +134,7 @@ export function NotificationsSettingsScreen() {
   if (!n) return <Screen title="Avisos">{prefs.error ? <ErrorBox message={prefs.error} onRetry={prefs.reload} /> : <Loading />}</Screen>;
   return (
     <Screen title="Avisos" subtitle="EVA nunca envía mensajes a otras personas" footer={<Button title="Guardar" busy={save.busy} disabled={!valid} onPress={save.submit} />}>
-      {perm === "unsupported" ? <Notice tone="info">Las notificaciones del teléfono solo funcionan en la app instalada (APK), no en el navegador ni en Expo Go.</Notice> : perm !== "granted" && (
+      {perm === "unsupported" ? <Notice tone="info">Las notificaciones solo funcionan en la app instalada en tu teléfono.</Notice> : perm !== "granted" && (
         <Card>
           <Txt bold>Permiso de notificaciones</Txt>
           <Txt size={13}>{perm === "denied" ? "Las notificaciones están bloqueadas: actívalas en los ajustes del teléfono para esta app." : "Para avisarte necesitamos tu permiso."}</Txt>
@@ -175,11 +175,11 @@ export function NotificationsSettingsScreen() {
           <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
             {r.dueDate && <Badge text={`Vence ${humanDate(r.dueDate)}`} />}
             {r.overdue && <Badge text="Vencido" tone="danger" />}
-            {r.fireAt.map((f) => <Badge key={f} text={`Aviso ${f.slice(5, 10)} ${f.slice(11)}`} tone="info" />)}
+            {r.fireAt.map((f) => <Badge key={f} text={`Aviso ${humanDate(f.slice(0, 10))} ${f.slice(11, 16)}`} tone="info" />)}
           </View>
         </Card>
       ))}
-      <Notice tone="info">Esta lista es lo que el servidor calcula; el teléfono la programa sola al abrir la app y al guardar. Se borra al cerrar sesión.</Notice>
+      <Notice tone="info">Esta lista es lo que el servidor calcula; la app programa los avisos automáticamente al abrirse y al guardar. Se borran al cerrar sesión.</Notice>
     </Screen>
   );
 }

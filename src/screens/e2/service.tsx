@@ -32,11 +32,11 @@ export function ServiceManageScreen() {
   return (
     <Screen title={s.name} subtitle="Gestionar servicio">
       <Card>
-        <View style={{ flexDirection: "row", gap: 8, marginBottom: 6 }}>
-          <Chip status={suspended ? "overdue" : "paid"} label={suspended ? "Suspendido" : s.status === "archived" ? "Archivado" : "Activo"} />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <Chip status={suspended ? "overdue" : s.status === "archived" ? "converted" : "paid"} label={suspended ? "Suspendido" : s.status === "archived" ? "Archivado" : "Activo"} />
           <Chip status="exempt" label={s.mode === "shared" ? "Compartido" : "Personal"} />
         </View>
-        {s.terms && <Txt size={13} muted>{formatSoles(s.terms.announcedPrice)} · {intervalLabel(s.terms.interval)} · renueva el día {s.terms.anchor.slice(8)}</Txt>}
+        {s.terms && <Txt size={13} muted>{formatSoles(s.terms.announcedPrice)} · {intervalLabel(s.terms.interval)} · renueva el día {Number(s.terms.anchor.slice(8))}</Txt>}
         <Txt size={13} muted>{s.occupiedSeats}/{s.capacity} plazas ocupadas</Txt>
       </Card>
 
@@ -118,7 +118,7 @@ export function ServicePriceScreen() {
 
       {others.length > 0 && (
         <>
-          <Heading action={flow.data?.suggestedQuota ? <Button title={`Usar ${formatSoles(String(flow.data.suggestedQuota.amount))} en todas`} variant="secondary" onPress={() => { setQuotas(Object.fromEntries(others.map((o) => [o.id, String(flow.data!.suggestedQuota.amount)]))); flow.invalidate(); }} /> : undefined}>Cuotas</Heading>
+          <Heading action={flow.data?.suggestedQuota ? <Button title={`Usar ${formatSoles(String(flow.data.suggestedQuota.amount))} en todas`} variant="secondary" size="small" onPress={() => { setQuotas(Object.fromEntries(others.map((o) => [o.id, String(flow.data!.suggestedQuota.amount)]))); flow.invalidate(); }} /> : undefined}>Cuotas</Heading>
           <Txt size={12} muted>El precio no cambia cuotas por sí solo. Escribe la cuota nueva solo de quien debe cambiar; el resto conserva la suya.</Txt>
           {others.map((o) => (
             <Card key={o.id} outlined>
@@ -183,7 +183,7 @@ export function ServiceCalendarScreen() {
         {effectiveKind === "change_interval" && (
           <>
             <Choice label="Nueva frecuencia (rige desde la próxima renovación)" value={unit} onChange={touch(setUnit)} options={UNITS} />
-            <Field label="Cada cuántas unidades" value={count} onChangeText={touch(setCount)} keyboardType="number-pad" />
+            <Field label="Cantidad" value={count} onChangeText={touch(setCount)} keyboardType="number-pad" />
           </>
         )}
         <ReasonField value={reason} onChange={touch(setReason)} />

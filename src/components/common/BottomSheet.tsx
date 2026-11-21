@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, Modal, PanResponder, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Animated, KeyboardAvoidingView, Modal, PanResponder, Pressable, ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "../../hooks/useAppTheme";
@@ -16,7 +16,7 @@ export default function BottomSheet({ visible, onClose, title, children, maxHeig
 }) {
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const H = Dimensions.get("window").height;
+  const { height: H } = useWindowDimensions();
   const ty = useRef(new Animated.Value(H)).current;
   const [mounted, setMounted] = useState(visible);
   const atTop = useRef(true);
@@ -58,15 +58,15 @@ export default function BottomSheet({ visible, onClose, title, children, maxHeig
       <Animated.View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.4)", opacity: backdrop }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Cerrar" />
       </Animated.View>
-      <View pointerEvents="box-none" style={{ flex: 1, justifyContent: "flex-end" }}>
-        <Animated.View style={{ transform: [{ translateY: ty }], backgroundColor: colors.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: insets.bottom + 8, maxHeight: `${Math.round(maxHeight * 100)}%` }}>
+      <KeyboardAvoidingView behavior="padding" pointerEvents="box-none" style={{ flex: 1, justifyContent: "flex-end" }}>
+        <Animated.View style={{ transform: [{ translateY: ty }], backgroundColor: colors.elevated, borderTopWidth: 1, borderColor: colors.border, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: insets.bottom + 8, maxHeight: `${Math.round(maxHeight * 100)}%` }}>
           <View {...headerPan.panHandlers}>
             <View style={{ alignItems: "center", paddingTop: 10, paddingBottom: 6 }}>
               <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: `${colors.text}25` }} />
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingBottom: 6, minHeight: 36 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingBottom: 6, minHeight: 36 }}>
               <Text style={{ flex: 1, color: colors.text, fontSize: 17, fontFamily: "AsapBold" }} accessibilityRole="header" numberOfLines={1}>{title ?? ""}</Text>
-              <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Cerrar" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Cerrar" hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                 <Ionicons name="close" size={22} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -83,7 +83,7 @@ export default function BottomSheet({ visible, onClose, title, children, maxHeig
             ) : <View style={{ paddingHorizontal: 16, paddingBottom: 6 }}>{children}</View>}
           </View>
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -11,7 +11,7 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 import { humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
-import { normalizeMoneyInput } from "../../utils/money";
+import { formatSoles, normalizeMoneyInput } from "../../utils/money";
 
 const MODE_TEXT = {
   full_cycle: "Entra al inicio del ciclo: paga la cuota completa.",
@@ -105,58 +105,56 @@ export default function JoinSeatScreen() {
       <View>
         <SelectField label="Persona" value={contactId} options={people} onChange={(v) => { setContactId(v); join.resetKey(); }} placeholder={contacts.loading && !contacts.data ? "Cargando…" : "Elegir persona"} />
         {adding ? (
-          <View style={{ marginTop: -4, marginBottom: 12 }}>
+          <View style={{ marginBottom: 4, gap: 6 }}>
             <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
               <View style={{ flex: 1 }}><Field label="Nombre de la persona nueva" value={newName} onChangeText={setNewName} placeholder="Nombre" autoCapitalize="words" autoFocus /></View>
-              <View style={{ marginBottom: 16 }}><Button title="Agregar" size="compact" onPress={addContact} disabled={!newName.trim()} /></View>
+              <View style={{ marginBottom: 6 }}><Button title="Agregar" size="compact" onPress={addContact} disabled={!newName.trim()} /></View>
             </View>
             {addError && <Notice tone="err">{addError}</Notice>}
           </View>
         ) : (
-          <TouchableOpacity onPress={() => setAdding(true)} accessibilityRole="button" hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: -4, marginBottom: 12, marginLeft: 4 }}>
+          <TouchableOpacity onPress={() => setAdding(true)} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, marginLeft: 4 }}>
             <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
             <Text style={{ color: colors.primary, fontSize: 13, fontFamily: "AsapBold" }}>Persona nueva</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <View style={{ flex: 1 }}><Field label="Cuota por ciclo (S/)" value={quota} onChangeText={edit(setQuota)} placeholder="10.00" keyboardType="decimal-pad" error={quota && !quotaNorm ? "Importe inválido" : undefined} /></View>
-        <View style={{ flex: 1 }}><DateInput label="Ingresa el" value={joinDate} onChange={edit(setJoinDate)} /></View>
-      </View>
+      <Field label="Cuota por ciclo (S/)" value={quota} onChangeText={edit(setQuota)} placeholder="10.00" keyboardType="decimal-pad" error={quota && !quotaNorm ? "Importe inválido" : undefined} />
+      <DateInput label="Ingresa el" value={joinDate} onChange={edit(setJoinDate)} />
 
-      <TouchableOpacity onPress={() => setMore(!more)} accessibilityRole="button" accessibilityState={{ expanded: more }} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12, marginLeft: 4 }}>
+      <TouchableOpacity onPress={() => setMore(!more)} accessibilityRole="button" accessibilityState={{ expanded: more }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, marginLeft: 4 }}>
         <Ionicons name={more ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
         <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "AsapBold" }}>Más opciones</Text>
       </TouchableOpacity>
       {more && (
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1 }}><Field label="Nombre de la plaza" value={label} onChangeText={edit(setLabel)} placeholder="Cuenta 1" autoCapitalize="sentences" /></View>
-          <View style={{ flex: 1 }}><Field label="Días gratis" value={threshold} onChangeText={edit(setThreshold)} placeholder="Los de tu perfil" keyboardType="number-pad" error={threshold.trim() !== "" && !(Number.parseInt(threshold, 10) >= 0) ? "Número entero" : undefined} /></View>
+        <View style={{ gap: 4 }}>
+          <Field label="Nombre de la plaza" value={label} onChangeText={edit(setLabel)} placeholder="Cuenta 1" autoCapitalize="sentences" />
+          <Field label="Días gratis al ingresar" value={threshold} onChangeText={edit(setThreshold)} placeholder="Los de tu perfil" keyboardType="number-pad" error={threshold.trim() !== "" && !(Number.parseInt(threshold, 10) >= 0) ? "Número entero" : undefined} />
         </View>
       )}
 
       {previewError && <Notice tone="err">{previewError}</Notice>}
       {preview && calc && (
-        <View style={{ backgroundColor: colors.primarySurface, borderRadius: 22, padding: 16, gap: 8 }}>
+        <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 16, gap: 8 }}>
           <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Se le cobrará al ingresar</Text>
-          <Text style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold" }}>S/ {calc.net}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(calc.net)}</Text>
           <Text style={{ color: colors.onPrimaryMuted, fontSize: 13, fontFamily: "Asap" }}>{MODE_TEXT[calc.mode]}</Text>
-          <Text style={{ color: colors.onPrimary, fontSize: 13, fontFamily: "AsapMedium" }}>Desde el {humanDate(preview.next.cycleStart)}: S/ {preview.next.amount} por ciclo · plazas {preview.occupancy.occupied}/{preview.occupancy.capacity}</Text>
+          <Text style={{ color: colors.onPrimary, fontSize: 13, fontFamily: "AsapMedium" }}>Desde el {humanDate(preview.next.cycleStart)}: {formatSoles(preview.next.amount)} por ciclo · plazas {preview.occupancy.occupied}/{preview.occupancy.capacity}</Text>
         </View>
       )}
       {preview && calc && (
         <View>
-          <TouchableOpacity onPress={() => setCalcOpen(!calcOpen)} accessibilityRole="button" accessibilityState={{ expanded: calcOpen }} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginLeft: 4 }}>
+          <TouchableOpacity onPress={() => setCalcOpen(!calcOpen)} accessibilityRole="button" accessibilityState={{ expanded: calcOpen }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, marginLeft: 4 }}>
             <Ionicons name={calcOpen ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
             <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "AsapBold" }}>Ver cómo se calculó</Text>
           </TouchableOpacity>
           {calcOpen && (
-            <View style={{ marginTop: 8, gap: 4 }}>
+            <View style={{ marginTop: 4, gap: 4 }}>
               {calc.mode !== "full_cycle" && <KV label={`Días restantes hasta el ${humanDate(preview.cycle.endDate)}`} value={`${calc.remainingDays} de ${calc.baseDays}`} />}
-              {calc.mode !== "full_cycle" && <KV label="Proporcional" value={`S/ ${calc.prorated}`} />}
-              {calc.exemption !== "0.00" && <KV label={`Tramo gratis (${calc.freeDaysThreshold} días o menos)`} value={`− S/ ${calc.exemption}`} />}
-              <KV label="Cobro neto" value={`S/ ${calc.net}`} strong />
+              {calc.mode !== "full_cycle" && <KV label="Proporcional" value={formatSoles(calc.prorated)} />}
+              {calc.exemption !== "0.00" && <KV label={`Tramo gratis (${calc.freeDaysThreshold} días o menos)`} value={`− ${formatSoles(calc.exemption)}`} />}
+              <KV label="Cobro neto" value={formatSoles(calc.net)} strong />
               <Txt size={12} muted>{calc.formula}</Txt>
             </View>
           )}

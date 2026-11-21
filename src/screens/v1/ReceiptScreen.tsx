@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { api, errorMessage, type ReceiptBody } from "../../api/client";
 import type { Charge, ReceiptPreview } from "../../api/types";
-import { Button, Card, Chip, ErrorBox, Field, Heading, KV, Loading, Notice, Screen, Txt } from "../../components/v1/ui";
+import { Choice } from "../../components/v1/forms";
+import { Button, Card, Chip, ErrorBox, Field, Heading, KV, Loading, Notice, Screen, SwitchRow, Txt } from "../../components/v1/ui";
 import { DateInput } from "../../components/v1/DatePicker";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
@@ -31,7 +32,7 @@ export default function ReceiptScreen() {
   const payables = useMemo(() => [
     ...charges.map((c) => ({ obligationId: c.obligationId, title: `${c.subscriptionName} · ${c.seatLabel}`, sub: `${humanRange(c.cycle.start, c.cycle.end)} · vence ${humanDate(c.dueDate)}`, pending: c.pending, dueDate: c.dueDate, overdue: c.overdue })),
     ...(statement.data?.loans ?? []).flatMap((l) => l.components).filter((c) => cmpMoney(c.pending, "0.00") > 0)
-      .map((c) => ({ obligationId: c.obligationId, title: `Préstamo · ${c.concept}`, sub: `${c.periodLabel ?? ""}${c.dueDate ? ` · vence ${humanDate(c.dueDate)}` : ""}`, pending: c.pending, dueDate: c.dueDate ?? "9999-12-31", overdue: false })),
+      .map((c) => ({ obligationId: c.obligationId, title: `Préstamo · ${c.concept}`, sub: [c.periodLabel, c.dueDate ? `vence ${humanDate(c.dueDate)}` : null].filter(Boolean).join(" · "), pending: c.pending, dueDate: c.dueDate ?? "9999-12-31", overdue: false })),
   ], [charges, statement.data]);
   const serviceName = (id: string | null) => statement.data?.services.find((s) => s.subscriptionId === id)?.name;
   const activeAccounts = (accounts.data ?? []).filter((a) => a.status === "active");
@@ -80,42 +81,42 @@ export default function ReceiptScreen() {
 
   return (
     <Screen title="Registrar cobro" footer={<Button title="Confirmar cobro" onPress={confirm} busy={save.busy} disabled={!canConfirm} />}>
-      <Card outlined><Txt bold size={17}>{statement.data!.contact.name}</Txt><Txt size={12} muted>Debe S/ {statement.data!.totals.pending} en {payables.length} concepto{payables.length === 1 ? "" : "s"}</Txt></Card>
+      <Card outlined><Txt bold size={17}>{statement.data!.contact.name}</Txt><Txt size={12} muted>Debe {formatSoles(statement.data!.totals.pending)} en {payables.length} concepto{payables.length === 1 ? "" : "s"}</Txt></Card>
 
       <Card>
         <Field label="Importe recibido (S/)" value={amount} onChangeText={(t) => { setAmount(t); save.resetKey(); }} placeholder="40.00" keyboardType="decimal-pad" error={amount && !amountNorm ? "Importe inválido" : undefined} />
-        <Txt size={12} muted style={{ marginBottom: 6 }}>ENTRÓ A</Txt>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-          {activeAccounts.map((a) => (
-            <TouchableOpacity key={a.id} onPress={() => { setAccountId(a.id); save.resetKey(); }} accessibilityRole="radio" accessibilityState={{ selected: accountId === a.id }}
-              style={{ paddingHorizontal: 12, minHeight: 32, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: accountId === a.id ? colors.primary : colors.border, backgroundColor: accountId === a.id ? `${colors.primary}1A` : "transparent" }}>
-              <Text style={{ color: accountId === a.id ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{a.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        {activeAccounts.length === 0 && <Notice tone="warn">Primero crea una cuenta desde Inicio.</Notice>}
+        {activeAccounts.length > 0 ? (
+          <Choice label="Entró a" value={accountId} onChange={(id) => { setAccountId(id); save.resetKey(); }} options={activeAccounts.map((a) => ({ id: a.id, label: a.name }))} />
+        ) : (
+          <Notice tone="warn">Primero crea una cuenta desde Inicio.</Notice>
+        )}
         <DateInput label="Fecha" value={date} onChange={(t) => { setDate(t); save.resetKey(); }} />
         <Field label="Nota (opcional)" value={note} onChangeText={(t) => { setNote(t); save.resetKey(); }} autoCapitalize="sentences" maxLength={200} />
       </Card>
 
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Heading>Aplicar a</Heading>
-        <TouchableOpacity onPress={suggest} disabled={!amountNorm} accessibilityRole="button"><Text style={{ color: amountNorm ? colors.primary : colors.muted, fontFamily: "AsapBold" }}>Sugerir por vencimiento</Text></TouchableOpacity>
-      </View>
+      <Heading
+        action={
+          <TouchableOpacity onPress={suggest} disabled={!amountNorm} accessibilityRole="button" hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} style={{ minHeight: 32, justifyContent: "center" }}>
+            <Text style={{ color: amountNorm ? colors.primary : colors.muted, fontSize: 13, fontFamily: "AsapBold" }}>Sugerir por vencimiento</Text>
+          </TouchableOpacity>
+        }
+      >
+        Aplicar a
+      </Heading>
       {payables.length === 0 ? <Card><Txt muted>No hay cargos pendientes: el importe quedará como crédito (anticipo).</Txt></Card> : payables.map((c) => {
         const issue = issueFor(c.obligationId);
         return (
-          <Card key={c.obligationId} outlined style={issue ? { borderColor: colors.expense } : undefined}>
+          <Card key={c.obligationId} outlined style={issue ? { borderColor: colors.expenseStrong } : undefined}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View style={{ flex: 1 }}>
                 <Txt bold size={14}>{c.title}</Txt>
-                <Txt size={12} muted>{c.sub}</Txt>
-                <View style={{ flexDirection: "row", gap: 6, marginTop: 4, alignItems: "center" }}>{c.overdue && <Chip status="overdue" />}<Txt size={12} muted>Pendiente {formatSoles(c.pending)}</Txt></View>
+                {c.sub ? <Txt size={12} muted>{c.sub}</Txt> : null}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4, alignItems: "center" }}>{c.overdue && <Chip status="overdue" />}<Txt size={12} muted>Pendiente {formatSoles(c.pending)}</Txt></View>
               </View>
-              <TextInput value={alloc[c.obligationId] ?? ""} onChangeText={(t) => { setAlloc((a) => ({ ...a, [c.obligationId]: t })); save.resetKey(); }} placeholder="0.00" keyboardType="decimal-pad" accessibilityLabel={`Importe a aplicar a ${c.title}`}
-                style={{ width: 96, textAlign: "right", color: colors.text, fontFamily: "AsapBold", fontSize: 16, borderWidth: 1, borderColor: issue ? colors.expense : colors.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: colors.card }} />
+              <TextInput value={alloc[c.obligationId] ?? ""} onChangeText={(t) => { setAlloc((a) => ({ ...a, [c.obligationId]: t })); save.resetKey(); }} placeholder="0.00" placeholderTextColor={colors.muted} keyboardType="decimal-pad" accessibilityLabel={`Importe a aplicar a ${c.title}`}
+                style={{ width: 98, minHeight: 42, textAlign: "right", color: colors.text, fontFamily: "AsapBold", fontSize: 15, fontVariant: ["tabular-nums"], borderWidth: 1, borderColor: issue ? colors.expenseStrong : colors.borderStrong, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: colors.elevated }} />
             </View>
-            {issue && "pending" in issue && <Txt size={12} color={colors.expenseStrong} style={{ marginTop: 6 }}>No puedes aplicar más que lo pendiente ({formatSoles(issue.pending)}).</Txt>}
+            {issue && "pending" in issue && <Txt size={12} color={colors.expenseStrong}>No puedes aplicar más que lo pendiente ({formatSoles(issue.pending)}).</Txt>}
           </Card>
         );
       })}
@@ -127,12 +128,14 @@ export default function ReceiptScreen() {
           <Card>
             <KV label="Aplicado" value={formatSoles(preview.summary.applied)} strong />
             <KV label="Sobrante" value={formatSoles(preview.summary.remainder)} strong />
-            <KV label={`Saldo de la cuenta después`} value={formatSoles(preview.account.balanceAfter)} />
+            <KV label="Saldo de la cuenta después" value={formatSoles(preview.account.balanceAfter)} />
             {cmpMoney(preview.summary.remainder, "0.00") > 0 && (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10 }}>
-                <Switch value={!noReserve} onValueChange={(v) => { setNoReserve(!v); save.resetKey(); }} accessibilityLabel="Reservar el sobrante" />
-                <Txt size={13} style={{ flex: 1 }}>{preview.summary.reservedTo || !noReserve ? `Reservar el sobrante para el próximo cargo${serviceName(preview.summary.reservedTo) ? ` de ${serviceName(preview.summary.reservedTo)}` : ""}` : "Dejar el sobrante como crédito libre"}</Txt>
-              </View>
+              <SwitchRow
+                label={preview.summary.reservedTo || !noReserve ? `Reservar el sobrante para el próximo cargo${serviceName(preview.summary.reservedTo) ? ` de ${serviceName(preview.summary.reservedTo)}` : ""}` : "Dejar el sobrante como crédito libre"}
+                value={!noReserve}
+                onValueChange={(v) => { setNoReserve(!v); save.resetKey(); }}
+                accessibilityLabel="Reservar el sobrante"
+              />
             )}
           </Card>
           <Notice tone="info">Se registra un solo ingreso de {formatSoles(preview.summary.received)} en la cuenta. El reparto no crea ingresos adicionales.</Notice>

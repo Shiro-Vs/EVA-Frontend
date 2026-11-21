@@ -55,7 +55,8 @@ export function LoanNewScreen() {
         {direction === "borrowed" && !contactId && <Field label="O el nombre de la entidad o persona" value={party} onChangeText={touch(setParty)} placeholder="Banco X" autoCapitalize="words" />}
         <MoneyField label="Capital" value={principal} onChange={touch(setPrincipal)} />
         <DateField label="Fecha del préstamo" value={openedOn} optional onChange={touch(setOpenedOn)} />
-        <OptionalAccountPicker label="Cuenta por la que se movió el dinero (si no, no se registra el movimiento)" value={account} onChange={touch(setAccount)} />
+        <OptionalAccountPicker label="Cuenta (opcional)" value={account} onChange={touch(setAccount)} />
+        <Txt size={12} muted>Si no eliges cuenta, el préstamo se registra sin crear movimiento de saldo.</Txt>
       </Card>
       <Card>
         <Choice label="Interés" value={mode} onChange={touch(setMode)} options={[{ id: "none", label: "Sin interés" }, { id: "fixed", label: "Importe fijo por período" }, { id: "percent", label: "Porcentaje por período" }]} />
@@ -154,7 +155,7 @@ export function LedgerLoanScreen() {
       {open && (
         <>
           <Heading>Acciones</Heading>
-          <Choice value={action} onChange={(a) => { setAction(a); invalidateAll(); }} options={[{ id: "pay", label: "Registrar pago" }, { id: "payoff", label: "Pago anticipado" }, { id: "fees", label: "Mora" }, { id: "capitalize", label: "Capitalizar interés" }, { id: "cancel", label: "Anular" }]} />
+          <Choice label="Acción" value={action} onChange={(a) => { setAction(a); invalidateAll(); }} options={[{ id: "pay", label: "Registrar pago" }, { id: "payoff", label: "Pago anticipado" }, { id: "fees", label: "Mora" }, { id: "capitalize", label: "Capitalizar interés" }, { id: "cancel", label: "Anular" }]} />
           {(action === "pay" || action === "payoff") && (
             <Card>
               <AccountPicker label={l.direction === "lent" ? "Entra a la cuenta" : "Sale de la cuenta"} value={account} onChange={(v) => { setAccount(v); invalidateAll(); }} />
@@ -199,7 +200,7 @@ export function LedgerLoanScreen() {
         <Card key={p.id} outlined>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Txt style={{ flex: 1 }} size={13}>{humanDate(p.paidOn)} · {formatSoles(p.amount)}{p.kind === "payoff" ? " · anticipado" : ""}{p.unapplied !== "0.00" ? ` · a favor ${formatSoles(p.unapplied)}` : ""}</Txt>
-            {p.status === "active" ? <Button title="Revertir" variant="secondary" busy={reverse.busy} onPress={async () => { if (await reverse.submit(p.id)) reload(); }} /> : <Chip status="converted" label="Revertido" />}
+            {p.status === "active" ? <Button title="Revertir" variant="secondary" size="small" busy={reverse.busy} onPress={async () => { if (await reverse.submit(p.id)) reload(); }} /> : <Chip status="converted" label="Revertido" />}
           </View>
         </Card>
       ))}

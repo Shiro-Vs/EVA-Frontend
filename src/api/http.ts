@@ -158,8 +158,8 @@ export async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH", path:
   };
 }
 
-/** Descarga un archivo (PDF, respaldo) con la sesión actual. */
-export async function requestBytes(path: string, query?: Record<string, string | number | undefined>): Promise<{ bytes: Uint8Array; filename: string | null }> {
+/** Descarga un archivo (PDF, respaldo) con la sesión actual. Renueva el token ante un 401 antes de cerrar sesión. */
+export async function requestBytes(path: string, query?: Record<string, string | number | undefined>, retried = false): Promise<{ bytes: Uint8Array; filename: string | null }> {
   const base = await session.getBaseUrl();
   const token = await session.getToken();
   const qs = query ? "?" + Object.entries(query).filter(([, v]) => v !== undefined).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&") : "";
@@ -168,7 +168,10 @@ export async function requestBytes(path: string, query?: Record<string, string |
   if (!res.ok) {
     let e: { code?: string; message?: string } | undefined;
     try { e = ((await res.json()) as { error?: { code?: string; message?: string } }).error; } catch { e = undefined; }
-    if (res.status === 401) onUnauthorized?.();
+    if (res.status === 401) {
+      if (!retried && (await refreshOnce())) return requestBytes(path, query, true);
+      onUnauthorized?.();
+    }
     throw new ApiError(res.status, e?.code ?? "UNKNOWN_ERROR", e?.message ?? `Error ${res.status}`);
   }
   const cd = res.headers.get("content-disposition") ?? "";

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Switch, View } from "react-native";
-import { Button, Card, Field, Notice, Screen, Txt } from "../../components/v1/ui";
+import { Button, Card, Field, Notice, Screen, SwitchRow, Txt } from "../../components/v1/ui";
 import { useSubmit } from "../../hooks/useAsync";
 import { isValidPin, isWeakPin, PIN_LENGTH } from "../../security/lock";
 import { useLock } from "../../security/LockGate";
@@ -18,7 +17,8 @@ export function LockSettingsScreen() {
 
   useEffect(() => { biometricEnabled().then(setBio).catch(() => {}); biometricSupported().then(setBioOk).catch(() => {}); }, [enabled]);
 
-  const problem = pin.length === 0 ? null : !isValidPin(pin) ? `Debe tener ${PIN_LENGTH} dígitos` : isWeakPin(pin) ? "Elige un PIN menos obvio" : pin !== again && again.length > 0 ? "Los PIN no coinciden" : null;
+  const pinProblem = pin.length === 0 ? null : !isValidPin(pin) ? `Debe tener ${PIN_LENGTH} dígitos` : isWeakPin(pin) ? "Elige un PIN menos obvio" : null;
+  const mismatchProblem = again.length > 0 && pin !== again ? "Los PIN no coinciden" : null;
   const save = useSubmit(async () => {
     if (enabled) {
       const v = await verifyPin(current);
@@ -40,16 +40,13 @@ export function LockSettingsScreen() {
     <Screen title="PIN y huella" subtitle={enabled ? "Bloqueo activado en este teléfono" : "Sin bloqueo en este teléfono"}>
       <Card>
         {enabled && <Field label="PIN actual" value={current} onChangeText={(v) => setCurrent(v.replace(/\D/g, "").slice(0, PIN_LENGTH))} secureTextEntry keyboardType="number-pad" />}
-        <Field label={enabled ? "PIN nuevo" : `Crea un PIN de ${PIN_LENGTH} dígitos`} value={pin} onChangeText={(v) => { setP(v.replace(/\D/g, "").slice(0, PIN_LENGTH)); setMsg(null); }} secureTextEntry keyboardType="number-pad" error={problem ?? undefined} />
-        <Field label="Repite el PIN" value={again} onChangeText={(v) => setAgain(v.replace(/\D/g, "").slice(0, PIN_LENGTH))} secureTextEntry keyboardType="number-pad" />
+        <Field label={enabled ? "PIN nuevo" : `Crea un PIN de ${PIN_LENGTH} dígitos`} value={pin} onChangeText={(v) => { setP(v.replace(/\D/g, "").slice(0, PIN_LENGTH)); setMsg(null); }} secureTextEntry keyboardType="number-pad" error={pinProblem ?? undefined} />
+        <Field label="Repite el PIN" value={again} onChangeText={(v) => setAgain(v.replace(/\D/g, "").slice(0, PIN_LENGTH))} secureTextEntry keyboardType="number-pad" error={mismatchProblem ?? undefined} />
         <Button title={enabled ? "Cambiar PIN" : "Activar bloqueo"} busy={save.busy} disabled={!ready} onPress={save.submit} />
       </Card>
       {enabled && bioOk && (
         <Card>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View style={{ flex: 1 }}><Txt size={14}>Desbloquear con huella o rostro</Txt><Txt size={11} muted>El PIN siempre queda como respaldo</Txt></View>
-            <Switch value={bio} onValueChange={(v) => { setBio(v); setBiometricEnabled(v).catch(() => {}); }} />
-          </View>
+          <SwitchRow label="Desbloquear con huella o rostro" hint="El PIN siempre queda como respaldo" value={bio} onValueChange={(v) => { setBio(v); setBiometricEnabled(v).catch(() => {}); }} />
         </Card>
       )}
       {enabled && (

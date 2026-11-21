@@ -97,7 +97,7 @@ export function BankLoanScreen() {
         <KV label="Total del calendario" value={formatSoles(l.totals.scheduled)} />
         <KV label="Pagado" value={formatSoles(l.totals.paid)} />
         {l.nextDue && <KV label="Próxima cuota" value={`${l.nextDue.number} · ${humanDate(l.nextDue.dueDate)} · ${formatSoles(l.nextDue.remaining)}`} />}
-        {l.totals.overdue > 0 && <Notice tone="warn">{l.totals.overdue} cuota(s) vencida(s). EVA solo lo marca: no calcula mora ni mueve el calendario.</Notice>}
+        {l.totals.overdue > 0 && <Notice tone="warn">{l.totals.overdue === 1 ? "1 cuota vencida." : `${l.totals.overdue} cuotas vencidas.`} EVA solo lo marca: no calcula mora ni mueve el calendario.</Notice>}
       </Card>
 
       {active && (
@@ -149,7 +149,7 @@ export function BankLoanScreen() {
               {parts(p) !== "" && <Txt size={11} muted>{parts(p)}</Txt>}
               {p.note && <Txt size={11} muted>{p.note}</Txt>}
             </View>
-            {p.status === "reversed" ? <Chip status="converted" label="Revertido" /> : <Button title="Revertir" variant="secondary" onPress={() => { setReversing(reversing === p.id ? null : p.id); setReason(""); }} />}
+            {p.status === "reversed" ? <Chip status="converted" label="Revertido" /> : <Button title="Revertir" variant="secondary" size="small" onPress={() => { setReversing(reversing === p.id ? null : p.id); setReason(""); }} />}
           </View>
           {reversing === p.id && (
             <>
@@ -167,7 +167,7 @@ export function BankLoanScreen() {
           {l.documents.map((d) => (
             <Card key={d.id} outlined>
               <Txt bold>{KIND_LABEL[d.kind]}{d.documentId ? "" : " (manual)"}</Txt>
-              <Txt size={12} muted>{humanDate(d.confirmedAt.slice(0, 10))} · {d.summary.facts.length} dato(s) y {d.summary.installments.length} cuota(s) tocados{d.summary.warnings.length ? " · confirmado con advertencias" : ""}</Txt>
+              <Txt size={12} muted>{humanDate(d.confirmedAt.slice(0, 10))} · {d.summary.facts.length} {d.summary.facts.length === 1 ? "dato" : "datos"} y {d.summary.installments.length} {d.summary.installments.length === 1 ? "cuota" : "cuotas"} actualizados{d.summary.warnings.length ? " · confirmado con advertencias" : ""}</Txt>
             </Card>
           ))}
         </>
@@ -310,7 +310,7 @@ export function BankLoanChangeScreen() {
       footer={flow.canConfirm
         ? <View style={{ gap: 8 }}>
             <Button title="Guardar cambios" busy={flow.applying} disabled={!!pv && !pv.hasChanges || (!!pv?.requiresAcknowledge && !ack)} onPress={async () => { if (await flow.confirm()) router.replace(`/bank-loan/${id}` as never); }} />
-            <Button title="Cambiar" variant="secondary" onPress={inv} />
+            <Button title="Cambiar datos" variant="secondary" onPress={inv} />
           </View>
         : <Button title="Ver qué cambia" busy={flow.loading} disabled={!ready} onPress={flow.run} />}>
       <Choice label="Origen" value={mode} onChange={(v) => { setMode(v); inv(); }} options={[{ id: "doc", label: "Un documento recibido" }, { id: "manual", label: "Escribirlo a mano" }]} />
@@ -334,7 +334,13 @@ export function BankLoanChangeScreen() {
               </View>
             ))}
             <Choice label="Agregar dato" value={newKey} onChange={setNewKey} options={(Object.keys(FACT_LABEL) as LoanFactKey[]).map((k) => ({ id: k, label: FACT_LABEL[k] }))} />
-            <Field label={`Valor de ${FACT_LABEL[newKey]}${MONEY_KEYS.has(newKey) ? " (S/)" : DATE_KEYS.has(newKey) ? " · AAAA-MM-DD" : newKey === "tea" || newKey === "tcea" ? " (%)" : ""}`} value={newVal} onChangeText={setNewVal} autoCapitalize="none" />
+            <Field
+              label={`Valor de ${FACT_LABEL[newKey]}${MONEY_KEYS.has(newKey) ? " (S/)" : DATE_KEYS.has(newKey) ? " · AAAA-MM-DD" : newKey === "tea" || newKey === "tcea" ? " (%)" : ""}`}
+              value={newVal}
+              onChangeText={setNewVal}
+              keyboardType={MONEY_KEYS.has(newKey) || newKey === "tea" || newKey === "tcea" ? "decimal-pad" : DATE_KEYS.has(newKey) ? "numbers-and-punctuation" : "default"}
+              autoCapitalize="none"
+            />
             <Button title="Agregar" variant="secondary" disabled={!newVal.trim()} onPress={() => { setFacts([...facts.filter((f) => f.key !== newKey), { key: newKey, value: newVal.trim() }]); setNewVal(""); inv(); }} />
           </Card>
           <Card>
@@ -381,10 +387,7 @@ export function BankLoanChangeScreen() {
           {pv.warnings.length > 0 && (
             <>
               {pv.warnings.map((w, i) => <Notice key={i} tone="warn">{w.message}</Notice>)}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <Switch value={ack} onValueChange={setAck} />
-                <Txt size={13} style={{ flex: 1 }}>Entiendo las advertencias y quiero guardarlo así</Txt>
-              </View>
+              <SwitchRow label="Entiendo las advertencias y quiero guardarlo así" value={ack} onValueChange={setAck} />
             </>
           )}
           {mode === "doc" && pv.kind === "schedule" && (

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Switch, Text, TouchableOpacity, View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { api, errorMessage, type SubscriptionBody } from "../../api/client";
 import type { SubscriptionPreview } from "../../api/types";
-import { Button, Card, Field, Heading, KV, Money, Notice, Screen, Txt } from "../../components/v1/ui";
+import { Button, Card, Field, Heading, KV, Money, Notice, Screen, SwitchRow, Txt } from "../../components/v1/ui";
 import { ServiceStylePicker } from "../../components/v1/ServiceStylePicker";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { getServiceDefaults } from "../../utils/serviceIcons";
@@ -104,22 +104,12 @@ export default function NewServiceScreen() {
   });
   const save = async () => { const r = await create.submit(); if (r) router.replace(`/service/${r.id}`); };
 
-  const Chipbtn = ({ on, label, onPress }: { on: boolean; label: string; onPress: () => void }) => (
-    <TouchableOpacity onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected: on }}
-      style={{ paddingHorizontal: 12, minHeight: 32, justifyContent: "center", borderRadius: 99, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? `${colors.primary}1A` : "transparent" }}>
-      <Text style={{ color: on ? colors.primary : colors.text, fontFamily: "AsapMedium" }}>{label}</Text>
-    </TouchableOpacity>
-  );
-
   return (
     <Screen title="Nuevo servicio" footer={<Button title="Crear servicio" onPress={save} busy={create.busy} disabled={!preview} />}>
       <Card>
         <Field label="Nombre" value={name} onChangeText={(t) => { setName(t); create.resetKey(); }} placeholder="Netflix" autoCapitalize="words" />
         <ServiceStylePicker icon={style.icon} color={style.color} onChange={(v) => { setStyle(v); setStyleTouched(true); }} />
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 4, marginBottom: 12 }}>
-          <Chipbtn on={mode === "shared"} label="Compartido" onPress={() => setMode("shared")} />
-          <Chipbtn on={mode === "personal"} label="Personal" onPress={() => setMode("personal")} />
-        </View>
+        <Choice label="Tipo" options={[{ id: "shared", label: "Compartido" }, { id: "personal", label: "Personal" }]} value={mode} onChange={setMode} />
         <View style={{ flexDirection: "row", gap: 10 }}>
           {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas" value={capacity} onChangeText={setCapacity} keyboardType="number-pad" /></View>}
           <View style={{ flex: 1 }}><Field label="Precio (S/)" value={price} onChangeText={setPrice} placeholder="45.00" keyboardType="decimal-pad" error={price && !priceNorm ? "Importe inválido" : undefined} /></View>
@@ -131,10 +121,8 @@ export default function NewServiceScreen() {
             <View style={{ flex: 1.4 }}><SelectField label="Unidad" value={customUnit} onChange={setCustomUnit} options={UNITS} /></View>
           </View>
         )}
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1 }}><DateInput label="Inicio" value={start} onChange={setStart} /></View>
-          <View style={{ flex: 1 }}><DateInput label="Siguiente pago" value={next} onChange={(t) => { setNext(t); setNextTouched(true); }} /></View>
-        </View>
+        <DateInput label="Inicio" value={start} onChange={setStart} />
+        <DateInput label="Siguiente pago" value={next} onChange={(t) => { setNext(t); setNextTouched(true); }} />
         <OptionalAccountPicker label="Cuenta de pago (opcional)" value={preferred} onChange={setPreferred} />
         <Txt size={12} muted>El siguiente pago es el que informa tu proveedor; EVA lo compara con lo calculado.</Txt>
       </Card>
@@ -147,25 +135,38 @@ export default function NewServiceScreen() {
           ) : (
             <View style={{ gap: 8 }}>
               <Notice tone="warn">El proveedor indica el {humanDate(next)} pero el cálculo da el {humanDate(preview.calendar.expectedNextPayment)} ({preview.calendar.diffDays > 0 ? "+" : ""}{preview.calendar.diffDays} días). Prevalece la fecha del proveedor.</Notice>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <Switch value={confirmMismatch} onValueChange={setConfirmMismatch} />
-                <Txt>Confirmo esta fecha</Txt>
-              </View>
+              <SwitchRow label="Confirmo esta fecha" value={confirmMismatch} onValueChange={setConfirmMismatch} />
             </View>
           )}
           {mode === "shared" && (
             <Card>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <Txt muted>Plazas ocupadas (contándote)</Txt>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-                  <TouchableOpacity onPress={() => setOccupied((o) => Math.max(1, o - 1))} accessibilityLabel="Menos plazas"><Txt bold size={22}>−</Txt></TouchableOpacity>
-                  <Txt bold>{Math.min(occupied, cap)}</Txt>
-                  <TouchableOpacity onPress={() => setOccupied((o) => Math.min(cap, o + 1))} accessibilityLabel="Más plazas"><Txt bold size={22}>+</Txt></TouchableOpacity>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <Txt muted style={{ flex: 1, flexShrink: 1 }}>Plazas ocupadas (contándote)</Txt>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => setOccupied((o) => Math.max(1, o - 1))}
+                    accessibilityRole="button"
+                    accessibilityLabel="Menos plazas"
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.borderStrong }}
+                  >
+                    <Txt bold size={20}>−</Txt>
+                  </TouchableOpacity>
+                  <Txt bold size={16} style={{ minWidth: 22, textAlign: "center" }}>{Math.min(occupied, cap)}</Txt>
+                  <TouchableOpacity
+                    onPress={() => setOccupied((o) => Math.min(cap, o + 1))}
+                    accessibilityRole="button"
+                    accessibilityLabel="Más plazas"
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.borderStrong }}
+                  >
+                    <Txt bold size={20}>+</Txt>
+                  </TouchableOpacity>
                 </View>
               </View>
-              <Txt muted style={{ marginTop: 8 }}>Cuota sugerida por plaza</Txt>
+              <Txt muted style={{ marginTop: 4 }}>Cuota sugerida por plaza</Txt>
               <Money value={preview.suggestedQuota.amount} size={28} />
-              <Txt size={12} muted style={{ marginTop: 4 }}>{preview.suggestedQuota.formula}. Podrás poner la cuota que acuerdes con cada persona.</Txt>
+              <Txt size={12} muted>{preview.suggestedQuota.formula}. Podrás poner la cuota que acuerdes con cada persona.</Txt>
             </Card>
           )}
           <Heading>Primeros ciclos</Heading>

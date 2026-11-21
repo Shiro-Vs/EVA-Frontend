@@ -79,11 +79,12 @@ export default function DashboardScreen() {
             <Text numberOfLines={1} style={{ color: colors.text, fontSize: 22, fontFamily: "AsapBold" }}>{profile?.displayName ?? "bienvenido"} 👋</Text>
           </View>
           <TouchableOpacity onPress={() => setSheet(true)} accessibilityRole="button" accessibilityLabel={attention.length ? `Pendientes: ${attention.length}` : "Pendientes"}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             style={{ width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
             <Ionicons name="notifications-outline" size={22} color={colors.text} />
             {attention.length > 0 && (
-              <View style={{ position: "absolute", top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.dangerSurface, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.background }}>
-                <Text style={{ color: "#fff", fontSize: 10, fontFamily: "AsapBold" }}>{attention.length > 9 ? "9+" : attention.length}</Text>
+              <View style={{ position: "absolute", top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, backgroundColor: colors.dangerSurface, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.background }}>
+                <Text style={{ color: colors.onPrimary, fontSize: 11, fontFamily: "AsapBold" }}>{attention.length > 9 ? "9+" : attention.length}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -93,7 +94,7 @@ export default function DashboardScreen() {
         <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 16, overflow: "hidden" }}>
           <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
           <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Saldo total · {s.balance.accounts} {s.balance.accounts === 1 ? "cuenta" : "cuentas"}</Text>
-          <Text style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold" }}>{formatSoles(s.balance.net)}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(s.balance.net)}</Text>
           {flow ? (
             <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
               <FlowPill label={`Ingresos de ${monthName}`} value={flow.income} icon="arrow-down" />
@@ -118,20 +119,19 @@ export default function DashboardScreen() {
         {(accountsCard || creditCard) && (
           <View style={{ gap: 6 }}>
             <SectionTitle title="Mis cuentas" action={<SeeAll label="Ver todo" onPress={() => go("/money")} />} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 24 }} style={{ marginHorizontal: -24 }} snapToInterval={140} decelerationRate="fast">
-              <View style={{ width: 14 }} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 24 }} style={{ marginHorizontal: -24 }} snapToInterval={140} decelerationRate="fast">
               {(accountsCard?.accounts ?? []).map((a) => (
                 <TouchableOpacity key={a.id} onPress={() => go(`/account/${a.id}`)} accessibilityRole="button" style={{ width: 132, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 10, gap: 4 }}>
                   <View style={{ width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: colors.sections.money.tint }}><Ionicons name={ACCOUNT_ICON[a.type] ?? "wallet"} size={16} color={colors.sections.money.ink} /></View>
                   <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>{a.name}</Text>
-                  <Text numberOfLines={1} style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>{formatSoles(a.balance)}</Text>
+                  <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(a.balance)}</Text>
                 </TouchableOpacity>
               ))}
               {(creditCard?.cards ?? []).map((c) => (
                 <TouchableOpacity key={c.id} onPress={() => go(`/account/${c.id}`)} accessibilityRole="button" style={{ width: 132, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 10, gap: 4 }}>
                   <View style={{ width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.expense}22` }}><Ionicons name="card" size={16} color={colors.expenseStrong} /></View>
                   <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>{c.name} · deuda</Text>
-                  <Text numberOfLines={1} style={{ color: cmpMoney(c.debt, "0.00") > 0 ? colors.expenseStrong : colors.text, fontSize: 16, fontFamily: "AsapBold" }}>{formatSoles(c.debt)}</Text>
+                  <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: cmpMoney(c.debt, "0.00") > 0 ? colors.expenseStrong : colors.text, fontSize: 16, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(c.debt)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -145,9 +145,10 @@ export default function DashboardScreen() {
             <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 10 }}>
               {[...(budgets?.budgets ?? [])].sort((a, b) => (b.percent ?? 0) - (a.percent ?? 0)).slice(0, 2).map((b) => <BudgetBar key={b.id} name={b.name} percent={b.percent ?? 0} exceeded={b.exceeded} onPress={() => go(`/budgets/${b.id}`)} />)}
               {goals && (
-                <TouchableOpacity onPress={() => go("/goals/accounts")} accessibilityRole="button" style={{ flexDirection: "row", justifyContent: "space-between", borderTopWidth: (budgets?.budgets.length ?? 0) > 0 ? 1 : 0, borderTopColor: colors.border, paddingTop: (budgets?.budgets.length ?? 0) > 0 ? 10 : 0 }}>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>Libre para gastar <Text style={{ color: colors.incomeStrong, fontFamily: "AsapBold" }}>{formatSoles(goals.totals.free)}</Text></Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>En metas <Text style={{ color: colors.text, fontFamily: "AsapBold" }}>{formatSoles(goals.totals.reserved)}</Text></Text>
+                <TouchableOpacity onPress={() => go("/goals/accounts")} accessibilityRole="button" hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 8, borderTopWidth: (budgets?.budgets.length ?? 0) > 0 ? 1 : 0, borderTopColor: colors.border, paddingTop: (budgets?.budgets.length ?? 0) > 0 ? 10 : 4, paddingBottom: 4 }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>Libre para gastar <Text style={{ color: colors.incomeStrong, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(goals.totals.free)}</Text></Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>En metas <Text style={{ color: colors.text, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(goals.totals.reserved)}</Text></Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -207,12 +208,12 @@ function SectionTitle({ title, action }: { title: string; action?: React.ReactNo
 function FlowPill({ label, value, icon }: { label: string; value: string; icon: "arrow-down" | "arrow-up" }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.14)", borderRadius: 16, paddingVertical: 8, paddingHorizontal: 10 }}>
+    <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 16, paddingVertical: 8, paddingHorizontal: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
         <Ionicons name={icon} size={11} color={colors.onPrimaryMuted} />
         <Text numberOfLines={1} style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", flexShrink: 1 }}>{label}</Text>
       </View>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 16, fontFamily: "AsapBold" }}>{formatSoles(value)}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 16, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(value)}</Text>
     </View>
   );
 }
@@ -235,12 +236,12 @@ function AttentionRow({ a, first, onPress }: { a: AttentionItem; first: boolean;
 
 function BudgetBar({ name, percent, exceeded, onPress }: { name: string; percent: number; exceeded: boolean; onPress: () => void }) {
   const { colors } = useAppTheme();
-  const tone = exceeded ? colors.expenseStrong : percent >= 85 ? colors.warningStrong : colors.incomeStrong;
+  const tone = exceeded ? colors.expenseStrong : percent >= 80 ? colors.warningStrong : colors.incomeStrong;
   return (
-    <TouchableOpacity onPress={onPress} accessibilityRole="button" style={{ gap: 5 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+    <TouchableOpacity onPress={onPress} accessibilityRole="button" hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ gap: 5, paddingVertical: 4 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
         <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, fontFamily: "AsapMedium", flex: 1 }}>{name}</Text>
-        <Text style={{ color: tone, fontSize: 13, fontFamily: "AsapBold" }}>{Math.round(percent)}%</Text>
+        <Text style={{ color: tone, fontSize: 13, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{Math.round(percent)}%</Text>
       </View>
       <View style={{ height: 6, borderRadius: 3, overflow: "hidden", backgroundColor: colors.border }}>
         <View style={{ height: "100%", width: `${Math.max(2, Math.min(100, percent))}%`, backgroundColor: tone }} />

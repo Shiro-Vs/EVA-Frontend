@@ -25,7 +25,7 @@ export default function RichText({ text, size = 14 }: { text: string; size?: num
           return (
             <View key={i} style={{ flexDirection: "row", gap: 8, paddingLeft: 4 + b.level * 14 }}>
               <Text style={{ color: colors.primary, fontSize: size, lineHeight: size * 1.45, fontFamily: "AsapBold" }}>•</Text>
-              <Text style={{ flex: 1 }}><Inline spans={b.spans} size={size} color={colors.text} /></Text>
+              <Text style={{ flex: 1, fontFamily: "Asap", fontSize: size, lineHeight: size * 1.45, color: colors.text }}><Inline spans={b.spans} size={size} color={colors.text} /></Text>
             </View>
           );
         }
@@ -33,11 +33,12 @@ export default function RichText({ text, size = 14 }: { text: string; size?: num
           return (
             <View key={i} style={{ flexDirection: "row", gap: 8, paddingLeft: 4 }}>
               <Text style={{ color: colors.primary, fontSize: size, lineHeight: size * 1.45, fontFamily: "AsapBold", minWidth: 18 }}>{b.n}.</Text>
-              <Text style={{ flex: 1 }}><Inline spans={b.spans} size={size} color={colors.text} /></Text>
+              <Text style={{ flex: 1, fontFamily: "Asap", fontSize: size, lineHeight: size * 1.45, color: colors.text }}><Inline spans={b.spans} size={size} color={colors.text} /></Text>
             </View>
           );
         }
-        return <Text key={i}><Inline spans={b.spans} size={b.kind === "h" ? size + 1 : size} color={colors.text} /></Text>;
+        const hSize = b.kind === "h" ? size + 1 : size;
+        return <Text key={i} style={{ fontFamily: "Asap", fontSize: hSize, lineHeight: hSize * 1.45, color: colors.text }}><Inline spans={b.spans} size={hSize} color={colors.text} /></Text>;
       })}
     </View>
   );

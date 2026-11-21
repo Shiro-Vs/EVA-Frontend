@@ -32,7 +32,7 @@ const GROUPS: Array<{ title: string; section: SectionKey; rows: Row[] }> = [
     { icon: "notifications-outline", title: "Avisos y recordatorios", text: "Qué avisar y cuándo", to: "/settings/notifications" },
     { icon: "cloud-done-outline", title: "Respaldos", text: "Copias y restaurar", to: "/settings/backups" },
     { icon: "apps-outline", title: "Panel y tarjetas", text: "Elige y ordena lo que ves", to: "/settings/dashboard" },
-    { icon: "options-outline", title: "Bloqueo y captura", text: "Re-bloqueo, propuestas y duplicados", to: "/settings/general" },
+    { icon: "options-outline", title: "Bloqueo y captura", text: "Bloqueo automático, propuestas y duplicados", to: "/settings/general" },
   ] },
   { title: "Cuenta", section: "more", rows: [
     { icon: "key-outline", title: "Cambiar contraseña", text: "Elige una contraseña nueva", to: "/settings/password" },
