@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
+import Constants from "expo-constants";
+import * as Updates from "expo-updates";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import BottomSheet from "../../components/common/BottomSheet";
-import { Screen, Txt } from "../../components/v1/ui";
+import { Badge, Screen, Txt } from "../../components/v1/ui";
 import { PALETTE_INFO, type SectionKey } from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
 import { useAppThemeContext } from "../../context/ThemeContext";
@@ -11,6 +13,7 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 import AppearanceCard from "./AppearanceCard";
 import { SuggestionSheet } from "../../components/v1/SuggestionSheet";
 import { useDialog } from "../../context/DialogContext";
+import { channelLabel } from "../../updates/aboutInfo";
 
 type Row = { icon: keyof typeof Ionicons.glyphMap; title: string; text: string; to: string };
 const GROUPS: Array<{ title: string; section: SectionKey; rows: Row[] }> = [
@@ -45,7 +48,7 @@ const GROUPS: Array<{ title: string; section: SectionKey; rows: Row[] }> = [
 const MODE_LABEL = { light: "Claro", dark: "Oscuro", system: "Sistema" } as const;
 
 /** Fila plana: ícono con tinte, título y una línea de apoyo, separada de la siguiente por un divisor (sin tarjeta). */
-function FlatRow({ icon, title, text, tint, ink, last, danger, onPress }: { icon: Row["icon"]; title: string; text?: string; tint: string; ink: string; last?: boolean; danger?: boolean; onPress: () => void }) {
+function FlatRow({ icon, title, text, tint, ink, last, danger, badge, onPress }: { icon: Row["icon"]; title: string; text?: string; tint: string; ink: string; last?: boolean; danger?: boolean; badge?: string | null; onPress: () => void }) {
   const { colors } = useAppTheme();
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11, borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.border }}>
@@ -56,6 +59,7 @@ function FlatRow({ icon, title, text, tint, ink, last, danger, onPress }: { icon
         <Text numberOfLines={1} style={{ color: danger ? colors.expenseStrong : colors.text, fontSize: 15, fontFamily: "AsapSemiBold" }}>{title}</Text>
         {text ? <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{text}</Text> : null}
       </View>
+      {badge ? <Badge text={badge} tone="info" /> : null}
       {!danger && <Ionicons name="chevron-forward" size={17} color={colors.muted} />}
     </TouchableOpacity>
   );
@@ -68,9 +72,13 @@ export default function MoreScreen() {
   const { profile, logout } = useAuth();
   const dialog = useDialog();
   const { palette, themePreference } = useAppThemeContext();
+  const { isUpdatePending, currentlyRunning } = Updates.useUpdates();
   const [look, setLook] = useState(false);
   const [suggest, setSuggest] = useState(false);
   const name = profile?.displayName ?? "Mi cuenta";
+  const appVersion = Constants.expoConfig?.version ?? "1.0.2";
+  const channel = channelLabel(currentlyRunning.channel ?? Updates.channel, Updates.isEnabled);
+  const aboutText = isUpdatePending ? "Hay una actualización lista para aplicar" : `Versión ${appVersion} · ${channel}`;
 
   return (
     <Screen title="Más" back={false}>
@@ -109,7 +117,8 @@ export default function MoreScreen() {
 
       <View style={{ gap: 2 }}>
         <Label>Ayuda</Label>
-        <FlatRow icon="chatbubble-ellipses-outline" title="Sugerencias" text="Cuéntame qué mejorar o qué falla" tint={`${colors.primary}12`} ink={colors.primary} last onPress={() => setSuggest(true)} />
+        <FlatRow icon="chatbubble-ellipses-outline" title="Sugerencias" text="Cuéntame qué mejorar o qué falla" tint={`${colors.primary}12`} ink={colors.primary} onPress={() => setSuggest(true)} />
+        <FlatRow icon="information-circle-outline" title="Acerca de EVA" text={aboutText} badge={isUpdatePending ? "Nueva" : null} tint={`${colors.primary}12`} ink={colors.primary} last onPress={() => router.push("/settings/about" as never)} />
       </View>
 
       <FlatRow icon="log-out-outline" title="Cerrar sesión" tint={`${colors.expense}22`} ink={colors.expenseStrong} danger last

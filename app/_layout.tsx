@@ -153,6 +153,7 @@ function RootLayoutContent() {
             <Stack.Screen name="service/[id]/calendar" />
             <Stack.Screen name="service/[id]/individual" />
             <Stack.Screen name="settings/index" />
+            <Stack.Screen name="settings/about" />
             <Stack.Screen name="settings/account" />
             <Stack.Screen name="settings/billing" />
             <Stack.Screen name="settings/dashboard" />
