@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TouchableOpacity, View, ViewStyle } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Switch, Text, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,7 +29,7 @@ export function BackButton({ onPress }: { onPress?: () => void }) {
 }
 
 /** Pantalla con cabecera, contenido desplazable y, opcionalmente, un pie con la acción principal. */
-export function Screen({ title, children, back = true, right, footer, subtitle, scrollRef }: { title: string; children: React.ReactNode; back?: boolean; right?: React.ReactNode; footer?: React.ReactNode; subtitle?: string; scrollRef?: React.RefObject<ScrollView | null> }) {
+export function Screen({ title, children, back = true, right, footer, subtitle, scrollRef, refreshing, onRefresh }: { title: string; children: React.ReactNode; back?: boolean; right?: React.ReactNode; footer?: React.ReactNode; subtitle?: string; scrollRef?: React.RefObject<ScrollView | null>; refreshing?: boolean; onRefresh?: () => void }) {
   const { colors } = useAppTheme();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -43,7 +43,14 @@ export function Screen({ title, children, back = true, right, footer, subtitle, 
         </View>
         {right}
       </View>
-      <ScrollView ref={scrollRef} contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 12 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} /> : undefined}
+      >
         {children}
       </ScrollView>
       {footer && <View style={{ paddingHorizontal: 24, paddingBottom: Platform.OS === "web" ? 12 : 10, paddingTop: 10, backgroundColor: colors.background }}>{footer}</View>}

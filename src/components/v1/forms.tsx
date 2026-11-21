@@ -20,9 +20,9 @@ export function Label({ children }: { children: React.ReactNode }) {
 
 /** Selección única con chips. */
 /** Hasta 4 opciones se muestran como etiquetas; con más (o con `select`) se usa un selector que no crece con la lista. */
-export function Choice<T extends string>({ label, options, value, onChange, select }: { label?: string; options: Array<{ id: T; label: string; hint?: string }>; value: T | null; onChange: (v: T) => void; select?: boolean }) {
+export function Choice<T extends string>({ label, options, value, onChange, select, inline }: { label?: string; options: Array<{ id: T; label: string; hint?: string }>; value: T | null; onChange: (v: T) => void; select?: boolean; inline?: boolean }) {
   const { colors } = useAppTheme();
-  if (select || options.length > 4) return <SelectField label={label} options={options} value={value} onChange={onChange} />;
+  if (select || options.length > 4) return <SelectField label={label} options={options} value={value} onChange={onChange} inline={inline} />;
   return (
     <View style={{ marginBottom: 4 }}>
       {label && <Label>{label}</Label>}
@@ -58,13 +58,13 @@ export function AccountPicker({ label = "Cuenta", value, onChange, exclude }: { 
 }
 
 /** Cuenta opcional (p. ej. la cuenta con la que se suele pagar un servicio): permite elegir «Ninguna». */
-export function OptionalAccountPicker({ label = "Cuenta", value, onChange }: { label?: string; value: string | null; onChange: (id: string | null) => void }) {
+export function OptionalAccountPicker({ label = "Cuenta", value, onChange, inline }: { label?: string; value: string | null; onChange: (id: string | null) => void; inline?: boolean }) {
   const accounts = useAsync(() => api.accounts(), []);
   const list = (accounts.data ?? []).filter((a) => a.status === "active");
   if (accounts.loading && !accounts.data) return <Loading />;
   if (accounts.error) return <Notice tone="err">{accounts.error}</Notice>;
   return (
-    <SelectField label={label} value={value} onChange={(v) => onChange(v)} placeholder="Ninguna" clearLabel="Ninguna" onClear={() => onChange(null)}
+    <SelectField label={label} value={value} onChange={(v) => onChange(v)} placeholder="Ninguna" clearLabel="Ninguna" onClear={() => onChange(null)} inline={inline}
       options={list.map((a) => ({ id: a.id, label: a.name, hint: formatSoles(a.balance) }))} />
   );
 }
@@ -72,12 +72,24 @@ export function OptionalAccountPicker({ label = "Cuenta", value, onChange }: { l
 /** Inicios de ciclo futuros del servicio: la API solo admite cambios que empiezan en uno de ellos. */
 export function FutureCyclePicker({ subscriptionId, label = "Rige desde el inicio del ciclo", value, onChange }: { subscriptionId: string; label?: string; value: string | null; onChange: (date: string) => void }) {
   const cycles = useAsync(() => api.cycles(subscriptionId), [subscriptionId]);
+  const generate = useSubmit(async (key: string) => {
+    await api.generateAhead(subscriptionId, 1, key);
+    await cycles.reload();
+  });
   const today = todayLocalIso();
   const starts = (cycles.data ?? []).map((c) => c.startDate).filter((d) => d > today).sort();
   useEffect(() => { if (!value && starts.length) onChange(starts[0]!); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [value, starts.length]);
   if (cycles.loading && !cycles.data) return <Loading />;
   if (cycles.error) return <Notice tone="err">{cycles.error}</Notice>;
-  if (starts.length === 0) return <Notice tone="warn">Todavía no hay un ciclo futuro generado. Genera el siguiente ciclo desde el servicio.</Notice>;
+  if (starts.length === 0) {
+    return (
+      <View style={{ gap: 8 }}>
+        <Notice tone="warn">Todavía no hay un ciclo futuro generado para programar este cambio.</Notice>
+        <Button title="Generar próximo ciclo" icon="add-circle-outline" variant="secondary" size="compact" busy={generate.busy} onPress={() => void generate.submit()} />
+        {generate.error && <Notice tone="err">{generate.error}</Notice>}
+      </View>
+    );
+  }
   return <SelectField label={label} options={starts.map((d) => ({ id: d, label: `${humanDate(d)} (${d})` }))} value={value} onChange={onChange} />;
 }
 
@@ -239,13 +251,13 @@ export function FlowResult({ flow, hide }: { flow: ReturnType<typeof usePreviewF
 }
 
 /** Categorías activas (categoría → subcategoría) para elegir una. Con `allowNone` se puede dejar sin categoría. */
-export function CategoryPicker({ label = "Categoría", value, onChange, allowNone = true }: { label?: string; value: string | null; onChange: (id: string | null) => void; allowNone?: boolean }) {
+export function CategoryPicker({ label = "Categoría", value, onChange, allowNone = true, inline }: { label?: string; value: string | null; onChange: (id: string | null) => void; allowNone?: boolean; inline?: boolean }) {
   const cats = useAsync(() => api.categories("active"), []);
   if (cats.loading && !cats.data) return <Loading />;
   if (cats.error) return <Notice tone="err">{cats.error}</Notice>;
   const opts = (cats.data ?? []).flatMap((c) => [{ id: c.id, label: c.name }, ...(c.children ?? []).map((k) => ({ id: k.id, label: `${c.name} › ${k.name}` }))]);
   return (
-    <Choice label={label} value={value ?? "__none__"} onChange={(v) => onChange(v === "__none__" ? null : v)}
+    <Choice label={label} value={value ?? "__none__"} onChange={(v) => onChange(v === "__none__" ? null : v)} inline={inline}
       options={[...(allowNone ? [{ id: "__none__", label: "Sin categoría" }] : []), ...opts]} />
   );
 }

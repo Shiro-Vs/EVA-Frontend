@@ -32,6 +32,8 @@ function Chip({ icon, text, color, bg }: { icon: keyof typeof Ionicons.glyphMap;
 export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountName, onBack, onMenu, activeTab, onSwitchTab }) => {
   const { colors, isDark } = useAppTheme();
   const shared = service.mode === "shared";
+  const isSuspended = service.status === "suspended";
+  const isArchived = service.status === "archived";
   const tone = getAdjustedColor(service.color || colors.primary, isDark);
   const end = service.currentCycle?.endDate ?? null;
   const d = end ? daysUntil(end, todayLocalIso()) : null;
@@ -58,8 +60,10 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({ service, accountNa
             <Text style={{ color: colors.text, fontFamily: "AsapBold" }}>{formatSoles(service.terms?.announcedPrice)}</Text> · {intervalLabel(service.terms?.interval)}
           </Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+            {isSuspended && <Chip icon="pause-circle-outline" text="Suspendido" color={colors.warningStrong} bg={`${colors.warning}26`} />}
+            {isArchived && <Chip icon="archive-outline" text="Archivado" color={colors.textSecondary} bg={`${colors.text}14`} />}
             <Chip icon={shared ? "people-outline" : "person-outline"} text={shared ? `Compartido · ${service.occupiedSeats}/${service.capacity}` : "Personal"} color={colors.primary} bg={`${colors.primary}1A`} />
-            {end && d !== null && <Chip icon="calendar-outline" text={`Renueva ${whenText(d)}`} color={soon ? colors.warningStrong : colors.textSecondary} bg={soon ? `${colors.warning}26` : `${colors.text}10`} />}
+            {service.status === "active" && end && d !== null && <Chip icon="calendar-outline" text={`Renueva ${whenText(d)}`} color={soon ? colors.warningStrong : colors.textSecondary} bg={soon ? `${colors.warning}26` : `${colors.text}10`} />}
             <Chip icon="card-outline" text={accountName || "Sin cuenta"} color={colors.textSecondary} bg={`${colors.text}10`} />
           </View>
         </View>

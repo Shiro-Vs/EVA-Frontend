@@ -27,28 +27,33 @@ export default function EditServiceModal({ visible, onClose, service, onSuccess 
   const [provider, setProvider] = useState(service.provider ?? "");
   const [preferred, setPreferred] = useState<string | null>(service.preferredAccountId);
   const [categoryId, setCategoryId] = useState<string | null>(service.categoryId ?? null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (visible) { setProvider(service.provider ?? ""); setPreferred(service.preferredAccountId); setCategoryId(service.categoryId ?? null); setName(service.name); setStyle({ icon: service.icon || "receipt", color: service.color || colors.primary }); setError(null); }
+    if (visible) { setProvider(service.provider ?? ""); setPreferred(service.preferredAccountId); setCategoryId(service.categoryId ?? null); setName(service.name); setStyle({ icon: service.icon || "receipt", color: service.color || colors.primary }); setError(null); setSaving(false); }
   }, [visible, service, colors.primary]);
 
   const save = async () => {
+    if (saving) return;
     if (!name.trim()) { setError("El nombre es obligatorio."); return; }
+    setSaving(true);
     try {
       await api.patchSubscription(service.id, { name: name.trim(), provider: provider.trim() || null, preferredAccountId: preferred, categoryId, icon: style.icon, color: style.color }, service.version);
       onSuccess();
       onClose();
     } catch (e) {
       setError(errorMessage(e));
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <EVAModal visible={visible} title="Editar Servicio" onClose={onClose} primaryButtonText="Guardar" onPrimaryAction={save}>
+    <EVAModal visible={visible} title="Editar Servicio" onClose={onClose} primaryButtonText={saving ? "Guardando…" : "Guardar"} onPrimaryAction={save}>
       <EVAInput label="Nombre" value={name} onChangeText={setName} autoCapitalize="words" error={error && !name.trim() ? error : undefined} />
       <EVAInput label="Proveedor" value={provider} onChangeText={setProvider} autoCapitalize="words" />
-      <OptionalAccountPicker label="Cuenta con la que sueles pagarlo" value={preferred} onChange={setPreferred} />
-      <CategoryPicker label="Categoría (para presupuestos)" value={categoryId} onChange={setCategoryId} />
+      <OptionalAccountPicker label="Cuenta con la que sueles pagarlo" value={preferred} onChange={setPreferred} inline />
+      <CategoryPicker label="Categoría (para presupuestos)" value={categoryId} onChange={setCategoryId} inline />
       <ServiceStylePicker icon={style.icon} color={style.color} onChange={setStyle} />
       {error && name.trim() ? <Text style={{ color: colors.expenseStrong, fontFamily: fonts.family.regular, fontSize: 12, marginTop: 12 }}>{error}</Text> : null}
       <View style={{ height: 8 }} />

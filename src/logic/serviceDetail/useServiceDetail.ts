@@ -1,5 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Dimensions, ScrollView } from "react-native";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { Charge } from "../../api/types";
@@ -8,7 +7,6 @@ import { useFocusReload } from "../../hooks/useFocusReload";
 import { todayLocalIso } from "../../utils/dates";
 import { shareText } from "../../utils/share";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
 export type ServiceTab = "ciclo" | "participantes" | "historial";
 
 /**
@@ -25,9 +23,8 @@ export function useServiceDetail(serviceId: string) {
   const [activeTab, setActiveTab] = useState<ServiceTab>("ciclo");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isEditVisible, setEditVisible] = useState(false);
-  const [confirmReverse, setConfirmReverse] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [remindError, setRemindError] = useState<string | null>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
 
   // Ciclos en orden cronológico: el carrusel navega de uno a otro.
   const ordered = useMemo(() => [...(cycles.data ?? [])].sort((a, b) => (a.startDate < b.startDate ? -1 : 1)), [cycles.data]);
@@ -45,9 +42,17 @@ export function useServiceDetail(serviceId: string) {
   }, [sub.reload, cycles.reload, seats.reload, detail.reload, accounts.reload, history.reload]);
   useFocusReload(reloadAll);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([sub.reload(), cycles.reload(), seats.reload(), detail.reload(), accounts.reload(), history.reload()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [sub.reload, cycles.reload, seats.reload, detail.reload, accounts.reload, history.reload]);
+
   const switchTab = (tab: ServiceTab) => {
     setActiveTab(tab);
-    scrollViewRef.current?.scrollTo({ x: tab === "participantes" ? SCREEN_WIDTH : 0, animated: true });
   };
 
   const selectCycleAt = (index: number) => { const c = ordered[index]; if (c) setSelectedId(c.id); };
@@ -64,7 +69,6 @@ export function useServiceDetail(serviceId: string) {
     const pid = detail.data?.supplierPayment?.id;
     if (!pid) return;
     await api.reverseSupplierPayment(pid, "Corrección del pago desde la app", key);
-    setConfirmReverse(false);
     reloadAll();
   });
 
@@ -93,8 +97,9 @@ export function useServiceDetail(serviceId: string) {
 
   return {
     sub, seats, accounts, detail, history, ordered, selectedIndex, selectCycleAt,
-    activeTab, switchTab, scrollViewRef, SCREEN_WIDTH,
-    isEditVisible, setEditVisible, confirmReverse, setConfirmReverse,
+    activeTab, switchTab,
+    isEditVisible, setEditVisible,
+    refreshing, onRefresh,
     advance, reversePayment, preferredAccount, remindError,
     goPay, goJoin, openCharge, remind, reloadAll, router,
   };

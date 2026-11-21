@@ -11,16 +11,18 @@ interface ServiceParticipantsProps {
   seats: SeatSummary[];
   shared: boolean;
   capacity: number;
+  canAdd?: boolean;
   onAddSubscriber: () => void;
   onOpenSeat: (seatId: string) => void;
 }
 
 /** Quiénes comparten el servicio, cuánto paga cada uno y quién debe. */
-export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats, shared, capacity, onAddSubscriber, onOpenSeat }) => {
+export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats, shared, capacity, canAdd = true, onAddSubscriber, onOpenSeat }) => {
   const { colors } = useAppTheme();
   const others = seats.filter((s) => !s.isOwner);
   const people = new Set(others.map((s) => s.contact?.id)).size;
   const full = seats.length >= capacity;
+  const addDisabled = full || !canAdd;
 
   return (
     <View style={{ gap: 12 }}>
@@ -29,7 +31,7 @@ export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats,
           <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>{people} {people === 1 ? "persona" : "personas"} comparten</Text>
           <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{seats.length} de {capacity} plazas ocupadas</Text>
         </View>
-        <Button title="Incorporar" icon="person-add-outline" size="compact" disabled={full} onPress={onAddSubscriber} />
+        <Button title="Incorporar" icon="person-add-outline" size="compact" disabled={addDisabled} onPress={onAddSubscriber} />
       </View>
 
       <View>
@@ -54,8 +56,8 @@ export const ServiceParticipants: React.FC<ServiceParticipantsProps> = ({ seats,
           );
         })}
         {Array.from({ length: Math.max(0, capacity - seats.length) }).map((_, k) => (
-          <TouchableOpacity key={`free-${k}`} onPress={onAddSubscriber} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Plaza libre, incorporar participante"
-            style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, borderTopWidth: seats.length + k === 0 ? 0 : 1, borderTopColor: colors.border }}>
+          <TouchableOpacity key={`free-${k}`} disabled={addDisabled} onPress={onAddSubscriber} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Plaza libre, incorporar participante"
+            style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, borderTopWidth: seats.length + k === 0 ? 0 : 1, borderTopColor: colors.border, opacity: addDisabled ? 0.5 : 1 }}>
             <View style={{ width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.muted, alignItems: "center", justifyContent: "center" }}>
               <Ionicons name="add" size={18} color={colors.muted} />
             </View>

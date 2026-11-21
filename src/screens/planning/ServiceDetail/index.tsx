@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { ActivityIndicator, PanResponder, ScrollView, View } from "react-native";
+import { ActivityIndicator, PanResponder, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomSheet from "../../../components/common/BottomSheet";
 import { BackButton, ErrorBox, MenuRow, Notice } from "../../../components/v1/ui";
@@ -51,7 +51,8 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
   }
 
   const shared = service.mode === "shared";
-  const full = (s.seats.data ?? []).length >= service.capacity;
+  const active = service.status === "active";
+  const full = service.occupiedSeats >= service.capacity;
   const accountName = s.detail.data?.supplierPayment?.account?.name ?? s.preferredAccount?.name ?? null;
   const run = (fn: () => void) => { setMenu(false); setTimeout(fn, 0); };
   const correctPayment = async () => {
@@ -66,11 +67,16 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
         <ServiceHeader service={service} accountName={accountName} onBack={back} onMenu={() => setMenu(true)} activeTab={s.activeTab} onSwitchTab={s.switchTab} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never" contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24, gap: 16 }} {...pan.panHandlers}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24, gap: 16 }}
+        refreshControl={<RefreshControl refreshing={s.refreshing} onRefresh={s.onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
+        {...pan.panHandlers}
+      >
         {s.activeTab === "historial" ? (
           <ServicePayments cycles={s.history.data} loading={s.history.loading} shared={shared} />
         ) : shared && s.activeTab === "participantes" ? (
-          <ServiceParticipants seats={s.seats.data ?? []} shared={shared} capacity={service.capacity} onAddSubscriber={s.goJoin} onOpenSeat={(sid) => s.router.push(`/seat/${sid}` as never)} />
+          <ServiceParticipants seats={s.seats.data ?? []} shared={shared} capacity={service.capacity} canAdd={active} onAddSubscriber={s.goJoin} onOpenSeat={(sid) => s.router.push(`/seat/${sid}` as never)} />
         ) : (
           <ServiceHistory
             service={service} cycle={s.detail.data} loading={s.detail.loading} cycles={s.ordered} selectedIndex={s.selectedIndex}
@@ -84,7 +90,9 @@ export default function ServiceDetailScreen({ serviceId }: { serviceId: string }
       <BottomSheet visible={menu} onClose={() => setMenu(false)} title={service.name} maxHeight={0.6}>
         <View style={{ paddingHorizontal: 4, paddingBottom: 4, gap: 6 }}>
           <MenuRow icon="create-outline" title="Editar nombre, ícono y color" onPress={() => run(() => s.setEditVisible(true))} />
-          {shared && (full ? (
+          {shared && (!active ? (
+            <Notice tone="info">{service.status === "archived" ? "Servicio archivado: restaúralo desde Gestionar para incorporar participantes." : "Servicio suspendido: reactívalo desde Gestionar → Calendario para incorporar participantes."}</Notice>
+          ) : full ? (
             <Notice tone="info">Todas las plazas de este servicio están ocupadas.</Notice>
           ) : (
             <MenuRow icon="person-add-outline" title="Incorporar participante" onPress={() => run(s.goJoin)} />

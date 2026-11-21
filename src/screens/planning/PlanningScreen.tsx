@@ -35,21 +35,36 @@ export default function PlanningScreen() {
   const router = useRouter();
   const [view, setView] = useState<View_>("cards");
   const [filter, setFilter] = useState<Filter>("all");
-  const subs = useAsync(() => api.subscriptions(filter === "archived" ? "archived" : undefined), [filter === "archived"]);
+  const [refreshing, setRefreshing] = useState(false);
+  const subs = useAsync(() => api.subscriptions(), []);
+  const archivedSubs = useAsync(() => (filter === "archived" ? api.subscriptions("archived") : Promise.resolve<Subscription[]>([])), [filter === "archived"]);
   const summary = useAsync(() => api.summary(), []);
-  const reload = useCallback(() => { void subs.reload(); void summary.reload(); }, [subs.reload, summary.reload]);
+  const reload = useCallback(() => {
+    void subs.reload();
+    void summary.reload();
+    if (filter === "archived") void archivedSubs.reload();
+  }, [subs.reload, summary.reload, archivedSubs.reload, filter]);
   useFocusReload(reload);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([subs.reload(), summary.reload(), ...(filter === "archived" ? [archivedSubs.reload()] : [])]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [subs.reload, summary.reload, archivedSubs.reload, filter]);
 
   useEffect(() => { AsyncStorage.getItem(VIEW_KEY).then((v) => { if (v === "cards" || v === "list") setView(v); }).catch(() => {}); }, []);
   const chooseView = (v: View_) => { setView(v); AsyncStorage.setItem(VIEW_KEY, v).catch(() => {}); };
 
   const today = todayLocalIso();
   // Sin filtro "archived", la API ya excluye archivados pero incluye activos y suspendidos (para poder reactivarlos).
-  const all = subs.data ?? [];
-  const activeOnly = useMemo(() => all.filter((s) => s.status === "active"), [all]);
-  const list = useMemo(() => all
+  const allActive = subs.data ?? [];
+  const activeOnly = useMemo(() => allActive.filter((s) => s.status === "active"), [allActive]);
+  const source = filter === "archived" ? (archivedSubs.data ?? []) : allActive;
+  const list = useMemo(() => source
     .filter((s) => filter === "all" || filter === "archived" || s.mode === filter)
-    .sort((a, b) => (a.status === "suspended" ? 1 : 0) - (b.status === "suspended" ? 1 : 0) || (renewalOf(a) ?? "9999").localeCompare(renewalOf(b) ?? "9999") || a.name.localeCompare(b.name)), [all, filter]);
+    .sort((a, b) => (a.status === "suspended" ? 1 : 0) - (b.status === "suspended" ? 1 : 0) || (renewalOf(a) ?? "9999").localeCompare(renewalOf(b) ?? "9999") || a.name.localeCompare(b.name)), [source, filter]);
   const next = useMemo(() => activeOnly.filter((s) => renewalOf(s)).sort((a, b) => renewalOf(a)!.localeCompare(renewalOf(b)!))[0], [activeOnly]);
   const nextDays = next ? daysUntil(renewalOf(next)!, today) : null;
   const sharedCount = activeOnly.filter((s) => s.mode === "shared").length;
@@ -59,7 +74,7 @@ export default function PlanningScreen() {
   const s = summary.data;
 
   return (
-    <Screen title="Servicios" back={false} subtitle="Tus suscripciones y lo que cobras por ellas"
+    <Screen title="Servicios" back={false} subtitle="Tus suscripciones y lo que cobras por ellas" refreshing={refreshing} onRefresh={onRefresh}
       right={<Button title="Nuevo" icon="add" size="compact" onPress={() => router.push("/service/new" as never)} />}>
       {/* Resumen */}
       <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 16, overflow: "hidden" }}>
@@ -103,8 +118,12 @@ export default function PlanningScreen() {
         </View>
       </View>
 
-      {list.length === 0 ? (
-        <Empty icon="calendar-outline" title={filter === "archived" ? "Sin servicios archivados" : all.length === 0 ? "Crea tu primer servicio" : "Nada con este filtro"} text={filter === "archived" ? "Los servicios que archives aparecerán aquí por si quieres restaurarlos." : all.length === 0 ? "Netflix, Spotify… Registra el plan, su calendario y quién participa." : "Prueba con otro filtro."} action={filter !== "archived" && all.length === 0 ? <Button title="Nuevo servicio" icon="add" onPress={() => router.push("/service/new" as never)} /> : undefined} />
+      {filter === "archived" && archivedSubs.loading && !archivedSubs.data?.length ? (
+        <Loading />
+      ) : filter === "archived" && archivedSubs.error ? (
+        <ErrorBox message={archivedSubs.error} onRetry={archivedSubs.reload} />
+      ) : list.length === 0 ? (
+        <Empty icon="calendar-outline" title={filter === "archived" ? "Sin servicios archivados" : allActive.length === 0 ? "Crea tu primer servicio" : "Nada con este filtro"} text={filter === "archived" ? "Los servicios que archives aparecerán aquí por si quieres restaurarlos." : allActive.length === 0 ? "Netflix, Spotify… Registra el plan, su calendario y quién participa." : "Prueba con otro filtro."} action={filter !== "archived" && allActive.length === 0 ? <Button title="Nuevo servicio" icon="add" onPress={() => router.push("/service/new" as never)} /> : undefined} />
       ) : view === "cards" ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
           {list.map((sub) => <ServiceCard key={sub.id} sub={sub} today={today} isDark={isDark} onPress={() => router.push(`/service/${sub.id}` as never)} />)}

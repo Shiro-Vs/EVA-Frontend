@@ -19,7 +19,12 @@ export function SeatScreen() {
   const router = useRouter();
   const seat = useAsync(() => api.seat(id), [id]);
   const courtesies = useAsync(() => api.courtesies(id), [id]);
+  const [refreshing, setRefreshing] = useState(false);
   const reload = React.useCallback(() => { void seat.reload(); void courtesies.reload(); }, [seat.reload, courtesies.reload]);
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try { await Promise.all([seat.reload(), courtesies.reload()]); } finally { setRefreshing(false); }
+  }, [seat.reload, courtesies.reload]);
   useFocusReload(reload);
   const end = useSubmit(async (key: string, courtesyId: string) => api.endCourtesy(courtesyId, key));
 
@@ -30,61 +35,65 @@ export function SeatScreen() {
   const activeCourtesy = (courtesies.data ?? []).find((c) => c.status === "active");
 
   return (
-    <Screen title={s.label} subtitle={s.contact?.name ?? "Tu plaza"}>
-      <Card>
-        <Txt muted size={13}>Cuota por ciclo</Txt>
-        <Money value={s.quota} size={28} />
-        {s.scheduledQuota && <Txt size={12} muted>Desde el {humanDate(s.scheduledQuota.from)}: {formatSoles(s.scheduledQuota.quota)}</Txt>}
-        <Txt size={12} muted style={{ marginTop: 6 }}>Ingresó el {humanDate(s.startDate)}{ending ? ` · termina el ${humanDate(s.endDate!)}` : ""}</Txt>
-      </Card>
-
-      {!s.isOwner && (
-        <View style={{ gap: 10 }}>
-          <Button title="Registrar cobro" icon="cash-outline" onPress={() => router.push({ pathname: "/receipt/new", params: { contactId: s.contact!.id } })} />
-          <Button title="Cambiar cuota" variant="secondary" icon="swap-vertical-outline" onPress={() => router.push(`/seat/${id}/quota` as never)} disabled={ending} />
-          <Button title="Dar cortesía" variant="secondary" icon="gift-outline" onPress={() => router.push(`/seat/${id}/courtesy` as never)} disabled={ending || !!activeCourtesy} />
-          <Button title="Dar de baja" variant="danger" icon="exit-outline" onPress={() => router.push(`/seat/${id}/exit` as never)} disabled={ending} />
-          {s.contact && <Button title="Ver contacto" variant="secondary" icon="person-outline" onPress={() => router.push(`/contact/${s.contact!.id}` as never)} />}
-        </View>
-      )}
-
-      <Heading>Cortesías</Heading>
-      {(courtesies.data ?? []).length === 0 ? <Card><Txt muted>Sin cortesías.</Txt></Card> : (courtesies.data ?? []).map((c) => (
-        <Card key={c.id} outlined>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View style={{ flex: 1 }}>
-              <Txt bold size={14}>{KIND_TEXT[c.kind]}</Txt>
-              <Txt size={12} muted>Desde {humanDate(c.startsOn)}{c.untilDate ? ` hasta ${humanDate(c.untilDate)}` : ""}{c.cyclesTotal ? ` · ${c.cyclesUsed}/${c.cyclesTotal} ciclos` : ""}</Txt>
-              <Txt size={12} muted>{c.reason}</Txt>
-            </View>
-            <Chip status={c.status === "active" ? "exempt" : "converted"} label={c.status === "active" ? "Vigente" : "Terminada"} />
-          </View>
-          {c.status === "active" && <View style={{ marginTop: 8 }}><Button title="Terminar cortesía" variant="secondary" busy={end.busy} onPress={async () => { if (await end.submit(c.id)) void reload(); }} /></View>}
-        </Card>
-      ))}
-      {end.error && <Notice tone="err">{end.error}</Notice>}
-
-      <Heading>Cargos</Heading>
-      {s.charges.length === 0 ? <Card><Txt muted>Sin cargos todavía.</Txt></Card> : s.charges.map((c) => (
-        <Card key={c.obligationId} outlined>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View style={{ flex: 1 }}>
-              <Txt bold size={14}>{humanRange(c.cycle.start, c.cycle.end)}</Txt>
-              <Txt size={12} muted>Vence {humanDate(c.dueDate)} · cargo {formatSoles(c.net)}{cmpMoney(c.adjustments, "0.00") !== 0 ? ` · ajustes ${formatSoles(c.adjustments)}` : ""}{cmpMoney(c.applied, "0.00") > 0 ? ` · pagado ${formatSoles(c.applied)}` : ""}</Txt>
-            </View>
-            <View style={{ alignItems: "flex-end", gap: 4 }}>
-              {c.overdue ? <Chip status="overdue" /> : <Chip status={c.paymentStatus} />}
-              <Money value={c.pending} size={14} />
-            </View>
-          </View>
-        </Card>
-      ))}
-      {(s.voidedCharges ?? []).length > 0 && (
+    <Screen title={s.label} subtitle={s.contact?.name ?? "Tu plaza"} refreshing={refreshing} onRefresh={onRefresh}>
+      {s.isOwner ? (
+        <Notice tone="info">Esta es tu plaza como titular del servicio. Tu costo real se calcula con el pago al proveedor menos lo que aportan los demás participantes.</Notice>
+      ) : (
         <>
-          <Heading>Cargos cancelados</Heading>
-          {s.voidedCharges.map((v) => (
-            <Card key={v.obligationId} outlined><Txt size={13}>{humanRange(v.cycle.start, v.cycle.end)} · {formatSoles(v.gross)}</Txt><Txt size={12} muted>{v.reason}</Txt></Card>
+          <Card>
+            <Txt muted size={13}>Cuota por ciclo</Txt>
+            <Money value={s.quota} size={28} />
+            {s.scheduledQuota && <Txt size={12} muted>Desde el {humanDate(s.scheduledQuota.from)}: {formatSoles(s.scheduledQuota.quota)}</Txt>}
+            <Txt size={12} muted style={{ marginTop: 6 }}>Ingresó el {humanDate(s.startDate)}{ending ? ` · termina el ${humanDate(s.endDate!)}` : ""}</Txt>
+          </Card>
+
+          <View style={{ gap: 10 }}>
+            <Button title="Registrar cobro" icon="cash-outline" onPress={() => router.push({ pathname: "/receipt/new", params: { contactId: s.contact!.id } })} />
+            <Button title="Cambiar cuota" variant="secondary" icon="swap-vertical-outline" onPress={() => router.push(`/seat/${id}/quota` as never)} disabled={ending} />
+            <Button title="Dar cortesía" variant="secondary" icon="gift-outline" onPress={() => router.push(`/seat/${id}/courtesy` as never)} disabled={ending || !!activeCourtesy} />
+            <Button title="Dar de baja" variant="danger" icon="exit-outline" onPress={() => router.push(`/seat/${id}/exit` as never)} disabled={ending} />
+            {s.contact && <Button title="Ver contacto" variant="secondary" icon="person-outline" onPress={() => router.push(`/contact/${s.contact!.id}` as never)} />}
+          </View>
+
+          <Heading>Cortesías</Heading>
+          {(courtesies.data ?? []).length === 0 ? <Card><Txt muted>Sin cortesías.</Txt></Card> : (courtesies.data ?? []).map((c) => (
+            <Card key={c.id} outlined>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Txt bold size={14}>{KIND_TEXT[c.kind]}</Txt>
+                  <Txt size={12} muted>Desde {humanDate(c.startsOn)}{c.untilDate ? ` hasta ${humanDate(c.untilDate)}` : ""}{c.cyclesTotal ? ` · ${c.cyclesUsed}/${c.cyclesTotal} ciclos` : ""}</Txt>
+                  <Txt size={12} muted>{c.reason}</Txt>
+                </View>
+                <Chip status={c.status === "active" ? "exempt" : "converted"} label={c.status === "active" ? "Vigente" : "Terminada"} />
+              </View>
+              {c.status === "active" && <View style={{ marginTop: 8 }}><Button title="Terminar cortesía" variant="secondary" busy={end.busy} onPress={async () => { if (await end.submit(c.id)) void reload(); }} /></View>}
+            </Card>
           ))}
+          {end.error && <Notice tone="err">{end.error}</Notice>}
+
+          <Heading>Cargos</Heading>
+          {s.charges.length === 0 ? <Card><Txt muted>Sin cargos todavía.</Txt></Card> : s.charges.map((c) => (
+            <Card key={c.obligationId} outlined>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Txt bold size={14}>{humanRange(c.cycle.start, c.cycle.end)}</Txt>
+                  <Txt size={12} muted>Vence {humanDate(c.dueDate)} · cargo {formatSoles(c.net)}{cmpMoney(c.adjustments, "0.00") !== 0 ? ` · ajustes ${formatSoles(c.adjustments)}` : ""}{cmpMoney(c.applied, "0.00") > 0 ? ` · pagado ${formatSoles(c.applied)}` : ""}</Txt>
+                </View>
+                <View style={{ alignItems: "flex-end", gap: 4 }}>
+                  {c.overdue ? <Chip status="overdue" /> : <Chip status={c.paymentStatus} />}
+                  <Money value={c.pending} size={14} />
+                </View>
+              </View>
+            </Card>
+          ))}
+          {(s.voidedCharges ?? []).length > 0 && (
+            <>
+              <Heading>Cargos cancelados</Heading>
+              {s.voidedCharges.map((v) => (
+                <Card key={v.obligationId} outlined><Txt size={13}>{humanRange(v.cycle.start, v.cycle.end)} · {formatSoles(v.gross)}</Txt><Txt size={12} muted>{v.reason}</Txt></Card>
+              ))}
+            </>
+          )}
         </>
       )}
     </Screen>

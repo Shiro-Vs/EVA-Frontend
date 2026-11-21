@@ -32,6 +32,8 @@ export const ServiceSummaryCard: React.FC<ServiceSummaryCardProps> = ({ cycle, s
   const paid = cycle.supplierPayment;
   const total = cost.actualPaid ?? cost.announcedPrice;
   const shared = service.mode === "shared";
+  const isArchived = service.status === "archived";
+  const isSuspended = service.status === "suspended";
   const hasSurplus = cmpMoney(cost.surplus, "0.00") > 0;
   const pct = Math.max(0, Math.min(100, pctOf(cost.receivedFromOthers, total)));
 
@@ -68,11 +70,27 @@ export const ServiceSummaryCard: React.FC<ServiceSummaryCardProps> = ({ cycle, s
         </View>
       )}
 
-      <TouchableOpacity onPress={paid ? onEditPayment : onPayService} accessibilityRole="button" activeOpacity={0.85}
-        style={{ height: 46, paddingHorizontal: 16, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, backgroundColor: paid ? "rgba(0,0,0,0.20)" : colors.accent }}>
-        <Ionicons name={paid ? "create-outline" : "cash-outline"} size={18} color={paid ? colors.onPrimary : colors.onAccent} />
-        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontFamily: "AsapBold", fontSize: 14, color: paid ? colors.onPrimary : colors.onAccent }}>{paid ? "Corregir el pago" : "Registrar pago al proveedor"}</Text>
-      </TouchableOpacity>
+      {isArchived ? (
+        <View style={{ minHeight: 42, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, backgroundColor: "rgba(0,0,0,0.18)" }}>
+          <Ionicons name="archive-outline" size={16} color={colors.onPrimaryMuted} />
+          <Text style={{ fontFamily: "AsapMedium", fontSize: 12, color: colors.onPrimaryMuted, flexShrink: 1 }}>
+            Servicio archivado · restaúralo desde Gestionar para registrar o modificar pagos
+          </Text>
+        </View>
+      ) : !paid && isSuspended ? (
+        <View style={{ minHeight: 42, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, backgroundColor: "rgba(0,0,0,0.18)" }}>
+          <Ionicons name="pause-circle-outline" size={16} color={colors.onPrimaryMuted} />
+          <Text style={{ fontFamily: "AsapMedium", fontSize: 12, color: colors.onPrimaryMuted, flexShrink: 1 }}>
+            Servicio suspendido · reactívalo desde Calendario para registrar nuevos pagos
+          </Text>
+        </View>
+      ) : (
+        <TouchableOpacity onPress={paid ? onEditPayment : onPayService} accessibilityRole="button" activeOpacity={0.85}
+          style={{ height: 46, paddingHorizontal: 16, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, backgroundColor: paid ? "rgba(0,0,0,0.20)" : colors.accent }}>
+          <Ionicons name={paid ? "create-outline" : "cash-outline"} size={18} color={paid ? colors.onPrimary : colors.onAccent} />
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontFamily: "AsapBold", fontSize: 14, color: paid ? colors.onPrimary : colors.onAccent }}>{paid ? "Corregir el pago" : "Registrar pago al proveedor"}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

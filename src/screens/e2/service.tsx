@@ -21,7 +21,12 @@ export function ServiceManageScreen() {
   const sub = useAsync(() => api.subscription(id), [id]);
   const terms = useAsync(() => api.terms(id), [id]);
   const seats = useAsync(() => api.seats(id), [id]);
+  const [refreshing, setRefreshing] = useState(false);
   const reload = React.useCallback(() => { void sub.reload(); void terms.reload(); void seats.reload(); }, [sub.reload, terms.reload, seats.reload]);
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try { await Promise.all([sub.reload(), terms.reload(), seats.reload()]); } finally { setRefreshing(false); }
+  }, [sub.reload, terms.reload, seats.reload]);
   useFocusReload(reload);
   const archive = useSubmit(async () => api.archiveSubscription(id));
   const restore = useSubmit(async () => api.restoreSubscription(id));
@@ -31,9 +36,10 @@ export function ServiceManageScreen() {
   if (sub.error || !sub.data) return <Screen title="Gestionar servicio"><ErrorBox message={sub.error ?? "No se encontró el servicio."} onRetry={sub.reload} /></Screen>;
   const s = sub.data;
   const suspended = s.status === "suspended";
+  const full = s.occupiedSeats >= s.capacity;
 
   return (
-    <Screen title={s.name} subtitle="Gestionar servicio">
+    <Screen title={s.name} subtitle="Gestionar servicio" refreshing={refreshing} onRefresh={onRefresh}>
       <Card>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <Chip status={suspended ? "overdue" : s.status === "archived" ? "converted" : "paid"} label={suspended ? "Suspendido" : s.status === "archived" ? "Archivado" : "Activo"} />
@@ -47,16 +53,26 @@ export function ServiceManageScreen() {
         <Button title="Cambiar precio del proveedor" icon="pricetag-outline" onPress={() => router.push(`/service/${id}/price` as never)} disabled={suspended || s.status === "archived"} />
         <Button title={suspended ? "Reactivar o ver calendario" : "Calendario: desplazar, suspender…"} variant="secondary" icon="calendar-outline" onPress={() => router.push(`/service/${id}/calendar` as never)} disabled={s.status === "archived"} />
         {s.mode === "shared" && <Button title="Pasar a individual" variant="secondary" icon="person-outline" onPress={() => router.push(`/service/${id}/individual` as never)} disabled={suspended || s.status === "archived"} />}
-        {s.mode === "shared" && <Button title="Incorporar participante" variant="secondary" icon="person-add-outline" onPress={() => router.push({ pathname: "/service/join", params: { id } })} disabled={suspended || s.status === "archived"} />}
+        {s.mode === "shared" && <Button title={full ? "Plazas completas" : "Incorporar participante"} variant="secondary" icon="person-add-outline" onPress={() => router.push({ pathname: "/service/join", params: { id } })} disabled={suspended || s.status === "archived" || full} />}
       </View>
 
       {s.mode === "shared" && (
         <>
           <Heading>Plazas</Heading>
-          {(seats.data ?? []).map((x) => (
+          {(seats.data ?? []).map((x) => x.isOwner ? (
+            <Card key={x.id} outlined>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Txt bold>Tú · {x.label}</Txt>
+                  <Txt size={12} muted>Titular del servicio · sin cuota fija</Txt>
+                </View>
+                <Chip status="exempt" label="Titular" />
+              </View>
+            </Card>
+          ) : (
             <RowLink key={x.id} onPress={() => router.push(`/seat/${x.id}` as never)}>
               <View style={{ flex: 1 }}>
-                <Txt bold>{x.contact?.name ?? "Tú"} · {x.label}</Txt>
+                <Txt bold>{x.contact?.name ?? "—"} · {x.label}</Txt>
                 <Txt size={12} muted>Cuota {formatSoles(x.quota)}{x.endDate ? ` · termina el ${humanDate(x.endDate)}` : ""}</Txt>
               </View>
               {x.overdue ? <Chip status="overdue" /> : cmpMoney(x.pending, "0.00") > 0 ? <Txt bold size={13}>{formatSoles(x.pending)}</Txt> : <Chip status="paid" label="Al día" />}
@@ -142,8 +158,10 @@ export function ServicePriceScreen() {
       <Card>
         <MoneyField label="Precio nuevo del proveedor" value={price} onChange={touch(setPrice)} placeholder="52.00" />
         <FutureCyclePicker subscriptionId={id} value={from} onChange={touch(setFrom)} />
-        <Choice label="Cómo se cobra la diferencia de lo ya emitido" value={mode} onChange={touch(setMode)}
-          options={[{ id: "per_renewal", label: "En cada renovación" }, { id: "lump", label: "Todo junto, hoy" }]} />
+        {others.length > 0 && (
+          <Choice label="Cómo se cobra la diferencia de lo ya emitido" value={mode} onChange={touch(setMode)}
+            options={[{ id: "per_renewal", label: "En cada renovación" }, { id: "lump", label: "Todo junto, hoy" }]} />
+        )}
         <ReasonField value={reason} onChange={touch(setReason)} />
       </Card>
 
