@@ -172,7 +172,7 @@ export default function DashboardScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>Hola,</Text>
-            <Text numberOfLines={1} style={{ color: colors.text, fontSize: 22, fontFamily: "AsapBold" }}>{profile?.displayName ?? "bienvenido"} 👋</Text>
+            <Text numberOfLines={1} style={{ color: colors.text, fontSize: 22, fontFamily: "AsapBold" }}>{profile?.displayName ?? "bienvenido"}</Text>
           </View>
           <TouchableOpacity onPress={() => setSheet(true)} accessibilityRole="button" accessibilityLabel={attention.length ? `Pendientes: ${attention.length}` : "Pendientes"}
             hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}

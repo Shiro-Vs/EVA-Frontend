@@ -32,20 +32,53 @@ export default function DailyTipCard() {
     </LinearGradient>
   );
 
+  const goAnalysis = () => router.push("/analysis" as never);
+  const goChats = () => router.push("/analysis/chats" as never);
+
   if (tip.loading && !tip.data) {
     return <Frame><View style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 10 }}><GeminiMark size={20} id="load" /><Text style={{ flex: 1, color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>Preparando tu consejo…</Text><ActivityIndicator color={colors.primary} /></View></Frame>;
   }
-  if (tip.error) return null; // sin conexión o sin IA: el inicio sigue funcionando
+
   const d = tip.data;
-  if (!d) return null;
-  if (!d.tip) {
-    if (d.reason !== "AI_ERROR") return null; // sin datos suficientes / IA no disponible / tope diario: no se muestra nada
+  if (!d || !d.tip || tip.error) {
+    const reason = tip.error ? "AI_ERROR" : d?.reason;
+    const message = reason === "NOT_ENOUGH_DATA"
+      ? "Registra al menos 5 movimientos en los últimos 30 días para recibir tu consejo diario. Mientras tanto, puedes preguntarle a la IA sobre tus registros."
+      : reason === "AI_LIMIT_REACHED"
+        ? "Alcanzaste el tope diario de consultas con IA. Mañana se renueva."
+        : reason === "AI_UNAVAILABLE"
+          ? "El consejo automático no está disponible en este momento, pero puedes abrir el análisis cuando quieras."
+          : "No pudimos cargar el consejo de hoy.";
+    const canRetry = reason === "AI_ERROR" || !!tip.error;
     return (
-      <TouchableOpacity onPress={tip.reload} accessibilityRole="button">
-        <Frame><View style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 10 }}><Ionicons name="refresh" size={18} color={colors.textSecondary} /><Text style={{ flex: 1, color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>No pudimos preparar el consejo de hoy. Toca para reintentar.</Text></View></Frame>
-      </TouchableOpacity>
+      <Frame>
+        <View style={{ padding: 14, gap: 8 }} accessibilityLabel="Asistente con IA">
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <GeminiMark size={22} id="tip-empty" />
+            <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>Asistente IA</Text>
+            <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: "rgba(155,114,203,0.20)" }}>
+              <Text style={{ color: colors.text, fontSize: 11, fontFamily: "AsapBold", letterSpacing: 0.6 }}>IA · GEMINI</Text>
+            </View>
+          </View>
+          <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", lineHeight: 19 }}>{message}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 2 }}>
+            {canRetry ? (
+              <TouchableOpacity onPress={tip.reload} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Ionicons name="refresh" size={14} color={colors.textSecondary} />
+                <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapBold" }}>Reintentar</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap", flex: 1 }}>Orientativo, no es asesoría financiera.</Text>
+            )}
+            <TouchableOpacity onPress={reason === "AI_LIMIT_REACHED" ? goChats : goAnalysis} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>{reason === "AI_LIMIT_REACHED" ? "Ver conversaciones ›" : "Preguntar a la IA ›"}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Frame>
     );
   }
+
   return (
     <Frame>
       <View style={{ padding: 14, gap: 8 }} accessibilityLabel="Consejo del día">
@@ -61,7 +94,7 @@ export default function DailyTipCard() {
         <RichText text={d.tip.text} size={14} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
           <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap", flex: 1 }}>Orientativo, no es asesoría financiera.</Text>
-          <TouchableOpacity onPress={() => router.push("/analysis" as never)} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={goAnalysis} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>Preguntar a la IA ›</Text>
           </TouchableOpacity>
         </View>
