@@ -5,7 +5,7 @@ export type Money = string;
 export type IsoDate = string;
 
 export interface Profile {
-  id: string; displayName: string; email: string | null; timezone: string; currency: string;
+  id: string; displayName: string; email: string | null; avatarUrl?: string | null; timezone: string; currency: string;
   defaultFreeDays: number; exitDaysLimit: number | null; preferences: Record<string, unknown>; version: number; createdAt: string;
 }
 

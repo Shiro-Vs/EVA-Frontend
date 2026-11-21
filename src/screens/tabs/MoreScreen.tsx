@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import BottomSheet from "../../components/common/BottomSheet";
@@ -35,6 +35,7 @@ const GROUPS: Array<{ title: string; section: SectionKey; rows: Row[] }> = [
     { icon: "options-outline", title: "Bloqueo y captura", text: "Bloqueo automático, propuestas y duplicados", to: "/settings/general" },
   ] },
   { title: "Cuenta", section: "more", rows: [
+    { icon: "person-outline", title: "Editar perfil", text: "Nombre, correo y foto", to: "/settings/profile" },
     { icon: "key-outline", title: "Cambiar contraseña", text: "Elige una contraseña nueva", to: "/settings/password" },
     { icon: "cash-outline", title: "Ajustes de cobro", text: "Días gratis y límite en bajas", to: "/settings/billing" },
     { icon: "shield-checkmark-outline", title: "Cuenta y privacidad", text: "Eliminar mi cuenta y datos", to: "/settings/account" },
@@ -73,15 +74,23 @@ export default function MoreScreen() {
 
   return (
     <Screen title="Más" back={false}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingBottom: 4 }}>
-        <View style={{ width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: colors.primarySurface }}>
-          <Text style={{ color: colors.onPrimary, fontSize: 22, fontFamily: "AsapBold" }}>{name.trim().charAt(0).toUpperCase() || "E"}</Text>
-        </View>
+      <TouchableOpacity onPress={() => router.push("/settings/profile" as never)} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel="Editar perfil" style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingBottom: 4 }}>
+        {profile?.avatarUrl ? (
+          <Image source={{ uri: profile.avatarUrl }} style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.elevated }} />
+        ) : (
+          <View style={{ width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: colors.primarySurface }}>
+            <Text style={{ color: colors.onPrimary, fontSize: 22, fontFamily: "AsapBold" }}>{name.trim().charAt(0).toUpperCase() || "E"}</Text>
+          </View>
+        )}
         <View style={{ flex: 1 }}>
           <Txt bold size={18} numberOfLines={1}>{name}</Txt>
           <Txt size={13} muted numberOfLines={1}>{profile?.email ?? ""}</Txt>
         </View>
-      </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+          <Txt size={12} bold color={colors.primary}>Editar</Txt>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+        </View>
+      </TouchableOpacity>
 
       <View style={{ gap: 2 }}>
         <Label>Apariencia</Label>

@@ -160,6 +160,7 @@ function RootLayoutContent() {
             <Stack.Screen name="settings/lock" />
             <Stack.Screen name="settings/notifications" />
             <Stack.Screen name="settings/password" />
+            <Stack.Screen name="settings/profile" />
             <Stack.Screen name="settings/backups/index" />
             <Stack.Screen name="settings/backups/[id]" />
           </Stack.Protected>

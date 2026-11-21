@@ -30,6 +30,8 @@ const TEXT: Record<string, string> = {
   provider_disabled: "El inicio con Google no está activado.",
   otp_expired: "El código no es válido o ya venció. Pide uno nuevo.",
   same_password: "La nueva contraseña debe ser distinta a la actual.",
+  email_address_invalid: "Ese correo no es válido.",
+  same_email: "El nuevo correo es igual al actual.",
   bad_jwt: "Tu sesión venció. Vuelve a entrar.",
 };
 
@@ -95,6 +97,14 @@ export async function verifyRecoveryCode(email: string, code: string): Promise<A
 /** Cambia la contraseña de la persona dueña del token. */
 export async function updatePassword(accessToken: string, password: string): Promise<void> {
   await call<unknown>("/user", { password }, "", { method: "PUT", bearer: accessToken });
+}
+
+/** Actualiza el nombre o solicita cambio de correo en Supabase Auth (el cambio de correo requiere confirmación por email). */
+export async function updateUser(accessToken: string, input: { fullName?: string; email?: string }): Promise<void> {
+  const body: Record<string, unknown> = {};
+  if (input.fullName !== undefined) body.data = { full_name: input.fullName.trim() };
+  if (input.email !== undefined) body.email = input.email.trim();
+  await call<unknown>("/user", body, "", { method: "PUT", bearer: accessToken });
 }
 
 export async function refreshSession(refreshToken: string): Promise<AuthSession> {
