@@ -29,7 +29,7 @@ export function BackButton({ onPress }: { onPress?: () => void }) {
 }
 
 /** Pantalla con cabecera, contenido desplazable y, opcionalmente, un pie con la acción principal. */
-export function Screen({ title, children, back = true, right, footer, subtitle }: { title: string; children: React.ReactNode; back?: boolean; right?: React.ReactNode; footer?: React.ReactNode; subtitle?: string }) {
+export function Screen({ title, children, back = true, right, footer, subtitle, scrollRef }: { title: string; children: React.ReactNode; back?: boolean; right?: React.ReactNode; footer?: React.ReactNode; subtitle?: string; scrollRef?: React.RefObject<ScrollView | null> }) {
   const { colors } = useAppTheme();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -43,7 +43,7 @@ export function Screen({ title, children, back = true, right, footer, subtitle }
         </View>
         {right}
       </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 12 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         {children}
       </ScrollView>
       {footer && <View style={{ paddingHorizontal: 24, paddingBottom: Platform.OS === "web" ? 12 : 10, paddingTop: 10, backgroundColor: colors.background }}>{footer}</View>}

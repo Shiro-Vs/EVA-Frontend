@@ -1,24 +1,37 @@
-import React, { useRef, useState } from "react";
-import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
+import { ApiError } from "../../api/http";
 import type { AnalysisContext, AnalysisResult, AnalysisScope, ChatDetail } from "../../api/types";
 import AIFrame from "../../components/common/AIFrame";
-import BottomSheet from "../../components/common/BottomSheet";
 import GeminiMark from "../../components/common/GeminiMark";
 import RichText from "../../components/common/RichText";
-import { Button, Card, Empty, ErrorBox, Field, Heading, KV, Loading, Notice, RowLink, Screen, SwitchRow, Txt } from "../../components/v1/ui";
+import { Button, Card, Empty, ErrorBox, Heading, KV, Loading, Notice, RowLink, Screen, SwitchRow, Txt } from "../../components/v1/ui";
 import { useDialog } from "../../context/DialogContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
-import { humanDate, isIsoDate } from "../../utils/dates";
+import { humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
 import { formatSoles } from "../../utils/money";
 import { initialScope, presetRange, ScopeForm } from "./shared";
 
 const scopeOk = (s: AnalysisScope) => isIsoDate(s.from) && isIsoDate(s.to) && s.from <= s.to;
 const scopeText = (s: AnalysisScope) => `${humanDate(s.from)} – ${humanDate(s.to)}`;
+
+function prevIsoDay(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y!, m! - 1, d! - 1));
+  return dt.toISOString().slice(0, 10);
+}
+
+/** Si el reloj/zona horaria del teléfono va adelantado respecto al servidor (America/Lima), recorta `to` un día. */
+function clampForTimezone(s: AnalysisScope): AnalysisScope | null {
+  if (s.to !== todayLocalIso()) return null;
+  const prev = prevIsoDay(s.to);
+  return { ...s, from: s.from > prev ? prev : s.from, to: prev };
+}
 
 /** «Este mes · todas las cuentas»: el alcance dicho en una línea. */
 export function scopeSummary(s: AnalysisScope): string {
@@ -125,33 +138,86 @@ function ConversationView({ chatId }: { chatId?: string }) {
   const [id, setId] = useState<string | undefined>(chatId);
   const [scope, setScope] = useState<AnalysisScope>(initialScope());
   const [saveHistory, setSaveHistory] = useState(false);
-  const [sheet, setSheet] = useState(false);
+  const [editingScope, setEditingScope] = useState(false);
   const [local, setLocal] = useState<Bubble[]>([]);
   const [text, setText] = useState("");
   const [last, setLast] = useState<AnalysisResult | null>(null);
   const [ctx, setCtx] = useState<AnalysisContext | null>(null);
-  const loaded = useRef(false);
+  const loadedChatId = useRef<string | undefined>(undefined);
+  const scrollRef = useRef<ScrollView | null>(null);
 
-  if (existing.data && !loaded.current) {
-    loaded.current = true;
-    const c = existing.data as ChatDetail;
-    setScope(c.scope); setSaveHistory(c.saveHistory);
-    setLocal(c.messages.map((m) => ({ role: m.role, content: m.content })));
-  }
+  useEffect(() => {
+    if (!chatId) {
+      loadedChatId.current = undefined;
+      setId(undefined);
+      return;
+    }
+    if (existing.data && loadedChatId.current !== chatId) {
+      loadedChatId.current = chatId;
+      const c = existing.data as ChatDetail;
+      setId(c.id);
+      setScope(c.scope);
+      setSaveHistory(c.saveHistory);
+      setLocal(c.messages.map((m) => ({ role: m.role, content: m.content })));
+      setEditingScope(false);
+    }
+  }, [chatId, existing.data]);
+
   const locked = !!id; // el alcance se fija al empezar la conversación
   const ok = scopeOk(scope);
 
-  const peek = useSubmit(async () => { setCtx(await api.analysisContext(scope)); setSheet(false); });
+  const peek = useSubmit(async () => {
+    let activeScope = scope;
+    try {
+      const res = await api.analysisContext(activeScope);
+      setCtx(res);
+      setEditingScope(false);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "FUTURE_DATE_NOT_ALLOWED") {
+        const clamped = clampForTimezone(activeScope);
+        if (clamped) {
+          activeScope = clamped;
+          setScope(clamped);
+          const res = await api.analysisContext(clamped);
+          setCtx(res);
+          setEditingScope(false);
+          return;
+        }
+      }
+      throw e;
+    }
+  });
+
   const send = useSubmit(async (_k: string, override?: string) => {
     const q = (override ?? text).trim();
     if (q.length < 3 || !ok) return;
     const before = local;
     setLocal((l) => [...l, { role: "user", content: q }]);
-    setText(""); setCtx(null);
+    setText(""); setCtx(null); setEditingScope(false);
     let createdNow: string | null = null;
     try {
       let cid = id;
-      if (!cid) { cid = (await api.createChat({ scope, saveHistory })).id; createdNow = cid; setId(cid); }
+      let activeScope = scope;
+      if (!cid) {
+        try {
+          cid = (await api.createChat({ scope: activeScope, saveHistory })).id;
+        } catch (e) {
+          if (e instanceof ApiError && e.code === "FUTURE_DATE_NOT_ALLOWED") {
+            const clamped = clampForTimezone(activeScope);
+            if (clamped) {
+              activeScope = clamped;
+              setScope(clamped);
+              cid = (await api.createChat({ scope: clamped, saveHistory })).id;
+            } else {
+              throw e;
+            }
+          } else {
+            throw e;
+          }
+        }
+        createdNow = cid;
+        setId(cid);
+      }
       const history = before.slice(-10).map((m) => ({ role: m.role, content: m.content.slice(0, 3800) }));
       const r = await api.sendChat(cid, { text: q, ...(saveHistory ? {} : { history }) });
       setLocal((l) => [...l, { role: "assistant", content: r.answer }]);
@@ -162,12 +228,21 @@ function ConversationView({ chatId }: { chatId?: string }) {
       await dialog.fail(e, "No se pudo preguntar");
     }
   });
+
+  useEffect(() => {
+    if (local.length === 0 && !send.busy) return;
+    const handle = requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [local.length, send.busy]);
+
   const remove = async () => {
     if (!id) return;
     if (!(await dialog.confirm({ title: "¿Borrar esta conversación?", message: "Se elimina con todos sus mensajes y no se puede deshacer.", confirmLabel: "Borrar", danger: true }))) return;
     try { await api.deleteChat(id); router.replace("/analysis" as never); } catch (e) { await dialog.fail(e, "No se pudo borrar"); }
   };
-  const fresh = () => { if (chatId) router.replace("/analysis" as never); else { setId(undefined); setLocal([]); setLast(null); setCtx(null); setText(""); } };
+  const fresh = () => { if (chatId) router.replace("/analysis" as never); else { setId(undefined); setLocal([]); setLast(null); setCtx(null); setText(""); setEditingScope(false); } };
 
   if (chatId && existing.loading && !existing.data) return <Screen title="Análisis con IA"><Loading /></Screen>;
   if (chatId && (existing.error || !existing.data)) return <Screen title="Análisis con IA"><ErrorBox message={existing.error ?? "No se encontró la conversación."} onRetry={existing.reload} /></Screen>;
@@ -180,7 +255,7 @@ function ConversationView({ chatId }: { chatId?: string }) {
   );
 
   return (
-    <Screen title="Análisis con IA" subtitle="Responde con tus datos"
+    <Screen title="Análisis con IA" subtitle="Responde con tus datos" scrollRef={scrollRef}
       right={<View style={{ flexDirection: "row", gap: 6 }}>
         {(local.length > 0 || locked) && <IconBtn icon="add" label="Nueva conversación" onPress={fresh} />}
         <IconBtn icon="time-outline" label="Conversaciones anteriores" onPress={() => router.push("/analysis/chats" as never)} />
@@ -196,12 +271,25 @@ function ConversationView({ chatId }: { chatId?: string }) {
           </TouchableOpacity>
         </View>
       )}>
-      {/* Qué se analiza */}
-      <TouchableOpacity onPress={() => (locked ? undefined : setSheet(true))} disabled={locked} accessibilityRole="button" accessibilityLabel="Qué se analiza" style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+      {/* Qué se analiza (se expande en línea para evitar modales anidados con fechas y selectores múltiples) */}
+      <TouchableOpacity onPress={() => (locked ? undefined : setEditingScope((v) => !v))} disabled={locked} accessibilityRole="button" accessibilityLabel="Qué se analiza" accessibilityState={{ expanded: editingScope }} style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: editingScope ? colors.primary : colors.border }}>
         <Ionicons name={locked ? "lock-closed-outline" : "options-outline"} size={16} color={colors.primary} />
         <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 13, fontFamily: "AsapMedium" }}>{scopeSummary(scope)}</Text>
-        {!locked && <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>Cambiar</Text>}
+        {!locked && <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>{editingScope ? "Ocultar" : "Cambiar"}</Text>}
       </TouchableOpacity>
+
+      {editingScope && !locked && (
+        <Card>
+          <Txt bold size={15}>¿Qué analizar?</Txt>
+          <Txt size={13} muted>La IA solo verá lo que elijas aquí. Si no filtras nada, analiza todo el periodo.</Txt>
+          <ScopeForm value={scope} onChange={(s2) => { setScope(s2); setCtx(null); peek.setError(null); }} />
+          {!ok && <Notice tone="warn">Revisa las fechas: «Hasta» debe ser igual o posterior a «Desde».</Notice>}
+          <SwitchRow label="Guardar esta conversación" hint={saveHistory ? "Queda en tu cuenta hasta que la borres" : "Si no la guardas, se pierde al cerrarla"} value={saveHistory} onValueChange={setSaveHistory} />
+          {peek.error && <Notice tone="err">{peek.error}</Notice>}
+          <Button title="Ver qué datos usaría la IA" variant="secondary" busy={peek.busy} disabled={!ok} onPress={peek.submit} />
+          <Button title="Listo" onPress={() => setEditingScope(false)} disabled={!ok} />
+        </Card>
+      )}
 
       {local.length === 0 && (
         <View style={{ gap: 12, paddingTop: 6 }}>
@@ -212,7 +300,7 @@ function ConversationView({ chatId }: { chatId?: string }) {
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
             {SUGGESTIONS.map((q) => (
-              <TouchableOpacity key={q} onPress={() => void send.submit(q)} accessibilityRole="button" hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }} style={{ minHeight: 36, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, justifyContent: "center", backgroundColor: `${colors.primary}14`, borderWidth: 1, borderColor: `${colors.primary}33` }}>
+              <TouchableOpacity key={q} disabled={send.busy || !ok} onPress={() => void send.submit(q)} accessibilityRole="button" hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }} style={{ minHeight: 36, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, justifyContent: "center", backgroundColor: `${colors.primary}14`, borderWidth: 1, borderColor: `${colors.primary}33`, opacity: send.busy || !ok ? 0.5 : 1 }}>
                 <Text style={{ color: colors.primary, fontSize: 13, fontFamily: "AsapMedium" }}>{q}</Text>
               </TouchableOpacity>
             ))}
@@ -248,18 +336,6 @@ function ConversationView({ chatId }: { chatId?: string }) {
           <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap", textAlign: "center" }}>Orientativo, generado con IA a partir de tus registros. No es asesoría financiera.</Text>
         </View>
       )}
-
-      <BottomSheet visible={sheet} onClose={() => setSheet(false)} title="¿Qué analizar?" maxHeight={0.85}>
-        <View style={{ paddingHorizontal: 8 }}>
-          <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", marginBottom: 12, marginLeft: 4 }}>La IA solo verá lo que elijas aquí. Si no filtras nada, analiza todo el periodo.</Text>
-          <ScopeForm value={scope} onChange={(s2) => { setScope(s2); setCtx(null); }} />
-          <SwitchRow label="Guardar esta conversación" hint={saveHistory ? "Queda en tu cuenta hasta que la borres" : "Si no la guardas, se pierde al cerrarla"} value={saveHistory} onValueChange={setSaveHistory} />
-          <Button title="Ver qué datos usaría la IA" variant="secondary" busy={peek.busy} disabled={!ok} onPress={peek.submit} />
-          <View style={{ height: 8 }} />
-          <Button title="Listo" onPress={() => setSheet(false)} disabled={!ok} />
-          <View style={{ height: 6 }} />
-        </View>
-      </BottomSheet>
     </Screen>
   );
 }
