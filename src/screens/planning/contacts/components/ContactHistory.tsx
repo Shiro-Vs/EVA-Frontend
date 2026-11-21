@@ -23,7 +23,7 @@ interface ContactHistoryProps {
   refreshTrigger?: number;
 }
 
-const PAY_LABEL: Record<string, string> = { paid: "Pagado", partial: "Parcial" };
+const PAY_LABEL: Record<string, string> = { paid: "Pagado", partial: "Parcial", converted: "A préstamo" };
 
 /** Detalle de una persona: cuánto debe, en qué servicios está y el estado de cada ciclo. Las acciones secundarias van en el menú ⋯. */
 export function ContactHistory({ contact, onBack, onAddServicePress, refreshTrigger }: ContactHistoryProps) {
@@ -131,7 +131,7 @@ export function ContactHistory({ contact, onBack, onAddServicePress, refreshTrig
                 <View style={{ marginLeft: 16, paddingBottom: 10 }}>
                   {(service.history || []).map((pay: any, idx: number) => {
                     const label = pay.free ? "Sin cobro" : PAY_LABEL[pay.status] ?? "Pendiente";
-                    const color = pay.free ? colors.primary : pay.status === "paid" ? colors.incomeStrong : pay.status === "partial" ? colors.warningStrong : colors.expenseStrong;
+                    const color = pay.free ? colors.primary : pay.status === "paid" ? colors.incomeStrong : pay.status === "converted" ? colors.textSecondary : pay.status === "partial" ? colors.warningStrong : colors.expenseStrong;
                     return (
                       <View key={idx} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 }}>
                         <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: fonts.family.regular }}>{pay.mes_anio}</Text>

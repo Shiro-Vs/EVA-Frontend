@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import { useContacts } from "../../../logic/contacts/useContacts";
 
 import EVAAlert from "../../../components/common/EVAAlert";
@@ -67,6 +68,13 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
   } = useContacts();
 
   const [menuFor, setMenuFor] = useState<Contact | null>(null);
+  const { action } = useLocalSearchParams<{ action?: string }>();
+  useEffect(() => {
+    if (action === "add") {
+      handleNewContact();
+      router.setParams({ action: undefined } as never);
+    }
+  }, [action]); // eslint-disable-line react-hooks/exhaustive-deps
   const pick = (fn: (c: Contact) => void) => { const c = menuFor; setMenuFor(null); if (c) setTimeout(() => fn(c), 0); };
 
   if (loading && filteredContacts.length === 0) {

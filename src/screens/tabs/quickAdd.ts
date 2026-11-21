@@ -33,7 +33,7 @@ export const QUICK_GROUPS: QuickGroup[] = [
     items: [
       { icon: "calendar-outline", title: "Servicio", text: "Netflix, Spotify… con su calendario", to: "/service/new", section: "services" },
       { icon: "wallet-outline", title: "Cuenta", text: "Banco, efectivo, billetera o tarjeta", to: "/account/new", section: "money" },
-      { icon: "person-add-outline", title: "Contacto", text: "Alguien que comparte un servicio", to: "/people", section: "people" },
+      { icon: "person-add-outline", title: "Contacto", text: "Alguien que comparte un servicio", to: "/people?action=add", section: "people" },
       { icon: "flag-outline", title: "Meta de ahorro", text: "Reserva dinero para un objetivo", to: "/goals/new", section: "plan" },
       { icon: "cash", title: "Préstamo", text: "Que diste o que recibiste", to: "/loans/new", section: "money" },
     ],

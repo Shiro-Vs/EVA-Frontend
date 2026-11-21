@@ -27,7 +27,8 @@ export default function AccountNewScreen() {
     if (id === "other") { setOther(true); setInstitution(""); return; }
     const b = BANK_PRESETS.find((x) => x.id === id);
     if (!b) return;
-    setOther(false); setInstitution(b.label); setType(b.type);
+    setOther(false); setInstitution(b.label);
+    setType((cur) => (cur === "credit" && b.type === "bank" ? "credit" : b.type));
     if (!name.trim()) setName(b.label);
   };
   const [openingDate, setOpeningDate] = useState("");

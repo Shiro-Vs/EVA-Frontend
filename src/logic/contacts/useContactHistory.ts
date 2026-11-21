@@ -3,6 +3,7 @@ import { LayoutAnimation, Platform, UIManager } from "react-native";
 import { api, errorMessage } from "../../api/client";
 import type { Statement } from "../../api/types";
 import { Contact } from "../../interfaces/Contact";
+import { useFocusReload } from "../../hooks/useFocusReload";
 import { cmpMoney } from "../../utils/money";
 import { humanRange } from "../../utils/dates";
 
@@ -10,7 +11,7 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export interface HistoryPayment { mes_anio: string; cuota: string; free: boolean; status: "paid" | "pending" | "partial" }
+export interface HistoryPayment { mes_anio: string; cuota: string; free: boolean; status: "paid" | "pending" | "partial" | "converted" }
 export interface HistoryService {
   serviceId: string; serviceName: string; color: string; icon: string; debt: string; overdueCount: number; history: HistoryPayment[];
 }
@@ -33,7 +34,7 @@ function toSummary(st: Statement, style: Map<string, { color: string; icon: stri
         mes_anio: humanRange(c.cycle.start, c.cycle.end),
         cuota: c.net,
         free: cmpMoney(c.net, ZERO) === 0,
-        status: cmpMoney(c.pending, ZERO) === 0 ? "paid" : cmpMoney(c.applied, ZERO) > 0 ? "partial" : "pending",
+        status: c.paymentStatus === "converted" ? "converted" : cmpMoney(c.pending, ZERO) === 0 ? "paid" : cmpMoney(c.applied, ZERO) > 0 ? "partial" : "pending",
       })),
     })),
   };
@@ -66,6 +67,7 @@ export const useContactHistory = (contact: Contact, refreshTrigger?: number) => 
   }, [contact.id]);
 
   useEffect(() => { void loadSummary(); }, [loadSummary, refreshTrigger]);
+  useFocusReload(loadSummary);
 
   const toggleService = (serviceId: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);

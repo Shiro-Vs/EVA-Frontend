@@ -43,7 +43,7 @@ export function ContactList({ contacts, onContactPress, onMenuPress }: ContactLi
                 {services === 0 ? "Sin servicios" : `${services} ${services === 1 ? "servicio" : "servicios"}`}
               </Text>
             </View>
-            {services > 0 && (
+            {(owes || services > 0) && (
               <Text style={{ color: owes ? colors.expenseStrong : colors.incomeStrong, fontSize: 13, fontFamily: "AsapBold" }}>
                 {owes ? `Debe ${formatSoles(c.deuda)}` : "Al día"}
               </Text>
