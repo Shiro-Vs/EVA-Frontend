@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { useDone } from "../../hooks/useDone";
+import { BankCardCustomizer } from "../../components/v1/BankCard";
 import { SelectField } from "../../components/v1/Select";
 import { DateInput } from "../../components/v1/DatePicker";
 import { isIsoDate, todayLocalIso } from "../../utils/dates";
 import { api } from "../../api/client";
 import type { AccountType } from "../../api/types";
 import { Button, Card, Field, Notice, Screen, SwitchRow } from "../../components/v1/ui";
-import { BANK_PRESETS, bankPreset } from "../../constants/banks";
+import { BANK_PRESETS, bankPreset, type CardPattern } from "../../constants/banks";
 import { useSubmit } from "../../hooks/useAsync";
 import { normalizeMoneyInput } from "../../utils/money";
 
@@ -22,6 +23,8 @@ export default function AccountNewScreen() {
   const [amountText, setAmountText] = useState("");
   const [institution, setInstitution] = useState("");
   const [other, setOther] = useState(false);
+  const [cardColor, setCardColor] = useState<string | null>(null);
+  const [cardPattern, setCardPattern] = useState<CardPattern>("circles");
   const preset = bankPreset(institution);
   const pickEntity = (id: string) => {
     create.resetKey();
@@ -38,6 +41,9 @@ export default function AccountNewScreen() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const isCredit = type === "credit";
+  const previewNorm = normalizeMoneyInput(amountText) ?? "0.00";
+  const previewBalance = isCredit && previewNorm !== "0.00" ? `-${previewNorm}` : previewNorm;
+
   const create = useSubmit(async (key: string) => {
     const amount = amountText.trim() === "" ? null : normalizeMoneyInput(amountText);
     if (!name.trim()) throw Object.assign(new Error("Escribe un nombre para la cuenta."), { code: "VALIDATION" });
@@ -47,7 +53,12 @@ export default function AccountNewScreen() {
     if (openingDate && !isIsoDate(openingDate)) throw Object.assign(new Error("La fecha del saldo debe ser AAAA-MM-DD."), { code: "VALIDATION" });
     if (openingDate && openingDate > todayLocalIso()) throw Object.assign(new Error("La fecha del saldo no puede ser posterior a hoy."), { code: "FUTURE_DATE_NOT_ALLOWED" });
     return api.createAccount({
-      name: name.trim(), type, ...(institution.trim() ? { institution: institution.trim() } : {}), ...(isDefault ? { isDefault: true } : {}), ...(exclude ? { excludeFromTotal: true } : {}),
+      name: name.trim(), type,
+      ...(institution.trim() ? { institution: institution.trim() } : {}),
+      ...(cardColor ? { color: cardColor } : {}),
+      ...(cardPattern !== "circles" ? { icon: cardPattern } : {}),
+      ...(isDefault ? { isDefault: true } : {}),
+      ...(exclude ? { excludeFromTotal: true } : {}),
       ...(signed ? { openingBalance: { amount: signed, ...(openingDate ? { date: openingDate } : {}) } } : {}),
     }, key);
   });
@@ -60,6 +71,15 @@ export default function AccountNewScreen() {
 
   return (
     <Screen title="Nueva cuenta" footer={<Button title="Crear cuenta" onPress={save} busy={create.busy} />}>
+      <Card>
+        <BankCardCustomizer
+          account={{ name, type, institution: institution.trim() || null, balance: previewBalance, color: cardColor, icon: cardPattern }}
+          color={cardColor}
+          pattern={cardPattern}
+          onChangeColor={(c) => { setCardColor(c); create.resetKey(); }}
+          onChangePattern={(p) => { setCardPattern(p); create.resetKey(); }}
+        />
+      </Card>
       <Card>
         <Field label="Nombre" value={name} onChangeText={(t) => { setName(t); create.resetKey(); }} placeholder="Ej. BCP, Efectivo, Yape…" autoCapitalize="words" />
         <SelectField label="Tipo" value={type} onChange={(v) => { setType(v); setTypeTouched(true); create.resetKey(); }} options={TYPES} />

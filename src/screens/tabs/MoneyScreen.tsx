@@ -2,14 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { api, errorMessage } from "../../api/client";
 import type { Account, OperationItem } from "../../api/types";
 import GeminiMark from "../../components/common/GeminiMark";
+import { BankCard } from "../../components/v1/BankCard";
 import { SelectField } from "../../components/v1/Select";
 import { Button, Chip, Empty, ErrorBox, Loading, Money, Screen, Txt } from "../../components/v1/ui";
-import { bankPreset } from "../../constants/banks";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -216,7 +215,7 @@ export default function MoneyScreen() {
         <Empty icon="wallet-outline" title="Aún no tienes cuentas" text="Crea tu primera cuenta con su saldo actual. No cuenta como ingreso del mes." action={<Button title="Crear cuenta" icon="add" onPress={() => router.push("/account/new" as never)} />} />
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardW + CARD_GAP} decelerationRate="fast" style={{ marginHorizontal: -24, marginTop: -4 }} contentContainerStyle={{ paddingHorizontal: 24, gap: CARD_GAP }}>
-          {list.map((a: Account) => <AccountCard key={a.id} width={cardW} height={cardH} account={a} hidden={hidden} onPress={() => router.push(`/account/${a.id}` as never)} />)}
+          {list.map((a: Account) => <BankCard key={a.id} width={cardW} height={cardH} account={a} hidden={hidden} onPress={() => router.push(`/account/${a.id}` as never)} />)}
           <TouchableOpacity onPress={() => router.push("/account/new" as never)} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel="Nueva cuenta"
             style={{ width: 104, height: cardH, borderRadius: 16, borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.muted, alignItems: "center", justifyContent: "center", gap: 5 }}>
             <Ionicons name="add" size={22} color={colors.muted} />
@@ -322,57 +321,6 @@ export default function MoneyScreen() {
       {moreError && <ErrorBox message={moreError} onRetry={loadMore} />}
       {cursor && <Button title="Ver más movimientos" variant="secondary" size="compact" busy={loadingMore} onPress={loadMore} />}
     </Screen>
-  );
-}
-
-/** Tarjeta de una cuenta con diseño de tarjeta bancaria (proporción 85,6 × 54 mm, chip, contactless, brillo). */
-function AccountCard({ account: a, width, height, hidden, onPress }: { account: Account; width: number; height: number; hidden: boolean; onPress: () => void }) {
-  const { colors } = useAppTheme();
-  const credit = a.type === "credit";
-  const wallet = a.type === "cash" || a.type === "wallet";
-  const brand = bankPreset(a.institution, a.name);
-  const bg = brand ? brand.colors[1] : credit ? colors.card : wallet ? colors.accent : colors.primarySurface;
-  const ink = brand ? brand.ink : credit ? colors.text : wallet ? colors.onAccent : colors.onPrimary;
-  const soft = brand ? brand.soft : credit ? colors.textSecondary : wallet ? colors.onAccent : colors.onPrimaryMuted;
-  const owes = cmpMoney(a.balance, "0.00") < 0;
-  const kind = credit ? "CRÉDITO" : a.type === "cash" ? "EFECTIVO" : a.type === "wallet" ? "BILLETERA" : a.type === "savings" ? "AHORROS" : "DÉBITO";
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.88} accessibilityRole="button" accessibilityLabel={`${a.name}, ${hidden ? "oculto" : formatSoles(a.balance)}`}
-      style={{ width, height, borderRadius: 16, overflow: "hidden", backgroundColor: bg, borderWidth: credit && !brand ? 1 : 0, borderColor: colors.borderStrong }}>
-      {brand && <LinearGradient colors={brand.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} />}
-      <LinearGradient colors={credit && !brand ? ["rgba(255,255,255,0.06)", "rgba(0,0,0,0.12)"] : ["rgba(255,255,255,0.22)", "rgba(255,255,255,0)", "rgba(0,0,0,0.18)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} />
-      <View style={{ position: "absolute", top: -width * 0.28, right: -width * 0.18, width: width * 0.7, height: width * 0.7, borderRadius: width * 0.35, backgroundColor: credit && !brand ? `${colors.text}07` : "rgba(255,255,255,0.10)" }} />
-      <View style={{ position: "absolute", bottom: -width * 0.38, left: -width * 0.12, width: width * 0.7, height: width * 0.7, borderRadius: width * 0.35, backgroundColor: credit && !brand ? `${colors.text}05` : "rgba(255,255,255,0.06)" }} />
-
-      <View style={{ flex: 1, padding: 13, justifyContent: "space-between" }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text numberOfLines={1} style={{ color: ink, fontSize: 13, fontFamily: "AsapBold", letterSpacing: 0.3, maxWidth: "74%" }}>{brand?.label ?? a.institution ?? a.name}</Text>
-          <Ionicons name="wifi" size={16} color={soft} style={{ transform: [{ rotate: "90deg" }] }} />
-        </View>
-
-        <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 8 }}>
-          <View style={{ width: 30, height: 22, borderRadius: 5, overflow: "hidden", borderWidth: 1, borderColor: "rgba(0,0,0,0.25)" }}>
-            <LinearGradient colors={["#EBD28E", "#B98F3E"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }}>
-              <View style={{ position: "absolute", top: 7, left: 0, right: 0, height: 1, backgroundColor: "rgba(0,0,0,0.25)" }} />
-              <View style={{ position: "absolute", top: 14, left: 0, right: 0, height: 1, backgroundColor: "rgba(0,0,0,0.25)" }} />
-              <View style={{ position: "absolute", left: 10, top: 0, bottom: 0, width: 1, backgroundColor: "rgba(0,0,0,0.25)" }} />
-              <View style={{ position: "absolute", left: 20, top: 0, bottom: 0, width: 1, backgroundColor: "rgba(0,0,0,0.25)" }} />
-            </LinearGradient>
-          </View>
-          <View style={{ alignItems: "flex-end", flexShrink: 1 }}>
-            <Text style={{ color: soft, fontSize: 10, fontFamily: "AsapMedium", letterSpacing: 1 }}>{credit ? (owes || cmpMoney(a.balance, "0.00") === 0 ? "DEUDA" : "A FAVOR") : "SALDO"}</Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: credit && owes && !brand ? colors.expenseStrong : ink, fontSize: 18, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
-              {hidden ? MASK : formatSoles(credit && owes ? a.balance.replace("-", "") : a.balance)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-          <Text numberOfLines={1} style={{ flex: 1, color: ink, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>{a.name}</Text>
-          <Text style={{ color: soft, fontSize: 10, fontFamily: "AsapBold", letterSpacing: 1 }}>{kind}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
   );
 }
 
