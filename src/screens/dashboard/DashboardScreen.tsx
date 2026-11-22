@@ -16,10 +16,13 @@ import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, todayLocalIso } from "../../utils/dates";
 import { cmpMoney, formatSoles } from "../../utils/money";
 import { buildAttention, type AttentionItem } from "./attention";
+import MonthlyChartCard from "./MonthlyChartCard";
+import { attentionSignature, buildUpcoming, countUnreadAttention, type UpcomingCardItem } from "./upcoming";
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
 const HIDE_KEY = "eva_hide_balances";
+const SEEN_NOTIF_KEY = "eva_seen_attention_sigs";
 const MASK = "S/ ••••";
 const LEGACY_REV_RE = /^Reversión de [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -30,33 +33,42 @@ const KIND: Record<Summary["recent"][number]["kind"], { icon: IconName; label: s
   adjustment: { icon: "construct-outline", label: "Ajuste" },
   reversal: { icon: "refresh-outline", label: "Reversión" },
 };
-const ACCOUNT_ICON: Record<string, IconName> = {
-  bank: "business-outline",
-  savings: "wallet-outline",
-  cash: "cash-outline",
-  wallet: "phone-portrait-outline",
-  credit: "card-outline",
-};
 const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-/** Inicio: saldo con modo discreto, acciones rápidas, pendientes, consejo IA, tarjetas configurables y últimos movimientos. */
+async function loadSeenSigs(): Promise<Set<string>> {
+  try {
+    const raw = await AsyncStorage.getItem(SEEN_NOTIF_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? new Set(arr.filter((x): x is string => typeof x === "string")) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+/** Inicio: visión ejecutiva general (saldo, consejo IA, próximos vencimientos en carrusel, gráfico del mes, resumen rápido y últimos movimientos). */
 export default function DashboardScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
   const { profile } = useAuth();
-  const currentMonth = todayLocalIso().slice(0, 7);
+  const today = todayLocalIso();
+  const currentMonth = today.slice(0, 7);
 
   const summary = useAsync(() => api.summary(), []);
   const dash = useAsync(() => api.dashboard(), []);
-  const monthlyFallback = useAsync(() => api.monthly({ month: currentMonth }).catch(() => null), [currentMonth]);
+  const monthly = useAsync(() => api.monthly({ month: currentMonth }).catch(() => null), [currentMonth]);
+  const goalsOv = useAsync(() => api.goalsOverview().catch(() => null), []);
 
   const [sheet, setSheet] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [tipRefreshKey, setTipRefreshKey] = useState(0);
+  const [seenSigs, setSeenSigs] = useState<Set<string>>(new Set());
+  const [newWhenOpened, setNewWhenOpened] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     AsyncStorage.getItem(HIDE_KEY).then((v) => { if (v === "1") setHidden(true); }).catch(() => {});
+    loadSeenSigs().then(setSeenSigs).catch(() => {});
   }, []);
 
   const toggleHidden = () => {
@@ -70,25 +82,49 @@ export default function DashboardScreen() {
   const reload = useCallback(() => {
     void summary.reload();
     void dash.reload();
-    void monthlyFallback.reload();
+    void monthly.reload();
+    void goalsOv.reload();
     AsyncStorage.getItem(HIDE_KEY).then((v) => setHidden(v === "1")).catch(() => {});
-  }, [summary.reload, dash.reload, monthlyFallback.reload]);
+    loadSeenSigs().then(setSeenSigs).catch(() => {});
+  }, [summary.reload, dash.reload, monthly.reload, goalsOv.reload]);
   useFocusReload(reload);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     setTipRefreshKey((k) => k + 1);
     try {
-      await Promise.all([summary.reload(), dash.reload(), monthlyFallback.reload()]);
+      await Promise.all([summary.reload(), dash.reload(), monthly.reload(), goalsOv.reload()]);
     } finally {
       setRefreshing(false);
     }
-  }, [summary.reload, dash.reload, monthlyFallback.reload]);
+  }, [summary.reload, dash.reload, monthly.reload, goalsOv.reload]);
 
   const cards = dash.data?.cards ?? [];
   const card = <T,>(id: string) => cards.find((c: DashboardCard) => c.id === id)?.data as T | undefined;
   const s = summary.data;
-  const attention = useMemo(() => buildAttention({ cards, recurringPending: s?.recurring?.pending ?? 0, today: todayLocalIso() }), [cards, s]);
+
+  const attention = useMemo(
+    () => buildAttention({ cards, recurringPending: s?.recurring?.pending ?? 0, today }),
+    [cards, s, today],
+  );
+  const unreadCount = useMemo(() => countUnreadAttention(attention, seenSigs), [attention, seenSigs]);
+  const upcoming = useMemo(() => buildUpcoming(cards, today, 14), [cards, today]);
+
+  const openNotifications = () => {
+    // Recuerda cuáles eran nuevas al abrir para destacarlas en el menú, y limpia de inmediato el punto rojo.
+    const fresh = new Set<string>();
+    for (const a of attention) {
+      const sig = attentionSignature(a);
+      if (!seenSigs.has(sig)) fresh.add(a.id);
+    }
+    setNewWhenOpened(fresh);
+    if (attention.length > 0) {
+      const nextSeen = new Set(attention.map(attentionSignature));
+      setSeenSigs(nextSeen);
+      void AsyncStorage.setItem(SEEN_NOTIF_KEY, JSON.stringify([...nextSeen])).catch(() => {});
+    }
+    setSheet(true);
+  };
 
   // Una transferencia llega como dos asientos (sale de una cuenta, entra en otra): se muestra como un solo movimiento.
   const recent = useMemo(() => {
@@ -120,70 +156,34 @@ export default function DashboardScreen() {
     );
   }
 
-  // Usa period_flow si el usuario activó esa tarjeta, o el resumen del mes actual para que siempre se vean ingresos y gastos del mes.
   const cardFlow = card<{ month: string; income: string; consumption: string; net: string }>("period_flow");
-  const flow = cardFlow ?? (monthlyFallback.data ? {
-    month: monthlyFallback.data.period.month,
-    income: monthlyFallback.data.results.income.total,
-    consumption: monthlyFallback.data.results.consumption.total,
-    net: monthlyFallback.data.results.net,
-  } : null);
-  const monthName = flow ? MONTHS[Number(flow.month.slice(5)) - 1] : MONTHS[Number(currentMonth.slice(5)) - 1];
+  const flow = monthly.data
+    ? {
+        month: monthly.data.period.month,
+        income: monthly.data.results.income.total,
+        consumption: monthly.data.results.consumption.total,
+        net: monthly.data.results.net,
+      }
+    : cardFlow ?? null;
+  const monthName = flow ? MONTHS[Number(flow.month.slice(5)) - 1] ?? "este mes" : MONTHS[Number(currentMonth.slice(5)) - 1] ?? "este mes";
+  const byCategory = monthly.data?.results.consumption.byCategory ?? [];
 
   const money = (v: string) => (hidden ? MASK : formatSoles(v));
   const go = (route: string) => router.push(route as never);
   const displayName = profile?.displayName ?? "bienvenido";
   const initial = (profile?.displayName?.trim().charAt(0) || "E").toUpperCase();
 
-  const renderCard = (c: DashboardCard) => {
-    if (c.id === "accounts_balance") {
-      const data = c.data as { accounts: Array<{ id: string; name: string; type: string; balance: string }> };
-      if (!data?.accounts?.length) return null;
-      return (
-        <View key={c.id} style={{ gap: 8 }}>
-          <SectionTitle title="Mis cuentas" action={<SeeAll label="Ver todo" onPress={() => go("/money")} />} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 24 }} style={{ marginHorizontal: -24 }} snapToInterval={160} decelerationRate="fast">
-            {data.accounts.map((a) => (
-              <TouchableOpacity
-                key={a.id}
-                onPress={() => go(`/account/${a.id}`)}
-                activeOpacity={0.78}
-                accessibilityRole="button"
-                style={{ width: 150, backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 13, gap: 6 }}
-              >
-                <Ionicons name={ACCOUNT_ICON[a.type] ?? "wallet-outline"} size={21} color={colors.sections.money.ink} />
-                <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>{a.name}</Text>
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 17, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{money(a.balance)}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      );
-    }
-    if (c.id === "credit_debt") {
-      const data = c.data as { cards: Array<{ id: string; name: string; debt: string }> };
-      if (!data?.cards?.length) return null;
-      return (
-        <View key={c.id} style={{ gap: 8 }}>
-          <SectionTitle title="Tarjetas de crédito" action={<SeeAll label="Ver todo" onPress={() => go("/money")} />} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 24 }} style={{ marginHorizontal: -24 }} snapToInterval={160} decelerationRate="fast">
-            {data.cards.map((cr) => (
-              <TouchableOpacity
-                key={cr.id}
-                onPress={() => go(`/account/${cr.id}`)}
-                activeOpacity={0.78}
-                accessibilityRole="button"
-                style={{ width: 150, backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 13, gap: 6 }}
-              >
-                <Ionicons name="card-outline" size={21} color={colors.expenseStrong} />
-                <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>{cr.name} · deuda</Text>
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: cmpMoney(cr.debt, "0.00") > 0 ? colors.expenseStrong : colors.text, fontSize: 17, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{money(cr.debt)}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      );
-    }
+  // Resumen compacto en 2 cuadritos (solo lo que tenga saldo > 0).
+  const recPendingNum = Number(s.receivable.pending) || 0;
+  const lentPendingNum = Number(s.loans.lentPending) || 0;
+  const totalOwedToMe = recPendingNum + lentPendingNum;
+  const goalsReserved = goalsOv.data?.totals.reserved ?? "0.00";
+  const goalsFree = goalsOv.data?.totals.free ?? "0.00";
+  const hasOwedToMe = totalOwedToMe > 0;
+  const hasGoalsReserved = cmpMoney(goalsReserved, "0.00") > 0;
+
+  // Tarjetas opcionales del panel (presupuestos y tarjetas si el usuario las activó; Mis cuentas ya vive en Dinero).
+  const renderExtraCard = (c: DashboardCard) => {
     if (c.id === "budgets") {
       const data = c.data as { budgets: Array<{ id: string; name: string; percent: number | null; level?: number | null; exceeded: boolean }> };
       if (!data?.budgets?.length) return null;
@@ -193,68 +193,6 @@ export default function DashboardScreen() {
           <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 }}>
             {[...data.budgets].sort((a, b) => (b.percent ?? 0) - (a.percent ?? 0)).slice(0, 3).map((b) => (
               <BudgetBar key={b.id} name={b.name} percent={b.percent ?? 0} level={b.level ?? null} exceeded={b.exceeded} onPress={() => go(`/budgets/${b.id}`)} />
-            ))}
-          </View>
-        </View>
-      );
-    }
-    if (c.id === "goals") {
-      const data = c.data as { totals: { reserved: string; free: string } };
-      if (!data?.totals) return null;
-      return (
-        <View key={c.id} style={{ gap: 8 }}>
-          <SectionTitle title="Metas y reservas" action={<SeeAll label="Planificar" onPress={() => go("/plan")} />} />
-          <TouchableOpacity
-            onPress={() => go("/goals/accounts")}
-            activeOpacity={0.78}
-            accessibilityRole="button"
-            style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 14, flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 8 }}
-          >
-            <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>
-              Libre para gastar <Text style={{ color: colors.incomeStrong, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{money(data.totals.free)}</Text>
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>
-              En metas <Text style={{ color: colors.text, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{money(data.totals.reserved)}</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    if (c.id === "loans") {
-      const data = c.data as {
-        ledger?: { lentPending: string; borrowedPending: string };
-        bankLoans?: { nextInstallments: Array<{ loanId: string; name: string; number: number; dueDate: string; remaining: string }> };
-      };
-      const lent = data?.ledger?.lentPending ?? "0.00";
-      const borrowed = data?.ledger?.borrowedPending ?? "0.00";
-      const bankNext = data?.bankLoans?.nextInstallments ?? [];
-      if (cmpMoney(lent, "0.00") === 0 && cmpMoney(borrowed, "0.00") === 0 && bankNext.length === 0) return null;
-      return (
-        <View key={c.id} style={{ gap: 8 }}>
-          <SectionTitle title="Préstamos" action={<SeeAll label="Ver todos" onPress={() => go("/loans")} />} />
-          <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 8 }}>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
-              <TouchableOpacity onPress={() => go("/loans")} accessibilityRole="button">
-                <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>
-                  Te deben <Text style={{ color: colors.incomeStrong, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{money(lent)}</Text>
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => go("/loans")} accessibilityRole="button">
-                <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap" }}>
-                  Debes <Text style={{ color: cmpMoney(borrowed, "0.00") > 0 ? colors.expenseStrong : colors.text, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{money(borrowed)}</Text>
-                </Text>
-              </TouchableOpacity>
-            </View>
-            {bankNext.slice(0, 2).map((b) => (
-              <TouchableOpacity
-                key={`${b.loanId}-${b.number}`}
-                onPress={() => go(`/bank-loan/${b.loanId}`)}
-                accessibilityRole="button"
-                style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 }}
-              >
-                <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 13, fontFamily: "AsapMedium" }}>{b.name} · cuota {b.number}</Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{humanDate(b.dueDate)} · {money(b.remaining)}</Text>
-              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -270,7 +208,7 @@ export default function DashboardScreen() {
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120, gap: 14 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
       >
-        {/* Cabecera: avatar, saludo, ocultar saldos y campanita de pendientes */}
+        {/* Cabecera: avatar, saludo, ocultar saldos y campanita con estado visto */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 }}>
           <TouchableOpacity onPress={() => go("/settings/profile")} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Abrir mi perfil">
             {profile?.avatarUrl ? (
@@ -298,29 +236,29 @@ export default function DashboardScreen() {
             <Ionicons name={hidden ? "eye-off-outline" : "eye-outline"} size={20} color={hidden ? colors.primary : colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setSheet(true)}
+            onPress={openNotifications}
             accessibilityRole="button"
-            accessibilityLabel={attention.length ? `Pendientes: ${attention.length}` : "Pendientes"}
+            accessibilityLabel={unreadCount > 0 ? `Notificaciones nuevas: ${unreadCount}` : "Notificaciones"}
             hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             style={{ width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
           >
             <Ionicons name="notifications-outline" size={20} color={colors.text} />
-            {attention.length > 0 && (
+            {unreadCount > 0 && (
               <View style={{ position: "absolute", top: -4, right: -4, minWidth: 19, height: 19, borderRadius: 10, paddingHorizontal: 4, backgroundColor: colors.dangerSurface, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.background }}>
-                <Text style={{ color: colors.onPrimary, fontSize: 10.5, fontFamily: "AsapBold" }}>{attention.length > 9 ? "9+" : attention.length}</Text>
+                <Text style={{ color: colors.onPrimary, fontSize: 10.5, fontFamily: "AsapBold" }}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
               </View>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Saldo total y flujo del mes en curso */}
-        <View style={{ backgroundColor: colors.primarySurface, borderRadius: 26, padding: 18, overflow: "hidden", gap: 4 }}>
+        {/* Saldo total, línea de crédito disponible y flujo del mes */}
+        <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 17, overflow: "hidden", gap: 4 }}>
           <View style={{ position: "absolute", top: -44, right: -32, width: 150, height: 150, borderRadius: 75, backgroundColor: "rgba(255,255,255,0.10)" }} />
           <View style={{ position: "absolute", bottom: -60, left: -24, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(0,0,0,0.08)" }} />
           <Text style={{ color: colors.onPrimaryMuted, fontSize: 11.5, fontFamily: "AsapSemiBold", letterSpacing: 1.1, textTransform: "uppercase" }}>
             Saldo total · {s.balance.accounts} {s.balance.accounts === 1 ? "cuenta" : "cuentas"}
           </Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 32, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], marginTop: 2 }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 31, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], marginTop: 2 }}>
             {money(s.balance.net)}
           </Text>
           {s.creditLines && s.creditLines.cards > 0 && (
@@ -335,27 +273,81 @@ export default function DashboardScreen() {
             </View>
           )}
           {flow ? (
-            <TouchableOpacity onPress={() => go("/reports")} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Ver resumen mensual" style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+            <TouchableOpacity onPress={() => go("/reports")} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Ver resumen mensual" style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
               <FlowPill label={`Ingresos · ${monthName}`} value={money(flow.income)} icon="arrow-down" />
               <FlowPill label={`Gastos · ${monthName}`} value={money(flow.consumption)} icon="arrow-up" />
             </TouchableOpacity>
           ) : null}
         </View>
 
-        {/* Por atender */}
-        {attention.length > 0 && (
+        <DailyTipCard refreshKey={tipRefreshKey} />
+
+        {/* Próximos vencimientos en carrusel horizontal compacto */}
+        {upcoming.length > 0 && (
           <View style={{ gap: 8 }}>
-            <SectionTitle title="Por atender" action={attention.length > 2 ? <SeeAll label={`Ver las ${attention.length}`} onPress={() => setSheet(true)} /> : undefined} />
-            <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
-              {attention.slice(0, 2).map((a, i) => <AttentionRow key={a.id} a={a} first={i === 0} onPress={() => go(a.route)} />)}
-            </View>
+            <SectionTitle title="Próximos vencimientos" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginHorizontal: -24 }}
+              contentContainerStyle={{ paddingHorizontal: 24, gap: 10 }}
+              snapToInterval={162}
+              decelerationRate="fast"
+            >
+              {upcoming.map((item) => (
+                <UpcomingCard key={item.id} item={item} hidden={hidden} onPress={() => go(item.route)} />
+              ))}
+            </ScrollView>
           </View>
         )}
 
-        <DailyTipCard refreshKey={tipRefreshKey} />
+        {/* Gráfico del mes (Categorías + Balance) */}
+        {flow && (
+          <MonthlyChartCard
+            monthLabel={monthName}
+            income={flow.income}
+            consumption={flow.consumption}
+            net={flow.net}
+            byCategory={byCategory}
+            hidden={hidden}
+            onOpenReports={() => go("/reports")}
+          />
+        )}
 
-        {/* Tarjetas configurables en el orden elegido en Ajustes → Panel */}
-        {cards.map(renderCard)}
+        {/* Resumen compacto en 2 cuadritos (Por cobrar y En metas) */}
+        {(hasOwedToMe || hasGoalsReserved) && (
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            {hasOwedToMe && (
+              <QuickStatTile
+                icon="people-outline"
+                iconColor={colors.sections.people.ink}
+                label="Por cobrar"
+                value={money(totalOwedToMe.toFixed(2))}
+                hint={
+                  recPendingNum > 0 && lentPendingNum > 0
+                    ? "Servicios y préstamos"
+                    : recPendingNum > 0
+                      ? `${s.receivable.debtors} ${s.receivable.debtors === 1 ? "persona" : "personas"}`
+                      : "Préstamos otorgados"
+                }
+                onPress={() => go(recPendingNum > 0 ? "/people" : "/loans")}
+              />
+            )}
+            {hasGoalsReserved && (
+              <QuickStatTile
+                icon="flag-outline"
+                iconColor={colors.incomeStrong}
+                label="En metas"
+                value={money(goalsReserved)}
+                hint={`Libre ${money(goalsFree)}`}
+                onPress={() => go("/goals/accounts")}
+              />
+            )}
+          </View>
+        )}
+
+        {/* Tarjetas extra opcionales (ej. presupuestos si el usuario los activó) */}
+        {cards.map(renderExtraCard)}
 
         {/* Últimos movimientos (hasta 5) */}
         <View style={{ gap: 8 }}>
@@ -415,25 +407,26 @@ export default function DashboardScreen() {
             </View>
           )}
         </View>
-
-        {/* Acceso discreto a personalización de tarjetas */}
-        <TouchableOpacity
-          onPress={() => go("/settings/dashboard")}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8 }}
-        >
-          <Ionicons name="options-outline" size={15} color={colors.textSecondary} />
-          <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapSemiBold" }}>Personalizar tarjetas de Inicio</Text>
-        </TouchableOpacity>
       </ScrollView>
 
-      <BottomSheet visible={sheet} onClose={() => setSheet(false)} title={attention.length ? `Por atender (${attention.length})` : "Por atender"} maxHeight={0.75}>
+      {/* Menú de notificaciones (al abrirse marca todo como visto y apaga el punto rojo) */}
+      <BottomSheet visible={sheet} onClose={() => setSheet(false)} title={attention.length ? `Notificaciones (${attention.length})` : "Notificaciones"} maxHeight={0.75}>
         {attention.length === 0 ? (
-          <Text style={{ color: colors.textSecondary, fontFamily: "Asap", padding: 20, textAlign: "center" }}>Todo al día. No hay nada pendiente.</Text>
+          <View style={{ alignItems: "center", paddingVertical: 24, gap: 6 }}>
+            <Ionicons name="checkmark-circle-outline" size={30} color={colors.incomeStrong} />
+            <Text style={{ color: colors.textSecondary, fontFamily: "Asap", textAlign: "center" }}>Todo al día. No hay avisos pendientes.</Text>
+          </View>
         ) : (
           <View style={{ backgroundColor: colors.card, borderRadius: 20, overflow: "hidden", marginHorizontal: 4, marginBottom: 6 }}>
-            {attention.map((a, i) => <AttentionRow key={a.id} a={a} first={i === 0} onPress={() => { setSheet(false); go(a.route); }} />)}
+            {attention.map((a, i) => (
+              <AttentionRow
+                key={a.id}
+                a={a}
+                first={i === 0}
+                isNew={newWhenOpened.has(a.id)}
+                onPress={() => { setSheet(false); go(a.route); }}
+              />
+            ))}
           </View>
         )}
       </BottomSheet>
@@ -454,17 +447,96 @@ function SectionTitle({ title, action }: { title: string; action?: React.ReactNo
 function FlowPill({ label, value, icon }: { label: string; value: string; icon: "arrow-down" | "arrow-up" }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 16, paddingVertical: 9, paddingHorizontal: 11, gap: 2 }}>
+    <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 15, paddingVertical: 8, paddingHorizontal: 11, gap: 2 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
         <Ionicons name={icon} size={11} color={colors.onPrimaryMuted} />
         <Text numberOfLines={1} style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", flexShrink: 1 }}>{label}</Text>
       </View>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 16, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 15.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
     </View>
   );
 }
 
-function AttentionRow({ a, first, onPress }: { a: AttentionItem; first: boolean; onPress: () => void }) {
+function UpcomingCard({ item, hidden, onPress }: { item: UpcomingCardItem; hidden: boolean; onPress: () => void }) {
+  const { colors } = useAppTheme();
+  const badgeColor = item.tone === "danger" ? colors.expenseStrong : item.tone === "warn" ? colors.warningStrong : colors.primary;
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      accessibilityRole="button"
+      style={{
+        width: 152,
+        backgroundColor: colors.card,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: item.tone === "danger" ? `${colors.expenseStrong}40` : colors.border,
+        padding: 12,
+        gap: 6,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+        <Ionicons name={item.icon as IconName} size={17} color={badgeColor} />
+        <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99, backgroundColor: `${badgeColor}18` }}>
+          <Text numberOfLines={1} style={{ color: badgeColor, fontSize: 10.5, fontFamily: "AsapBold" }}>
+            {item.badgeText}
+          </Text>
+        </View>
+      </View>
+      <View style={{ gap: 1 }}>
+        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13.5, fontFamily: "AsapBold" }}>{item.title}</Text>
+        <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>{item.kindLabel}</Text>
+      </View>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 15.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+        {hidden ? MASK : formatSoles(item.amount)}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function QuickStatTile({
+  icon,
+  iconColor,
+  label,
+  value,
+  hint,
+  onPress,
+}: {
+  icon: IconName;
+  iconColor: string;
+  label: string;
+  value: string;
+  hint: string;
+  onPress: () => void;
+}) {
+  const { colors } = useAppTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.78}
+      accessibilityRole="button"
+      style={{
+        flex: 1,
+        backgroundColor: colors.card,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: 13,
+        gap: 4,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Ionicons name={icon} size={18} color={iconColor} />
+        <Ionicons name="chevron-forward" size={14} color={colors.muted} />
+      </View>
+      <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium", marginTop: 2 }}>{label}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 17, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
+      <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>{hint}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function AttentionRow({ a, first, isNew, onPress }: { a: AttentionItem; first: boolean; isNew: boolean; onPress: () => void }) {
   const { colors } = useAppTheme();
   const ink = a.tone === "danger" ? colors.expenseStrong : a.tone === "warn" ? colors.warningStrong : colors.primary;
   return (
@@ -472,13 +544,25 @@ function AttentionRow({ a, first, onPress }: { a: AttentionItem; first: boolean;
       onPress={onPress}
       activeOpacity={0.75}
       accessibilityRole="button"
-      style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11, paddingHorizontal: 14, borderTopWidth: first ? 0 : 1, borderTopColor: colors.border }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingVertical: 11,
+        paddingHorizontal: 14,
+        borderTopWidth: first ? 0 : 1,
+        borderTopColor: colors.border,
+        opacity: isNew ? 1 : 0.72,
+      }}
     >
       <View style={{ width: 24, alignItems: "center", justifyContent: "center" }}>
         <Ionicons name={a.icon as never} size={20} color={ink} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontFamily: "AsapBold" }}>{a.title}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {isNew && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.dangerSurface }} />}
+          <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 14, fontFamily: isNew ? "AsapBold" : "AsapSemiBold" }}>{a.title}</Text>
+        </View>
         {a.text ? <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{a.text}</Text> : null}
       </View>
       <Ionicons name="chevron-forward" size={16} color={colors.muted} />
