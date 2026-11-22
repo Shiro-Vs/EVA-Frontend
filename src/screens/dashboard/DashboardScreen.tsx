@@ -173,13 +173,9 @@ export default function DashboardScreen() {
   const displayName = profile?.displayName ?? "bienvenido";
   const initial = (profile?.displayName?.trim().charAt(0) || "E").toUpperCase();
 
-  // Resumen compacto en 2 cuadritos (solo lo que tenga saldo > 0).
-  const recPendingNum = Number(s.receivable.pending) || 0;
-  const lentPendingNum = Number(s.loans.lentPending) || 0;
-  const totalOwedToMe = recPendingNum + lentPendingNum;
+  // Resumen compacto de metas (solo si hay dinero reservado; Por cobrar vive en la campanita).
   const goalsReserved = goalsOv.data?.totals.reserved ?? "0.00";
   const goalsFree = goalsOv.data?.totals.free ?? "0.00";
-  const hasOwedToMe = totalOwedToMe > 0;
   const hasGoalsReserved = cmpMoney(goalsReserved, "0.00") > 0;
 
   // Tarjetas opcionales del panel (presupuestos y tarjetas si el usuario las activó; Mis cuentas ya vive en Dinero).
@@ -282,26 +278,7 @@ export default function DashboardScreen() {
 
         <DailyTipCard refreshKey={tipRefreshKey} />
 
-        {/* Próximos vencimientos en carrusel horizontal compacto */}
-        {upcoming.length > 0 && (
-          <View style={{ gap: 8 }}>
-            <SectionTitle title="Próximos vencimientos" />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginHorizontal: -24 }}
-              contentContainerStyle={{ paddingHorizontal: 24, gap: 10 }}
-              snapToInterval={162}
-              decelerationRate="fast"
-            >
-              {upcoming.map((item) => (
-                <UpcomingCard key={item.id} item={item} hidden={hidden} onPress={() => go(item.route)} />
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Gráfico del mes (Categorías + Balance) */}
+        {/* Gráfico protagonista del mes (Categorías + Balance, sin card) */}
         {flow && (
           <MonthlyChartCard
             monthLabel={monthName}
@@ -314,36 +291,57 @@ export default function DashboardScreen() {
           />
         )}
 
-        {/* Resumen compacto en 2 cuadritos (Por cobrar y En metas) */}
-        {(hasOwedToMe || hasGoalsReserved) && (
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            {hasOwedToMe && (
-              <QuickStatTile
-                icon="people-outline"
-                iconColor={colors.sections.people.ink}
-                label="Por cobrar"
-                value={money(totalOwedToMe.toFixed(2))}
-                hint={
-                  recPendingNum > 0 && lentPendingNum > 0
-                    ? "Servicios y préstamos"
-                    : recPendingNum > 0
-                      ? `${s.receivable.debtors} ${s.receivable.debtors === 1 ? "persona" : "personas"}`
-                      : "Préstamos otorgados"
-                }
-                onPress={() => go(recPendingNum > 0 ? "/people" : "/loans")}
-              />
-            )}
-            {hasGoalsReserved && (
-              <QuickStatTile
-                icon="flag-outline"
-                iconColor={colors.incomeStrong}
-                label="En metas"
-                value={money(goalsReserved)}
-                hint={`Libre ${money(goalsFree)}`}
-                onPress={() => go("/goals/accounts")}
-              />
-            )}
+        {/* Próximos vencimientos en carrusel horizontal compacto */}
+        {upcoming.length > 0 && (
+          <View style={{ gap: 6 }}>
+            <SectionTitle title="Próximos vencimientos" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginHorizontal: -24 }}
+              contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}
+              snapToInterval={136}
+              decelerationRate="fast"
+            >
+              {upcoming.map((item) => (
+                <UpcomingCard key={item.id} item={item} hidden={hidden} onPress={() => go(item.route)} />
+              ))}
+            </ScrollView>
           </View>
+        )}
+
+        {/* Resumen compacto de metas (solo si tiene saldo reservado) */}
+        {hasGoalsReserved && (
+          <TouchableOpacity
+            onPress={() => go("/goals/accounts")}
+            activeOpacity={0.78}
+            accessibilityRole="button"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              backgroundColor: colors.card,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: colors.border,
+              paddingHorizontal: 14,
+              paddingVertical: 11,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+              <Ionicons name="flag-outline" size={18} color={colors.incomeStrong} />
+              <View style={{ flex: 1 }}>
+                <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13.5, fontFamily: "AsapBold" }}>
+                  En metas · {money(goalsReserved)}
+                </Text>
+                <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "Asap" }}>
+                  Libre para gastar {money(goalsFree)}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+          </TouchableOpacity>
         )}
 
         {/* Tarjetas extra opcionales (ej. presupuestos si el usuario los activó) */}
@@ -466,72 +464,28 @@ function UpcomingCard({ item, hidden, onPress }: { item: UpcomingCardItem; hidde
       activeOpacity={0.8}
       accessibilityRole="button"
       style={{
-        width: 152,
+        width: 128,
         backgroundColor: colors.card,
-        borderRadius: 18,
+        borderRadius: 15,
         borderWidth: 1,
         borderColor: item.tone === "danger" ? `${colors.expenseStrong}40` : colors.border,
-        padding: 12,
-        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 9,
+        gap: 4,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-        <Ionicons name={item.icon as IconName} size={17} color={badgeColor} />
-        <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99, backgroundColor: `${badgeColor}18` }}>
-          <Text numberOfLines={1} style={{ color: badgeColor, fontSize: 10.5, fontFamily: "AsapBold" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+        <Ionicons name={item.icon as IconName} size={15} color={badgeColor} />
+        <View style={{ paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 99, backgroundColor: `${badgeColor}18` }}>
+          <Text numberOfLines={1} style={{ color: badgeColor, fontSize: 9.5, fontFamily: "AsapBold" }}>
             {item.badgeText}
           </Text>
         </View>
       </View>
-      <View style={{ gap: 1 }}>
-        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13.5, fontFamily: "AsapBold" }}>{item.title}</Text>
-        <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>{item.kindLabel}</Text>
-      </View>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 15.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+      <Text numberOfLines={1} style={{ color: colors.text, fontSize: 12.5, fontFamily: "AsapSemiBold" }}>{item.title}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 14, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
         {hidden ? MASK : formatSoles(item.amount)}
       </Text>
-    </TouchableOpacity>
-  );
-}
-
-function QuickStatTile({
-  icon,
-  iconColor,
-  label,
-  value,
-  hint,
-  onPress,
-}: {
-  icon: IconName;
-  iconColor: string;
-  label: string;
-  value: string;
-  hint: string;
-  onPress: () => void;
-}) {
-  const { colors } = useAppTheme();
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.78}
-      accessibilityRole="button"
-      style={{
-        flex: 1,
-        backgroundColor: colors.card,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: 13,
-        gap: 4,
-      }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Ionicons name={icon} size={18} color={iconColor} />
-        <Ionicons name="chevron-forward" size={14} color={colors.muted} />
-      </View>
-      <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium", marginTop: 2 }}>{label}</Text>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 17, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
-      <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>{hint}</Text>
     </TouchableOpacity>
   );
 }
@@ -552,7 +506,6 @@ function AttentionRow({ a, first, isNew, onPress }: { a: AttentionItem; first: b
         paddingHorizontal: 14,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: colors.border,
-        opacity: isNew ? 1 : 0.72,
       }}
     >
       <View style={{ width: 24, alignItems: "center", justifyContent: "center" }}>
@@ -561,7 +514,7 @@ function AttentionRow({ a, first, isNew, onPress }: { a: AttentionItem; first: b
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           {isNew && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.dangerSurface }} />}
-          <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 14, fontFamily: isNew ? "AsapBold" : "AsapSemiBold" }}>{a.title}</Text>
+          <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 14, fontFamily: "AsapBold" }}>{a.title}</Text>
         </View>
         {a.text ? <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{a.text}</Text> : null}
       </View>

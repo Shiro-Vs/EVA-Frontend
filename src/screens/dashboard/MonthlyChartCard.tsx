@@ -31,7 +31,7 @@ interface Slice {
   color: string;
 }
 
-/** Gráfico general del mes en Inicio: pestaña «Categorías» (dona SVG) y pestaña «Balance» (Ingresos vs Gastos). */
+/** Gráfico protagonista del mes en Inicio (directo sobre el fondo, sin tarjeta): pestaña «Categorías» (dona SVG) y «Balance». */
 export default function MonthlyChartCard({
   monthLabel,
   income,
@@ -51,7 +51,7 @@ export default function MonthlyChartCard({
 
   const slices = useMemo<Slice[]>(() => {
     const valid = [...byCategory]
-      .map((c) => ({ name: c.name, val: Math.max(0, Number(c.total) || 0), pct: Number(c.percent) || 0 }))
+      .map((c) => ({ name: c.name, val: Math.max(0, Number(c.total) || 0) }))
       .filter((c) => c.val > 0)
       .sort((a, b) => b.val - a.val);
     const totalSum = valid.reduce((acc, x) => acc + x.val, 0);
@@ -83,16 +83,16 @@ export default function MonthlyChartCard({
   const netCmp = cmpMoney(net, "0.00");
   const savingsPct = incNum > 0 ? Math.round(((incNum - expNum) / incNum) * 100) : null;
 
-  const size = 112;
-  const r = 42;
-  const strokeW = 13;
+  const size = 148;
+  const r = 56;
+  const strokeW = 16;
   const circ = 2 * Math.PI * r;
-  const gap = slices.length > 1 ? 3 : 0;
+  const gap = slices.length > 1 ? 4 : 0;
 
   let accLen = 0;
   const segments = slices.map((s) => {
     const rawLen = totalSpentNum > 0 ? (s.total / totalSpentNum) * circ : 0;
-    const len = Math.max(2, rawLen - gap);
+    const len = Math.max(3, rawLen - gap);
     const offset = -accLen;
     accLen += rawLen;
     return { ...s, len, offset };
@@ -101,14 +101,15 @@ export default function MonthlyChartCard({
   const money = (v: string) => (hidden ? MASK : formatSoles(v));
 
   return (
-    <View style={{ backgroundColor: colors.card, borderRadius: 22, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 12 }}>
+    <View style={{ paddingVertical: 4, gap: 14 }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>
+        <TouchableOpacity onPress={onOpenReports} activeOpacity={0.7} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 4, flex: 1 }}>
+          <Text numberOfLines={1} style={{ color: colors.text, fontSize: 17, fontFamily: "AsapBold" }}>
             Tu mes · {monthLabel}
           </Text>
-        </View>
-        <View style={{ flexDirection: "row", backgroundColor: colors.elevated, borderRadius: 99, padding: 2 }}>
+          <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+        </TouchableOpacity>
+        <View style={{ flexDirection: "row", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 99, padding: 2 }}>
           <TabPill label="Categorías" active={tab === "categories"} onPress={() => setTab("categories")} />
           <TabPill label="Balance" active={tab === "balance"} onPress={() => setTab("balance")} />
         </View>
@@ -116,22 +117,22 @@ export default function MonthlyChartCard({
 
       {tab === "categories" ? (
         slices.length === 0 ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 4 }}>
-            <View style={{ width: 64, height: 64, alignItems: "center", justifyContent: "center" }}>
-              <Svg width={64} height={64} viewBox="0 0 64 64">
-                <Circle cx={32} cy={32} r={24} stroke={colors.border} strokeWidth={8} fill="none" />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 8 }}>
+            <View style={{ width: 84, height: 84, alignItems: "center", justifyContent: "center" }}>
+              <Svg width={84} height={84} viewBox="0 0 84 84">
+                <Circle cx={42} cy={42} r={32} stroke={colors.border} strokeWidth={10} fill="none" />
               </Svg>
-              <Ionicons name="pie-chart-outline" size={20} color={colors.muted} style={{ position: "absolute" }} />
+              <Ionicons name="pie-chart-outline" size={24} color={colors.muted} style={{ position: "absolute" }} />
             </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={{ color: colors.text, fontSize: 13.5, fontFamily: "AsapBold" }}>Sin gastos este mes</Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
-                Cuando registres gastos verás aquí en qué se va tu dinero por categoría.
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={{ color: colors.text, fontSize: 14.5, fontFamily: "AsapBold" }}>Sin gastos este mes</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "Asap", lineHeight: 17 }}>
+                Cuando registres gastos verás aquí tu gráfico por categoría.
               </Text>
             </View>
           </View>
         ) : (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 18, paddingVertical: 2 }}>
             <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
               <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
                 <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.border} strokeWidth={strokeW} fill="none" />
@@ -151,44 +152,51 @@ export default function MonthlyChartCard({
                   />
                 ))}
               </Svg>
-              <View style={{ position: "absolute", alignItems: "center", paddingHorizontal: 12 }}>
-                <Text style={{ color: colors.textSecondary, fontSize: 9.5, fontFamily: "AsapMedium", textTransform: "uppercase" }}>Gasto</Text>
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 13, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+              <View style={{ position: "absolute", alignItems: "center", paddingHorizontal: 14 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 10.5, fontFamily: "AsapSemiBold", textTransform: "uppercase", letterSpacing: 0.6 }}>Gastado</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
                   {money(consumption)}
                 </Text>
               </View>
             </View>
 
-            <View style={{ flex: 1, gap: 7 }}>
+            <View style={{ flex: 1, gap: 9 }}>
               {slices.map((s) => (
-                <View key={s.label} style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: s.color }} />
-                  <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 12.5, fontFamily: "AsapMedium" }}>
-                    {s.label}
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
-                    {s.percent}%
-                  </Text>
+                <View key={s.label} style={{ gap: 1 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View style={{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: s.color }} />
+                    <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 13.5, fontFamily: "AsapSemiBold" }}>
+                      {s.label}
+                    </Text>
+                    <Text style={{ color: colors.text, fontSize: 13, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+                      {s.percent}%
+                    </Text>
+                  </View>
+                  {!hidden && (
+                    <Text style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "Asap", marginLeft: 17, fontVariant: ["tabular-nums"] }}>
+                      {formatSoles(s.total.toFixed(2))}
+                    </Text>
+                  )}
                 </View>
               ))}
             </View>
           </View>
         )
       ) : (
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: 14, paddingVertical: 4 }}>
           <CompareBar label="Ingresos" value={money(income)} ratio={incNum / maxBar} color={colors.incomeStrong} />
           <CompareBar label="Gastos" value={money(consumption)} ratio={expNum / maxBar} color={colors.expenseStrong} />
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-            <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "AsapMedium" }}>
               {netCmp >= 0 ? "Saldo libre del mes" : "Gasto sobre ingresos"}
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ color: netCmp >= 0 ? colors.incomeStrong : colors.expenseStrong, fontSize: 14, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Text style={{ color: netCmp >= 0 ? colors.incomeStrong : colors.expenseStrong, fontSize: 16, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
                 {hidden ? MASK : `${netCmp > 0 ? "+" : ""}${formatSoles(net)}`}
               </Text>
               {savingsPct !== null && !hidden && (
-                <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99, backgroundColor: savingsPct >= 0 ? `${colors.incomeStrong}18` : `${colors.expenseStrong}18` }}>
-                  <Text style={{ color: savingsPct >= 0 ? colors.incomeStrong : colors.expenseStrong, fontSize: 11, fontFamily: "AsapBold" }}>
+                <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99, backgroundColor: savingsPct >= 0 ? `${colors.incomeStrong}18` : `${colors.expenseStrong}18` }}>
+                  <Text style={{ color: savingsPct >= 0 ? colors.incomeStrong : colors.expenseStrong, fontSize: 11.5, fontFamily: "AsapBold" }}>
                     {savingsPct >= 0 ? `Ahorro ${savingsPct}%` : `${savingsPct}%`}
                   </Text>
                 </View>
@@ -197,16 +205,6 @@ export default function MonthlyChartCard({
           </View>
         </View>
       )}
-
-      <TouchableOpacity
-        onPress={onOpenReports}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4, paddingTop: 2 }}
-      >
-        <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapSemiBold" }}>Ver resumen completo</Text>
-        <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -220,7 +218,7 @@ function TabPill({ label, active, onPress }: { label: string; active: boolean; o
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       style={{
-        paddingHorizontal: 10,
+        paddingHorizontal: 11,
         paddingVertical: 5,
         borderRadius: 99,
         backgroundColor: active ? colors.primarySurface : "transparent",
@@ -237,13 +235,13 @@ function CompareBar({ label, value, ratio, color }: { label: string; value: stri
   const { colors } = useAppTheme();
   const pct = Math.max(ratio > 0 ? 4 : 0, Math.min(100, Math.round(ratio * 100)));
   return (
-    <View style={{ gap: 4 }}>
+    <View style={{ gap: 6 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>{label}</Text>
-        <Text style={{ color: colors.text, fontSize: 13.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 13.5, fontFamily: "AsapSemiBold" }}>{label}</Text>
+        <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
       </View>
-      <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.border, overflow: "hidden" }}>
-        <View style={{ height: "100%", width: `${pct}%`, borderRadius: 4, backgroundColor: color }} />
+      <View style={{ height: 11, borderRadius: 6, backgroundColor: colors.border, overflow: "hidden" }}>
+        <View style={{ height: "100%", width: `${pct}%`, borderRadius: 6, backgroundColor: color }} />
       </View>
     </View>
   );
