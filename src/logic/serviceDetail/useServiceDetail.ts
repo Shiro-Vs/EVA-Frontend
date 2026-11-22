@@ -5,7 +5,8 @@ import type { Charge, CycleDetail } from "../../api/types";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { todayLocalIso } from "../../utils/dates";
-import { shareText } from "../../utils/share";
+import { cmpMoney } from "../../utils/money";
+import { openWhatsApp, shareText } from "../../utils/share";
 
 export type ServiceTab = "ciclo" | "participantes" | "historial";
 
@@ -83,15 +84,21 @@ export function useServiceDetail(serviceId: string) {
   };
   const goJoin = () => router.push({ pathname: "/service/join", params: { id: serviceId } });
   const openCharge = (c: Charge) => {
-    if (Number(c.pending) > 0) router.push({ pathname: "/receipt/new", params: { contactId: c.contactId } });
+    if (cmpMoney(c.pending, "0.00") > 0) router.push({ pathname: "/receipt/new", params: { contactId: c.contactId } });
     else router.push(`/contact/${c.contactId}`);
   };
 
-  /** Prepara el texto de cobro y deja que el usuario elija cómo enviarlo (no se envía nada solo). */
+  /** Prepara el texto de cobro y abre WhatsApp directo al teléfono del contacto (o compartir si no está disponible). */
   const remind = async (contactId: string) => {
     setRemindError(null);
     try {
-      await shareText((await api.contactStatement(contactId)).shareText);
+      const [st, list] = await Promise.all([
+        api.contactStatement(contactId),
+        api.contacts().catch(() => []),
+      ]);
+      const phone = list.find((c) => c.id === contactId)?.phone ?? null;
+      const ok = await openWhatsApp(st.shareText, phone);
+      if (!ok) await shareText(st.shareText);
     } catch (e) {
       setRemindError(e instanceof Error ? e.message : "No se pudo preparar el mensaje.");
     }

@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { Courtesy } from "../../api/types";
 import { Choice, DateField, FlowResult, FutureCyclePicker, Label, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Button, Card, Chip, ErrorBox, Field, Heading, Loading, Money, Notice, Screen, Txt } from "../../components/v1/ui";
+import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -16,6 +18,7 @@ const KIND_TEXT: Record<Courtesy["kind"], string> = { cycles: "Por número de ci
 /** Plaza: cuota, cargos, cortesías y acciones (cambiar cuota, cortesía, baja). */
 export function SeatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { colors } = useAppTheme();
   const router = useRouter();
   const seat = useAsync(() => api.seat(id), [id]);
   const courtesies = useAsync(() => api.courtesies(id), [id]);
@@ -34,6 +37,44 @@ export function SeatScreen() {
   const ending = !!s.endDate;
   const activeCourtesy = (courtesies.data ?? []).find((c) => c.status === "active");
 
+  const QuickAction = ({
+    icon,
+    label,
+    onPress,
+    disabled,
+    danger,
+  }: {
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    onPress: () => void;
+    disabled?: boolean;
+    danger?: boolean;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      style={{
+        flex: 1,
+        minHeight: 42,
+        paddingHorizontal: 12,
+        borderRadius: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        backgroundColor: danger ? `${colors.expenseStrong}14` : `${colors.text}08`,
+        opacity: disabled ? 0.4 : 1,
+      }}
+    >
+      <Ionicons name={icon} size={16} color={danger ? colors.expenseStrong : colors.primary} />
+      <Text numberOfLines={1} style={{ color: danger ? colors.expenseStrong : colors.text, fontSize: 13, fontFamily: "AsapBold" }}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <Screen title={s.label} subtitle={s.contact?.name ?? "Tu plaza"} refreshing={refreshing} onRefresh={onRefresh}>
       {s.isOwner ? (
@@ -47,12 +88,16 @@ export function SeatScreen() {
             <Txt size={12} muted style={{ marginTop: 6 }}>Ingresó el {humanDate(s.startDate)}{ending ? ` · termina el ${humanDate(s.endDate!)}` : ""}</Txt>
           </Card>
 
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: 8 }}>
             <Button title="Registrar cobro" icon="cash-outline" onPress={() => router.push({ pathname: "/receipt/new", params: { contactId: s.contact!.id } })} />
-            <Button title="Cambiar cuota" variant="secondary" icon="swap-vertical-outline" onPress={() => router.push(`/seat/${id}/quota` as never)} disabled={ending} />
-            <Button title="Dar cortesía" variant="secondary" icon="gift-outline" onPress={() => router.push(`/seat/${id}/courtesy` as never)} disabled={ending || !!activeCourtesy} />
-            <Button title="Dar de baja" variant="danger" icon="exit-outline" onPress={() => router.push(`/seat/${id}/exit` as never)} disabled={ending} />
-            {s.contact && <Button title="Ver contacto" variant="secondary" icon="person-outline" onPress={() => router.push(`/contact/${s.contact!.id}` as never)} />}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <QuickAction icon="swap-vertical-outline" label="Cambiar cuota" onPress={() => router.push(`/seat/${id}/quota` as never)} disabled={ending} />
+              <QuickAction icon="gift-outline" label="Dar cortesía" onPress={() => router.push(`/seat/${id}/courtesy` as never)} disabled={ending || !!activeCourtesy} />
+            </View>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {s.contact && <QuickAction icon="person-outline" label="Ver contacto" onPress={() => router.push(`/contact/${s.contact!.id}` as never)} />}
+              <QuickAction icon="exit-outline" label="Dar de baja" onPress={() => router.push(`/seat/${id}/exit` as never)} disabled={ending} danger />
+            </View>
           </View>
 
           <Heading>Cortesías</Heading>
@@ -132,7 +177,7 @@ export function SeatQuotaScreen() {
           ]} />
         <ReasonField value={reason} onChange={touch(setReason)} />
       </Card>
-      <Notice tone="info">La cuota nueva rige desde el inicio del ciclo elegido. A los cargos ya emitidos desde esa fecha se les crea un ajuste por la diferencia; si la cuota baja y ya estaba cobrada, el exceso vuelve como crédito libre.</Notice>
+      <Notice tone="info">La cuota nueva aplica desde el ciclo elegido. Si ya había cargos generados desde esa fecha, se ajusta la diferencia; si baja y ya estaba pagado, el saldo sobrante queda a favor de la persona.</Notice>
       <FlowResult flow={flow} />
     </Screen>
   );
@@ -182,7 +227,7 @@ export function SeatCourtesyScreen() {
             options={[{ id: "keep", label: "Mantener la deuda en el servicio" }, { id: "convert", label: "Convertirla en préstamo" }]} />
         </Card>
       )}
-      <Notice tone="info">La cortesía empieza en el siguiente ciclo: el ciclo en curso se sigue cobrando. Los cargos quedan en S/ 0.00 con una exención igual al cobro. Su costo no se reparte entre los demás.</Notice>
+      <Notice tone="info">La cortesía empieza en el siguiente ciclo (el actual se sigue cobrando). Durante la cortesía su cuota queda en S/ 0.00 sin subirle el precio a los demás.</Notice>
       <FlowResult flow={flow} />
     </Screen>
   );
@@ -204,7 +249,7 @@ export function SeatExitScreen() {
         <ReasonField value={reason} onChange={(v) => setReason(v)} label="Motivo de la baja" />
         {flow.canConfirm && reason.trim().length === 0 && <Notice tone="warn">Escribe el motivo para poder confirmar.</Notice>}
       </Card>
-      <Notice tone="info">Si el ciclo ya está pagado al proveedor, o la persona lleva el mínimo de días configurado en tus ajustes, termina el ciclo sin devolución del período actual. Si no, la baja es inmediata con cobro proporcional. Los ciclos futuros pagados se devuelven y lo que deba pasa a un préstamo.</Notice>
+      <Notice tone="info">Si el ciclo actual ya se pagó al proveedor (o la persona supera el límite de días de tus ajustes), termina el ciclo actual sin devolución. Si no, la baja es inmediata y solo paga los días usados. Los ciclos futuros ya pagados se devuelven y cualquier deuda pasa a un préstamo.</Notice>
       <FlowResult flow={flow} />
     </Screen>
   );

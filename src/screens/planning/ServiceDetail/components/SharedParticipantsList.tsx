@@ -56,7 +56,6 @@ export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ 
         return (
           <TouchableOpacity key={c.obligationId} onPress={() => onPressCharge(c)} activeOpacity={0.75} accessibilityRole="button"
             style={{ flexDirection: "row", gap: 12, paddingVertical: 13, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
-            <View style={{ width: 4, borderRadius: 2, backgroundColor: st.bar }} />
             <View style={{ flex: 1, gap: 10 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ flex: 1 }}>
@@ -68,7 +67,7 @@ export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ 
                     <Ionicons name={st.icon} size={14} color={st.fg} />
                     <Text style={{ color: st.fg, fontSize: 12, fontFamily: "AsapBold" }}>{st.label}</Text>
                   </View>
-                  <Text style={{ color: settled ? colors.textSecondary : colors.text, fontSize: 15, fontFamily: "AsapBold" }}>
+                  <Text style={{ color: settled ? colors.textSecondary : colors.text, fontSize: 15, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
                     {c.paymentStatus === "exempt" ? "Sin cargo" : settled ? formatSoles(c.applied) : formatSoles(c.pending)}
                   </Text>
                 </View>
@@ -90,12 +89,12 @@ export const SharedParticipantsList: React.FC<SharedParticipantsListProps> = ({ 
                   <TouchableOpacity
                     onPress={(e) => { e.stopPropagation?.(); onRemindParticipant(c.contactId); }}
                     accessibilityRole="button"
-                    accessibilityLabel={`Compartir recordatorio de cobro para ${c.contactName}`}
+                    accessibilityLabel={`Recordar por WhatsApp a ${c.contactName}`}
                     hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                     style={{ flex: 1, minHeight: 40, paddingHorizontal: 12, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: `${colors.income}18` }}
                   >
-                    <Ionicons name="share-social-outline" size={16} color={colors.incomeStrong} />
-                    <Text style={{ color: colors.incomeStrong, fontSize: 13, fontFamily: "AsapBold" }}>Recordar</Text>
+                    <Ionicons name="logo-whatsapp" size={16} color={colors.incomeStrong} />
+                    <Text style={{ color: colors.incomeStrong, fontSize: 13, fontFamily: "AsapBold" }}>WhatsApp</Text>
                   </TouchableOpacity>
                 </View>
               )}

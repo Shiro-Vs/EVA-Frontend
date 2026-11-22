@@ -41,7 +41,7 @@ export const ServicePayments: React.FC<ServicePaymentsProps> = ({ cycles, loadin
       <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
         {shared ? "Tu gasto real es lo que pagaste al proveedor menos lo que te devolvieron." : "Lo que pagaste al proveedor en cada ciclo."}
       </Text>
-      <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14 }}>
+      <View>
         {cycles.map((c, i) => {
           const cost = c.costSummary;
           const paid = c.supplierPayment;
@@ -50,12 +50,12 @@ export const ServicePayments: React.FC<ServicePaymentsProps> = ({ cycles, loadin
           return (
             <View key={c.id} style={{ borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
               <TouchableOpacity onPress={() => setOpenId(open ? null : c.id)} activeOpacity={0.75} accessibilityRole="button" accessibilityState={{ expanded: open }}
-                style={{ flexDirection: "row", gap: 12, paddingVertical: 13 }}>
-                <View style={{ width: 4, borderRadius: 2, backgroundColor: paid ? colors.income : colors.warning }} />
+                style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13 }}>
+                <Ionicons name={paid ? "checkmark-circle" : "time-outline"} size={20} color={paid ? colors.incomeStrong : colors.warningStrong} />
                 <View style={{ flex: 1, gap: 2 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{humanDate(c.startDate)} → {humanDate(c.endDate)}</Text>
-                    <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{paid ? formatSoles(cost.costByCollections) : "—"}</Text>
+                    <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 14.5, fontFamily: "AsapBold" }}>{humanDate(c.startDate)} → {humanDate(c.endDate)}</Text>
+                    <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{paid ? formatSoles(cost.costByCollections) : "—"}</Text>
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                     <Text style={{ flex: 1, color: paid ? colors.textSecondary : colors.warningStrong, fontSize: 12, fontFamily: paid ? "Asap" : "AsapBold" }}>
@@ -65,11 +65,11 @@ export const ServicePayments: React.FC<ServicePaymentsProps> = ({ cycles, loadin
                   </View>
                   {missing && <Text style={{ color: colors.expenseStrong, fontSize: 12, fontFamily: "AsapBold" }}>Faltan por devolverte {formatSoles(cost.pendingFromOthers)}</Text>}
                 </View>
-                <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color={colors.muted} style={{ alignSelf: "center" }} />
+                <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color={colors.muted} />
               </TouchableOpacity>
 
               {open && (
-                <View style={{ marginLeft: 16, paddingBottom: 14, gap: 6 }}>
+                <View style={{ marginLeft: 30, paddingBottom: 14, gap: 6 }}>
                   <Line label="Precio del ciclo" value={formatSoles(cost.announcedPrice)} />
                   {paid ? (
                     <>

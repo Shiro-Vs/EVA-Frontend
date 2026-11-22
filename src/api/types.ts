@@ -41,7 +41,7 @@ export interface Subscription {
   id: string; name: string; provider: string | null; mode: "personal" | "shared"; capacity: number; preferredAccountId: string | null;
   categoryId?: string | null; color: string | null; icon: string | null; status: string; currency: string; version: number; createdAt: string; occupiedSeats: number;
   terms: { announcedPrice: Money; interval: Interval; anchor: IsoDate; validFrom: IsoDate } | null;
-  currentCycle: CycleRef | null; nextCycle: CycleRef | null; baseDays: number | null;
+  currentCycle: CycleRef | null; currentCyclePaid?: boolean; nextCycle: CycleRef | null; baseDays: number | null;
 }
 
 export type PaymentStatus = "exempt" | "unpaid" | "partial" | "paid" | "converted";

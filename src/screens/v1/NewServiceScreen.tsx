@@ -60,7 +60,9 @@ export default function NewServiceScreen() {
   const [preview, setPreview] = useState<SubscriptionPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
-  const cap = Math.max(1, Number.parseInt(capacity, 10) || 1);
+  const rawCap = Number.parseInt(capacity, 10);
+  const capValid = mode === "personal" || (Number.isInteger(rawCap) && rawCap >= 2 && rawCap <= 50);
+  const cap = mode === "personal" ? 1 : (Number.isInteger(rawCap) ? Math.max(2, Math.min(50, rawCap)) : 2);
   const preset = FREQUENCIES.find((f) => f.id === freq)!;
   const unit: Unit = preset.unit ?? customUnit;
   const cnt = preset.count ?? Math.max(1, Number.parseInt(count, 10) || 1);
@@ -77,9 +79,9 @@ export default function NewServiceScreen() {
   }, [start, unit, cnt, nextTouched]);
 
   const body = useMemo<SubscriptionBody | null>(() => {
-    if (!name.trim() || !priceNorm || priceNorm === "0.00" || !isIsoDate(start) || !isIsoDate(next)) return null;
+    if (!name.trim() || !capValid || !priceNorm || priceNorm === "0.00" || !isIsoDate(start) || !isIsoDate(next)) return null;
     return { name: name.trim(), mode, capacity: mode === "personal" ? 1 : cap, announcedPrice: priceNorm, interval: { unit, count: cnt }, startDate: start, nextPaymentDate: next, ...(preferred ? { preferredAccountId: preferred } : {}), ...(categoryId ? { categoryId } : {}) };
-  }, [name, mode, cap, priceNorm, unit, cnt, start, next, preferred, categoryId]);
+  }, [name, mode, cap, capValid, priceNorm, unit, cnt, start, next, preferred, categoryId]);
 
   // Vista previa en vivo (con espera breve para no consultar en cada tecla).
   const seq = useRef(0);
@@ -108,8 +110,10 @@ export default function NewServiceScreen() {
   const save = async () => { const r = await create.submit(); if (r) router.replace(`/service/${r.id}`); };
   const edit = <T,>(set: (v: T) => void) => (v: T) => { set(v); create.resetKey(); };
 
+  const canCreate = !!preview && (preview.calendar.ok || confirmMismatch);
+
   return (
-    <Screen title="Nuevo servicio" footer={<Button title="Crear servicio" onPress={save} busy={create.busy} disabled={!preview} />}>
+    <Screen title="Nuevo servicio" footer={<Button title="Crear servicio" onPress={save} busy={create.busy} disabled={!canCreate} />}>
       <Heading>Datos del plan</Heading>
       <Card>
         <Field label="Nombre" value={name} onChangeText={edit(setName)} placeholder="Netflix, Spotify, iCloud…" autoCapitalize="words" />
@@ -124,7 +128,17 @@ export default function NewServiceScreen() {
           onChange={edit(setMode)}
         />
         <View style={{ flexDirection: "row", gap: 10 }}>
-          {mode === "shared" && <View style={{ flex: 1 }}><Field label="Plazas totales" value={capacity} onChangeText={edit(setCapacity)} keyboardType="number-pad" /></View>}
+          {mode === "shared" && (
+            <View style={{ flex: 1 }}>
+              <Field
+                label="Plazas totales"
+                value={capacity}
+                onChangeText={edit(setCapacity)}
+                keyboardType="number-pad"
+                error={capacity && !capValid ? "Mínimo 2 plazas" : undefined}
+              />
+            </View>
+          )}
           <View style={{ flex: 1 }}><Field label="Precio del plan (S/)" value={price} onChangeText={edit(setPrice)} placeholder="45.00" keyboardType="decimal-pad" error={price && !priceNorm ? "Importe inválido" : undefined} /></View>
         </View>
         {mode === "shared" && <Txt size={12} muted>Incluye tu propia plaza. Podrás agregar a los demás participantes justo después de crear el servicio.</Txt>}

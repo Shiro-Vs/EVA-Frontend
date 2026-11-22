@@ -39,8 +39,11 @@ export default function SupplierPayScreen() {
     setAccountId(chosen.id);
   }, [accountId, list, serviceId, service.loading, service.data?.preferredAccountId]);
 
+  const amtNorm = normalizeMoneyInput(amount);
+  const canPay = !!accountId && !!amtNorm && amtNorm !== "0.00" && isIsoDate(date);
+
   return (
-    <Screen title="Pago al proveedor" footer={<Button title="Registrar pago" onPress={save} busy={pay.busy} />}>
+    <Screen title="Pago al proveedor" footer={<Button title="Registrar pago" onPress={save} busy={pay.busy} disabled={!canPay} />}>
       {accounts.loading && !accounts.data ? <Loading /> : accounts.error ? <ErrorBox message={accounts.error} onRetry={accounts.reload} /> : (
         <>
           <Card>
@@ -53,7 +56,7 @@ export default function SupplierPayScreen() {
                   <Text style={{ color: colors.textSecondary, fontSize: 14, fontFamily: "Asap", fontVariant: ["tabular-nums"] }}>{formatSoles(a.balance)}</Text>
                 </TouchableOpacity>
               ))}
-              {list.length === 0 && <Notice tone="warn">Primero crea una cuenta desde Inicio.</Notice>}
+              {list.length === 0 && <Notice tone="warn">Primero crea una cuenta desde Dinero.</Notice>}
             </View>
             <MoneyField label="Importe realmente cobrado" value={amount} onChange={(t) => { setAmount(t); pay.resetKey(); }} />
             <DateInput label="Fecha del pago" value={date} onChange={(t) => { setDate(t); pay.resetKey(); }} />

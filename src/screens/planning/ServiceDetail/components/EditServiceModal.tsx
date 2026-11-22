@@ -25,20 +25,54 @@ export default function EditServiceModal({ visible, onClose, service, onSuccess 
   const [style, setStyle] = useState({ icon: service.icon || "receipt", color: service.color || colors.primary });
   const [error, setError] = useState<string | null>(null);
   const [provider, setProvider] = useState(service.provider ?? "");
+  const [capacity, setCapacity] = useState(String(service.capacity));
   const [preferred, setPreferred] = useState<string | null>(service.preferredAccountId);
   const [categoryId, setCategoryId] = useState<string | null>(service.categoryId ?? null);
   const [saving, setSaving] = useState(false);
 
+  const isShared = service.mode === "shared";
+  const minCapacity = Math.max(2, service.occupiedSeats);
+
   useEffect(() => {
-    if (visible) { setProvider(service.provider ?? ""); setPreferred(service.preferredAccountId); setCategoryId(service.categoryId ?? null); setName(service.name); setStyle({ icon: service.icon || "receipt", color: service.color || colors.primary }); setError(null); setSaving(false); }
+    if (visible) {
+      setProvider(service.provider ?? "");
+      setCapacity(String(service.capacity));
+      setPreferred(service.preferredAccountId);
+      setCategoryId(service.categoryId ?? null);
+      setName(service.name);
+      setStyle({ icon: service.icon || "receipt", color: service.color || colors.primary });
+      setError(null);
+      setSaving(false);
+    }
   }, [visible, service, colors.primary]);
 
   const save = async () => {
     if (saving) return;
     if (!name.trim()) { setError("El nombre es obligatorio."); return; }
+    let nextCap: number | undefined;
+    if (isShared) {
+      const parsed = Number.parseInt(capacity, 10);
+      if (!Number.isInteger(parsed) || parsed < minCapacity || parsed > 50) {
+        setError(`Las plazas deben ser entre ${minCapacity} y 50 (hay ${service.occupiedSeats} ocupadas).`);
+        return;
+      }
+      if (parsed !== service.capacity) nextCap = parsed;
+    }
     setSaving(true);
     try {
-      await api.patchSubscription(service.id, { name: name.trim(), provider: provider.trim() || null, preferredAccountId: preferred, categoryId, icon: style.icon, color: style.color }, service.version);
+      await api.patchSubscription(
+        service.id,
+        {
+          name: name.trim(),
+          provider: provider.trim() || null,
+          ...(nextCap !== undefined ? { capacity: nextCap } : {}),
+          preferredAccountId: preferred,
+          categoryId,
+          icon: style.icon,
+          color: style.color,
+        },
+        service.version,
+      );
       onSuccess();
       onClose();
     } catch (e) {
@@ -52,6 +86,14 @@ export default function EditServiceModal({ visible, onClose, service, onSuccess 
     <EVAModal visible={visible} title="Editar Servicio" onClose={onClose} primaryButtonText={saving ? "Guardando…" : "Guardar"} onPrimaryAction={save}>
       <EVAInput label="Nombre" value={name} onChangeText={setName} autoCapitalize="words" error={error && !name.trim() ? error : undefined} />
       <EVAInput label="Proveedor" value={provider} onChangeText={setProvider} autoCapitalize="words" />
+      {isShared && (
+        <EVAInput
+          label={`Plazas totales (mín. ${minCapacity}, incluye la tuya)`}
+          value={capacity}
+          onChangeText={setCapacity}
+          keyboardType="number-pad"
+        />
+      )}
       <OptionalAccountPicker label="Cuenta con la que sueles pagarlo" value={preferred} onChange={setPreferred} inline />
       <CategoryPicker label="Categoría (para presupuestos)" value={categoryId} onChange={setCategoryId} inline />
       <ServiceStylePicker icon={style.icon} color={style.color} onChange={setStyle} />

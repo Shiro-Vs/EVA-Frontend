@@ -66,11 +66,10 @@ export const ServiceSummaryCard: React.FC<ServiceSummaryCardProps> = ({ cycle, s
           <View style={{ backgroundColor: "rgba(0,0,0,0.22)", height: 6, borderRadius: 3, overflow: "hidden" }}>
             <View style={{ backgroundColor: colors.onPrimary, height: "100%", width: `${pct}%` }} />
           </View>
-          {!cost.estimated && (
-            <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "Asap" }}>
-              Tu costo estimado: {formatSoles(cost.projectedCost)} · Faltan por cobrarte {formatSoles(cost.pendingFromOthers)}
-            </Text>
-          )}
+          <Text style={{ color: colors.onPrimaryMuted, fontSize: 11.5, fontFamily: "Asap" }}>
+            Tu costo estimado: {formatSoles(cost.projectedCost)}
+            {cmpMoney(cost.pendingFromOthers, "0.00") > 0 ? ` · Faltan por cobrarte ${formatSoles(cost.pendingFromOthers)}` : " · Todo cobrado"}
+          </Text>
         </View>
       )}
 

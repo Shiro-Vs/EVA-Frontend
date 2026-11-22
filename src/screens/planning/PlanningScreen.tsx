@@ -87,7 +87,7 @@ export default function PlanningScreen() {
         <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(s?.subscriptions.currentCycleTotal)}</Text>
         <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
           <Stat label="Servicios" value={`${s?.subscriptions.active ?? activeOnly.length}`} sub={sharedCount ? (sharedCount === 1 ? "1 compartido" : `${sharedCount} compartidos`) : "activos"} />
-          <Stat label="Por cobrar" value={formatSoles(s?.receivable.pending)} sub={s && Number(s.receivable.overdue) > 0 ? `${formatSoles(s.receivable.overdue)} vencido` : "al día"} />
+          <Stat label="Por cobrar" value={formatSoles(s?.receivable.pending)} sub={s && Number(s.receivable.overdue) > 0 ? `${formatSoles(s.receivable.overdue)} vencido` : "al día"} onPress={() => router.push("/people" as never)} />
         </View>
         {next && nextDays !== null && (
           <TouchableOpacity onPress={() => router.push(`/service/${next.id}` as never)} accessibilityRole="button" hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
@@ -157,7 +157,7 @@ export default function PlanningScreen() {
           {list.map((sub) => <ServiceCard key={sub.id} sub={sub} today={today} isDark={isDark} onPress={() => router.push(`/service/${sub.id}` as never)} />)}
         </View>
       ) : (
-        <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
+        <View>
           {list.map((sub, i) => <ServiceRow key={sub.id} sub={sub} today={today} isDark={isDark} first={i === 0} onPress={() => router.push(`/service/${sub.id}` as never)} />)}
         </View>
       )}
@@ -165,13 +165,29 @@ export default function PlanningScreen() {
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
+function Stat({ label, value, sub, onPress }: { label: string; value: string; sub: string; onPress?: () => void }) {
   const { colors } = useAppTheme();
-  return (
-    <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
-      <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium" }}>{label}</Text>
+  const content = (
+    <>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium" }}>{label}</Text>
+        {onPress && <Ionicons name="chevron-forward" size={12} color={colors.onPrimaryMuted} />}
+      </View>
       <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 17, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
       <Text numberOfLines={1} style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "Asap" }}>{sub}</Text>
+    </>
+  );
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button"
+        style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+  return (
+    <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
+      {content}
     </View>
   );
 }
@@ -202,17 +218,30 @@ function Seats({ sub, color }: { sub: Subscription; color: string }) {
   );
 }
 
+function PaidBadge({ paid }: { paid: boolean }) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99, backgroundColor: paid ? `${colors.incomeStrong}1A` : `${colors.warningStrong}1A` }}>
+      <Ionicons name={paid ? "checkmark-circle" : "time-outline"} size={11} color={paid ? colors.incomeStrong : colors.warningStrong} />
+      <Text style={{ color: paid ? colors.incomeStrong : colors.warningStrong, fontSize: 10.5, fontFamily: "AsapBold" }}>
+        {paid ? "Pagado" : "Por pagar"}
+      </Text>
+    </View>
+  );
+}
+
 function ServiceCard({ sub, today, isDark, onPress }: { sub: Subscription; today: string; isDark: boolean; onPress: () => void }) {
   const { colors } = useAppTheme();
   const tone = getAdjustedColor(sub.color || colors.primary, isDark);
   const r = useRenewal(sub, today);
   const dim = sub.status === "archived" || sub.status === "suspended";
+  const showPaid = sub.status === "active" && typeof sub.currentCyclePaid === "boolean";
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`${sub.name}, ${formatSoles(sub.terms?.announcedPrice)}, ${r.text}`}
       style={{ width: "47.5%", borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, padding: 14, gap: 10, opacity: dim ? 0.78 : 1 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
         <ServiceIcon name={sub.icon || "receipt"} size={24} color={tone} />
-        {r.soon && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color }} />}
+        {showPaid ? <PaidBadge paid={sub.currentCyclePaid!} /> : (r.soon && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color }} />)}
       </View>
       <View style={{ gap: 2 }}>
         <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{sub.name}</Text>
@@ -234,17 +263,25 @@ function ServiceRow({ sub, today, isDark, first, onPress }: { sub: Subscription;
   const tone = getAdjustedColor(sub.color || colors.primary, isDark);
   const r = useRenewal(sub, today);
   const dim = sub.status === "archived" || sub.status === "suspended";
+  const showPaid = sub.status === "active" && typeof sub.currentCyclePaid === "boolean";
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: first ? 0 : 1, borderTopColor: colors.border, opacity: dim ? 0.78 : 1 }}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: first ? 0 : 1, borderTopColor: colors.border, opacity: dim ? 0.78 : 1 }}>
       <View style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
         <ServiceIcon name={sub.icon || "receipt"} size={23} color={tone} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{sub.name}</Text>
-        <Text numberOfLines={1} style={{ color: r.color, fontSize: 12, fontFamily: r.soon ? "AsapBold" : "Asap" }}>{r.text}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text numberOfLines={1} style={{ color: r.color, fontSize: 12, fontFamily: r.soon ? "AsapBold" : "Asap" }}>{r.text}</Text>
+          {showPaid && (
+            <Text style={{ color: sub.currentCyclePaid ? colors.incomeStrong : colors.warningStrong, fontSize: 11.5, fontFamily: "AsapBold" }}>
+              · {sub.currentCyclePaid ? "Pagado" : "Por pagar"}
+            </Text>
+          )}
+        </View>
       </View>
       <View style={{ alignItems: "flex-end", gap: 3 }}>
-        <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{formatSoles(sub.terms?.announcedPrice)}<Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>{per(sub.terms?.interval)}</Text></Text>
+        <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(sub.terms?.announcedPrice)}<Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>{per(sub.terms?.interval)}</Text></Text>
         <Seats sub={sub} color={tone} />
       </View>
     </TouchableOpacity>
