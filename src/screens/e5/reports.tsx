@@ -13,10 +13,16 @@ import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, todayLocalIso } from "../../utils/dates";
 import { saveAndShare } from "../../utils/files";
 import { cmpMoney, formatSoles } from "../../utils/money";
-import { MultiChoice } from "../e4/shared";
 
 const MES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 const KIND_LABEL: Record<string, string> = { income: "Ingreso", expense: "Gasto", transfer: "Transferencia", opening: "Saldo inicial", adjustment: "Ajuste", reversal: "Reversión" };
+const ACC_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
+  bank: "business-outline",
+  savings: "wallet-outline",
+  cash: "cash-outline",
+  wallet: "phone-portrait-outline",
+  credit: "card-outline",
+};
 const LEGACY_REV_RE = /^Reversión de [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const monthTitle = (m: string) => `${MES[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
 const shift = (m: string, d: number) => {
@@ -471,18 +477,15 @@ function AccordionHeader({
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.75}
+      activeOpacity={0.7}
       accessibilityRole="button"
       style={{
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        borderRadius: 16,
-        backgroundColor: colors.card,
-        borderWidth: 1,
-        borderColor: colors.border,
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
       }}
     >
       <Ionicons name={icon} size={18} color={colors.primary} />
@@ -516,6 +519,11 @@ export function MonthlyReportScreen() {
     try { await Promise.all([rep.reload(), accounts.reload()]); } finally { setRefreshing(false); }
   };
 
+  const toggleAccount = (id: string) => {
+    setAccountIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setMsg(null);
+  };
+
   const save = useSubmit(async () => {
     const s = await api.saveMonthly({ month, accountIds, detail });
     setMsg(s.unchanged
@@ -530,46 +538,35 @@ export function MonthlyReportScreen() {
 
   const d = rep.data;
   const canNext = month < current;
+  const activeAccounts = (accounts.data ?? []).filter((a) => a.status === "active");
 
   return (
     <Screen title="Resumen del mes" refreshing={refreshing} onRefresh={onRefresh}>
-      {/* Selector de mes compacto en una sola fila */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backgroundColor: colors.card,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: colors.border,
-          paddingHorizontal: 6,
-          paddingVertical: 6,
-        }}
-      >
+      {/* Selector de mes limpio, directo sobre el fondo sin bordes */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 2 }}>
         <TouchableOpacity
           onPress={() => { setMonth(shift(month, -1)); setMsg(null); setDetail(false); }}
           accessibilityRole="button"
           accessibilityLabel="Mes anterior"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{ width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={{ width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.text}0A` }}
         >
           <Ionicons name="chevron-back" size={20} color={colors.text} />
         </TouchableOpacity>
-        <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>{monthTitle(month)}</Text>
+        <Text style={{ color: colors.text, fontSize: 19, fontFamily: "AsapBold" }}>{monthTitle(month)}</Text>
         <TouchableOpacity
           onPress={() => { if (canNext) { setMonth(shift(month, 1)); setMsg(null); setDetail(false); } }}
           disabled={!canNext}
           accessibilityRole="button"
           accessibilityLabel="Mes siguiente"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={{ width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", opacity: canNext ? 1 : 0.3 }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={{ width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.text}0A`, opacity: canNext ? 1 : 0.25 }}
         >
           <Ionicons name="chevron-forward" size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
 
-      {/* Acciones rápidas en una sola línea: Filtrar, PDF, Guardar */}
+      {/* Acciones rápidas suaves, sin bordes pesados */}
       <View style={{ flexDirection: "row", gap: 8 }}>
         <ActionPill
           icon="funnel-outline"
@@ -622,24 +619,75 @@ export function MonthlyReportScreen() {
         </>
       )}
 
-      {/* Hoja de filtro de cuentas */}
-      <BottomSheet visible={filterSheet} onClose={() => setFilterSheet(false)} title="Filtrar por cuentas" maxHeight={0.7}>
-        <View style={{ gap: 12, paddingBottom: 8 }}>
-          <MultiChoice
-            label="Elige una o más cuentas (ninguna = todas)"
-            options={(accounts.data ?? []).map((a) => ({ id: a.id, label: a.name }))}
-            value={accountIds}
-            onChange={(v) => { setAccountIds(v); setMsg(null); }}
-          />
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {accountIds.length > 0 && (
-              <View style={{ flex: 1 }}>
-                <Button title="Ver todas" variant="secondary" onPress={() => { setAccountIds([]); setMsg(null); setFilterSheet(false); }} />
-              </View>
-            )}
+      {/* Hoja de filtro de cuentas tipo lista con checkboxes claros */}
+      <BottomSheet visible={filterSheet} onClose={() => setFilterSheet(false)} title="Filtrar por cuentas" maxHeight={0.72}>
+        <View style={{ gap: 6, paddingBottom: 10 }}>
+          <TouchableOpacity
+            onPress={() => { setAccountIds([]); setMsg(null); }}
+            activeOpacity={0.75}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: accountIds.length === 0 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              borderRadius: 14,
+              backgroundColor: accountIds.length === 0 ? `${colors.primary}14` : "transparent",
+            }}
+          >
+            <Ionicons name="layers-outline" size={20} color={accountIds.length === 0 ? colors.primary : colors.textSecondary} />
             <View style={{ flex: 1 }}>
-              <Button title="Aplicar" onPress={() => setFilterSheet(false)} />
+              <Text style={{ color: colors.text, fontSize: 14.5, fontFamily: "AsapBold" }}>Todas las cuentas</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>Incluir todo tu resumen del mes</Text>
             </View>
+            <Ionicons
+              name={accountIds.length === 0 ? "checkmark-circle" : "ellipse-outline"}
+              size={22}
+              color={accountIds.length === 0 ? colors.primary : colors.muted}
+            />
+          </TouchableOpacity>
+
+          <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 2 }} />
+
+          {activeAccounts.map((a) => {
+            const on = accountIds.includes(a.id);
+            return (
+              <TouchableOpacity
+                key={a.id}
+                onPress={() => toggleAccount(a.id)}
+                activeOpacity={0.75}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: on }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  paddingVertical: 11,
+                  paddingHorizontal: 12,
+                  borderRadius: 14,
+                  backgroundColor: on ? `${colors.primary}14` : "transparent",
+                }}
+              >
+                <Ionicons name={ACC_ICON[a.type] ?? "wallet-outline"} size={20} color={on ? colors.primary : colors.textSecondary} />
+                <View style={{ flex: 1 }}>
+                  <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14.5, fontFamily: "AsapSemiBold" }}>{a.name}</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap", fontVariant: ["tabular-nums"] }}>
+                    {formatSoles(a.balance)}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={on ? "checkbox" : "square-outline"}
+                  size={22}
+                  color={on ? colors.primary : colors.muted}
+                />
+              </TouchableOpacity>
+            );
+          })}
+
+          <View style={{ marginTop: 8 }}>
+            <Button title="Listo" onPress={() => setFilterSheet(false)} />
           </View>
         </View>
       </BottomSheet>
@@ -673,17 +721,15 @@ function ActionPill({
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
-        minHeight: 38,
+        minHeight: 36,
         paddingHorizontal: 10,
-        borderRadius: 12,
-        backgroundColor: active ? `${colors.primary}18` : colors.card,
-        borderWidth: 1,
-        borderColor: active ? colors.primary : colors.border,
-        opacity: disabled ? 0.5 : 1,
+        borderRadius: 99,
+        backgroundColor: active ? colors.primarySurface : `${colors.text}0A`,
+        opacity: disabled ? 0.45 : 1,
       }}
     >
-      <Ionicons name={icon} size={15} color={active ? colors.primary : colors.text} />
-      <Text numberOfLines={1} style={{ color: active ? colors.primary : colors.text, fontSize: 12.5, fontFamily: "AsapSemiBold" }}>{label}</Text>
+      <Ionicons name={icon} size={15} color={active ? colors.onPrimary : colors.text} />
+      <Text numberOfLines={1} style={{ color: active ? colors.onPrimary : colors.text, fontSize: 12.5, fontFamily: "AsapSemiBold" }}>{label}</Text>
     </TouchableOpacity>
   );
 }
