@@ -10,7 +10,7 @@ import { useDialog } from "../../context/DialogContext";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, isIsoDate } from "../../utils/dates";
-import { formatSoles, normalizeMoneyInput } from "../../utils/money";
+import { cmpMoney, formatSoles, normalizeMoneyInput } from "../../utils/money";
 
 // ───────────────────────── Conciliación ─────────────────────────
 
@@ -21,6 +21,7 @@ export function ReconcileScreen() {
   const acc = useAsync(() => api.account(id), [id]);
   const hist = useAsync(() => api.reconciliations(id), [id]);
   useFocusReload(() => { void acc.reload(); void hist.reload(); });
+  const [refreshing, setRefreshing] = useState(false);
   const [real, setReal] = useState("");
   const [asOf, setAsOf] = useState("");
   const [reason, setReason] = useState("");
@@ -32,15 +33,25 @@ export function ReconcileScreen() {
   });
   const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); flow.invalidate(); };
   const needsReason = flow.data?.status === "difference";
+  const parsedReal = realSigned();
+  const balSubtitle = acc.data
+    ? credit
+      ? `${acc.data.name} · en EVA deuda ${formatSoles(cmpMoney(acc.data.balance, "0.00") < 0 ? acc.data.balance.replace("-", "") : "0.00")}`
+      : `${acc.data.name} · en EVA ${formatSoles(acc.data.balance)}`
+    : undefined;
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try { await Promise.all([acc.reload(), hist.reload()]); } finally { setRefreshing(false); }
+  };
   return (
-    <Screen title="Conciliar" subtitle={acc.data ? `${acc.data.name} · en EVA ${formatSoles(acc.data.balance)}` : undefined}
-      footer={<PreviewFooter flow={flow} previewLabel="Comparar" confirmLabel="Registrar" disabled={!realSigned() && real !== "0" && real !== "0.00" || (asOf !== "" && !isIsoDate(asOf))} confirmDisabled={needsReason && !reason.trim()} onConfirm={async () => { if (await flow.confirm()) done(`/account/${id}`); }} />}>
+    <Screen title="Conciliar" subtitle={balSubtitle} refreshing={refreshing} onRefresh={onRefresh}
+      footer={<PreviewFooter flow={flow} previewLabel="Comparar" confirmLabel={needsReason ? "Registrar ajuste" : "Confirmar coincidencia"} disabled={parsedReal === null || (asOf !== "" && !isIsoDate(asOf))} confirmDisabled={needsReason && !reason.trim()} onConfirm={async () => { if (await flow.confirm()) done(`/account/${id}`); }} />}>
       <Card>
         <MoneyField label={credit ? "Deuda real de la tarjeta" : "Saldo real (según el banco o tu efectivo)"} value={real} onChange={touch(setReal)} />
         <DateField label="A la fecha" value={asOf} optional onChange={touch(setAsOf)} />
         {needsReason && <ReasonField value={reason} onChange={(v) => { setReason(v); }} label="Motivo del ajuste" />}
       </Card>
-      <Notice tone="info">Primero revisa y corrige los movimientos. Si la diferencia no se explica, el ajuste queda en una línea propia: no es ingreso ni gasto.</Notice>
+      <Notice tone="info">Primero revisa y corrige los movimientos. Si el saldo coincide, queda registrado como verificado; si hay diferencia, el ajuste queda en una línea propia (no es ingreso ni gasto).</Notice>
       <FlowResult flow={flow} />
       <Heading>Conciliaciones anteriores</Heading>
       {(hist.data ?? []).length === 0 ? <Card><Txt muted>Aún no hay conciliaciones.</Txt></Card> : hist.data!.map((h) => (
@@ -55,11 +66,13 @@ export function ReconcileScreen() {
 export function CardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const dialog = useDialog();
   const acc = useAsync(() => api.account(id), [id]);
   const det = useAsync(() => api.creditDetails(id), [id]);
   const sts = useAsync(() => api.statements(id), [id]);
   const plans = useAsync(() => api.installmentPlans(id), [id]);
   useFocusReload(() => { void acc.reload(); void det.reload(); void sts.reload(); void plans.reload(); });
+  const [refreshing, setRefreshing] = useState(false);
   const cfg = det.data && "cutoffDay" in det.data ? (det.data as CreditDetails) : null;
   const [line, setLine] = useState<string | null>(null);
   const [cutoff, setCutoff] = useState<string | null>(null);
@@ -68,12 +81,21 @@ export function CardScreen() {
     creditLine: (line ?? cfg?.creditLine ?? "") ? normalizeMoneyInput(line ?? cfg?.creditLine ?? "") : null, cutoffDay: Number.parseInt(cutoff ?? String(cfg?.cutoffDay ?? ""), 10), dueDay: Number.parseInt(due ?? String(cfg?.dueDay ?? ""), 10),
   }));
   const cancel = useSubmit(async (_k: string, planId: string) => api.cancelInstallmentPlan(planId));
-  const voidSt = useSubmit(async (_k: string, s: CardStatement) => api.voidStatement(s.id, "Anulado desde la app"));
-  const c = (acc.data as unknown as { credit?: { creditLine: string | null; used: string; available: string | null } })?.credit;
+  const c = (acc.data as unknown as { credit?: { creditLine: string | null; used: string; available: string | null } | null })?.credit;
+  const rawBal = acc.data?.balance ?? "0.00";
+  const balCmp = cmpMoney(rawBal, "0.00");
+  const used = c?.used ?? (balCmp < 0 ? rawBal.replace("-", "") : "0.00");
+  const isArchived = acc.data?.status === "archived";
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try { await Promise.all([acc.reload(), det.reload(), sts.reload(), plans.reload()]); } finally { setRefreshing(false); }
+  };
   return (
-    <Screen title={acc.data?.name ?? "Tarjeta"} subtitle="Tarjeta de crédito">
+    <Screen title={acc.data?.name ?? "Tarjeta"} subtitle="Tarjeta de crédito" refreshing={refreshing} onRefresh={onRefresh}>
       <Card>
-        <KV label="Deuda" value={formatSoles(c?.used ?? "0.00")} strong />
+        <KV label="Deuda actual" value={formatSoles(used)} strong color={cmpMoney(used, "0.00") > 0 ? undefined : undefined} />
+        {balCmp > 0 && <KV label="Saldo a favor" value={formatSoles(rawBal)} />}
+        {c?.creditLine != null && <KV label="Línea de crédito" value={formatSoles(c.creditLine)} />}
         {c?.available != null && <KV label="Línea disponible (no es dinero propio)" value={formatSoles(c.available)} />}
       </Card>
       <Heading>Corte y pago</Heading>
@@ -81,29 +103,46 @@ export function CardScreen() {
         <MoneyField label="Línea de crédito" value={line ?? cfg?.creditLine ?? ""} optional onChange={setLine} />
         <Field label="Día de corte (1–31)" value={cutoff ?? String(cfg?.cutoffDay ?? "")} onChangeText={setCutoff} keyboardType="number-pad" />
         <Field label="Día límite de pago (1–31)" value={due ?? String(cfg?.dueDay ?? "")} onChangeText={setDue} keyboardType="number-pad" />
-        <Button title="Guardar configuración" busy={saveCfg.busy} disabled={!(cutoff ?? cfg?.cutoffDay) || !(due ?? cfg?.dueDay)} onPress={async () => { if (await saveCfg.submit()) { setLine(null); setCutoff(null); setDue(null); void det.reload(); void acc.reload(); } }} />
+        <Button title="Guardar configuración" busy={saveCfg.busy} disabled={isArchived || !(cutoff ?? cfg?.cutoffDay) || !(due ?? cfg?.dueDay)} onPress={async () => { if (await saveCfg.submit()) { setLine(null); setCutoff(null); setDue(null); void det.reload(); void acc.reload(); } }} />
         {saveCfg.error && <Notice tone="err">{saveCfg.error}</Notice>}
       </Card>
-      <View style={{ gap: 10 }}>
-        <Button title="Registrar estado de cuenta" icon="document-text-outline" onPress={() => router.push(`/account/${id}/statement/new` as never)} />
-        <Button title="Compra en cuotas" variant="secondary" icon="layers-outline" onPress={() => router.push(`/account/${id}/installments/new` as never)} />
-        <Button title="Conciliar saldo" variant="secondary" icon="git-compare-outline" onPress={() => router.push(`/account/${id}/reconcile` as never)} />
-      </View>
+      {!isArchived && (
+        <View style={{ gap: 10 }}>
+          <Button title="Registrar estado de cuenta" icon="document-text-outline" onPress={() => router.push(`/account/${id}/statement/new` as never)} />
+          <Button title="Compra en cuotas" variant="secondary" icon="layers-outline" onPress={() => router.push(`/account/${id}/installments/new` as never)} />
+          <Button title="Conciliar saldo" variant="secondary" icon="git-compare-outline" onPress={() => router.push(`/account/${id}/reconcile` as never)} />
+        </View>
+      )}
       <Heading>Estados de cuenta</Heading>
       {(sts.data ?? []).length === 0 ? <Card><Txt muted>Sin estados de cuenta.</Txt></Card> : sts.data!.map((s) => (
         <RowLink key={s.id} onPress={() => router.push(`/card-statement/${s.id}` as never)}>
           <View style={{ flex: 1 }}><Txt bold>Corte {humanDate(s.cutoffDate)}</Txt><Txt size={12} muted>Pagar hasta {humanDate(s.dueDate)} · período {formatSoles(s.periodTotal)} · mínimo {formatSoles(s.minimumPayment)}</Txt></View>
-          <Chip status={s.status === "paid" ? "paid" : s.overdue ? "overdue" : s.status === "partial" ? "partial" : s.status === "void" ? "converted" : "unpaid"} label={s.overdue ? "Vencido" : undefined} />
+          <Chip status={s.status === "paid" ? "paid" : s.overdue ? "overdue" : s.status === "partial" ? "partial" : s.status === "void" ? "converted" : "unpaid"} label={s.status === "void" ? "Anulado" : s.overdue ? "Vencido" : undefined} />
         </RowLink>
       ))}
-      {(voidSt.error || cancel.error) && <Notice tone="err">{voidSt.error ?? cancel.error}</Notice>}
+      {cancel.error && <Notice tone="err">{cancel.error}</Notice>}
       <Heading>Compras en cuotas</Heading>
-      {(plans.data ?? []).map((p) => (
+      {(plans.data ?? []).length === 0 ? <Card><Txt muted>Sin compras en cuotas.</Txt></Card> : plans.data!.map((p) => (
         <Card key={p.id} outlined>
           <Txt bold>{p.description || "Compra en cuotas"} · {formatSoles(p.principal)} en {p.installments}</Txt>
           <Txt size={12} muted>Por pagar en cuotas: {formatSoles(p.upcomingTotal)} · {p.status === "active" ? "vigente" : "cancelado"}</Txt>
           {p.schedule.map((x) => <KV key={x.number} label={`Cuota ${x.number} · ${humanDate(x.dueDate)}`} value={formatSoles(x.amount)} />)}
-          {p.status === "active" && <Button title="Cancelar plan" variant="secondary" busy={cancel.busy} onPress={async () => { if (await cancel.submit(p.id)) void plans.reload(); }} />}
+          {p.status === "active" && (
+            <Button
+              title="Cancelar plan"
+              variant="secondary"
+              busy={cancel.busy}
+              onPress={async () => {
+                const ok = await dialog.confirm({
+                  title: "¿Cancelar plan de cuotas?",
+                  message: "Se cancelará el calendario de cuotas. El gasto original en la tarjeta sigue registrado (podrás revertirlo después si corresponde).",
+                  confirmLabel: "Cancelar plan",
+                  danger: true,
+                });
+                if (ok && await cancel.submit(p.id)) void plans.reload();
+              }}
+            />
+          )}
         </Card>
       ))}
     </Screen>
@@ -141,23 +180,54 @@ export function StatementNewScreen() {
 
 export function StatementScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const dialog = useDialog();
   const st = useAsync(() => api.cardStatement(id), [id]);
-  const ops = useAsync(() => api.operations({ kind: "transfer", limit: 30 }), []);
+  const ops = useAsync(() => api.operations({ kind: "transfer", limit: 100 }), []);
   useFocusReload(() => { void st.reload(); void ops.reload(); });
+  const [refreshing, setRefreshing] = useState(false);
   const [opId, setOpId] = useState<string | null>(null);
+  const [voiding, setVoiding] = useState(false);
   const link = useSubmit(async (key: string) => api.linkCardPayment(id, opId!, key));
   const unlink = useSubmit(async (_k: string, pid: string) => api.unlinkCardPayment(pid));
   if (st.loading && !st.data) return <Screen title="Estado de cuenta"><Loading /></Screen>;
   if (st.error || !st.data) return <Screen title="Estado de cuenta"><ErrorBox message={st.error ?? "No se encontró el estado de cuenta."} onRetry={st.reload} /></Screen>;
   const s = st.data;
   const hereTo = (ops.data?.items ?? []).filter((o) => o.toAccountId === s.accountId && o.status === "confirmed" && !s.payments.some((p) => p.operationId === o.id));
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try { await Promise.all([st.reload(), ops.reload()]); } finally { setRefreshing(false); }
+  };
+  const doVoid = async () => {
+    if (voiding) return;
+    const ok = await dialog.confirm({
+      title: "¿Anular este estado de cuenta?",
+      message: "Quedará marcado como anulado y se desvincularán sus pagos asociados (las transferencias en tus cuentas no se borran).",
+      confirmLabel: "Anular",
+      danger: true,
+    });
+    if (!ok) return;
+    setVoiding(true);
+    try {
+      await api.voidStatement(id, "Anulado desde la app");
+      await st.reload();
+    } catch (e) {
+      await dialog.fail(e, "No se pudo anular");
+    } finally {
+      setVoiding(false);
+    }
+  };
   return (
-    <Screen title={`Corte ${humanDate(s.cutoffDate)}`} subtitle={`Pagar hasta ${humanDate(s.dueDate)}`}>
+    <Screen title={`Corte ${humanDate(s.cutoffDate)}`} subtitle={`Pagar hasta ${humanDate(s.dueDate)}`} refreshing={refreshing} onRefresh={onRefresh}>
       <Card>
         <KV label="Pago total del período" value={formatSoles(s.periodTotal)} strong /><KV label="Pago mínimo" value={formatSoles(s.minimumPayment)} />
         {s.totalBalance && <KV label="Deuda total informada" value={formatSoles(s.totalBalance)} />}
         <KV label="Pagado" value={formatSoles(s.paid)} /><KV label="Falta" value={formatSoles(s.remaining)} strong />
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}><Chip status={s.status === "paid" ? "paid" : s.status === "partial" ? "partial" : "unpaid"} />{s.minimumCovered && <Chip status="paid" label="Mínimo cubierto" />}{s.overdue && <Chip status="overdue" />}</View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+          <Chip status={s.status === "paid" ? "paid" : s.status === "partial" ? "partial" : s.status === "void" ? "converted" : "unpaid"} label={s.status === "void" ? "Anulado" : undefined} />
+          {s.minimumCovered && s.status !== "void" && <Chip status="paid" label="Mínimo cubierto" />}
+          {s.overdue && <Chip status="overdue" />}
+        </View>
       </Card>
       <Heading>Pagos vinculados</Heading>
       {s.payments.length === 0 ? <Card><Txt muted>Ningún pago vinculado.</Txt></Card> : s.payments.map((p) => (
@@ -168,8 +238,19 @@ export function StatementScreen() {
           <Choice select label="Vincular una transferencia a esta tarjeta" value={opId} onChange={(v) => { setOpId(v); link.resetKey(); }} options={hereTo.map((o) => ({ id: o.id, label: `${humanDate(o.occurredOn)} · ${formatSoles(o.amount)}`, hint: o.description || undefined }))} />
           {hereTo.length === 0 && <Txt size={12} muted>No hay transferencias hacia esta tarjeta por vincular.</Txt>}
           <Button title="Vincular pago" busy={link.busy} disabled={!opId} onPress={async () => { if (await link.submit()) { setOpId(null); void st.reload(); } }} />
+          {cmpMoney(s.remaining, "0.00") > 0 && (
+            <Button
+              title="Registrar transferencia a esta tarjeta"
+              variant="secondary"
+              icon="swap-horizontal-outline"
+              onPress={() => router.push({ pathname: "/operation/new", params: { kind: "transfer", toAccountId: s.accountId } } as never)}
+            />
+          )}
           {(link.error || unlink.error) && <Notice tone="err">{link.error ?? unlink.error}</Notice>}
         </Card>
+      )}
+      {s.status !== "void" && (
+        <Button title="Anular estado de cuenta" variant="outlineDanger" icon="close-circle-outline" busy={voiding} onPress={doVoid} />
       )}
     </Screen>
   );
@@ -187,9 +268,11 @@ export function InstallmentNewScreen() {
   const save = useSubmit(async (key: string) => api.installmentPurchase(id, {
     amount: normalizeMoneyInput(amount)!, installments: Number.parseInt(n, 10), firstDueDate: first, ...(desc.trim() ? { description: desc.trim() } : {}), ...(cat ? { categoryId: cat } : {}), ...(date ? { date } : {}),
   }, key));
+  const normAmount = normalizeMoneyInput(amount);
   const k = Number.parseInt(n, 10);
+  const valid = !!normAmount && cmpMoney(normAmount, "0.00") > 0 && Number.isInteger(k) && k >= 2 && k <= 60 && isIsoDate(first) && (date === "" || isIsoDate(date));
   return (
-    <Screen title="Compra en cuotas" footer={<Button title="Registrar compra" busy={save.busy} disabled={!normalizeMoneyInput(amount) || !(k >= 2) || !isIsoDate(first) || (date !== "" && !isIsoDate(date))} onPress={async () => { if (await save.submit()) done(`/account/${id}/card`); }} />}>
+    <Screen title="Compra en cuotas" footer={<Button title="Registrar compra" busy={save.busy} disabled={!valid} onPress={async () => { if (await save.submit()) done(`/account/${id}/card`); }} />}>
       <Card>
         <MoneyField label="Total de la compra" value={amount} onChange={(v) => { setAmount(v); save.resetKey(); }} />
         <Field label="Cantidad de cuotas (2–60)" value={n} onChangeText={(v) => { setN(v); save.resetKey(); }} keyboardType="number-pad" />

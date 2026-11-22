@@ -17,6 +17,9 @@ export function AccountEditScreen() {
   const [name, setName] = useState<string | null>(null);
   const [isDefault, setIsDefault] = useState<boolean | null>(null);
   const [exclude, setExclude] = useState<boolean | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const save = useSubmit(async () => {
     const a = acc.data!;
     return api.patchAccount(id, {
@@ -25,9 +28,7 @@ export function AccountEditScreen() {
       ...(exclude !== null && exclude !== a.excludeFromTotal ? { excludeFromTotal: exclude } : {}),
     }, a.version);
   });
-  const archive = useSubmit(async () => api.archiveAccount(id));
   const restore = useSubmit(async () => api.restoreAccount(id));
-  const remove = useSubmit(async () => api.removeAccount(id));
 
   if (acc.loading && !acc.data) return <Screen title="Editar cuenta"><Loading /></Screen>;
   if (acc.error || !acc.data) return <Screen title="Editar cuenta"><ErrorBox message={acc.error ?? "No se encontró la cuenta."} onRetry={acc.reload} /></Screen>;
@@ -37,8 +38,56 @@ export function AccountEditScreen() {
   const dirty = !nameErr && ((name !== null && trimmedName !== a.name) || (isDefault !== null && isDefault !== a.isDefault) || (exclude !== null && exclude !== a.excludeFromTotal));
   const hasBalance = cmpMoney(a.balance, "0.00") !== 0;
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try { await acc.reload(); } finally { setRefreshing(false); }
+  };
+
+  const doArchive = async () => {
+    if (archiving) return;
+    const ok = await dialog.confirm({
+      title: `¿Archivar ${a.name}?`,
+      message: hasBalance
+        ? `Esta cuenta tiene un saldo actual de ${formatSoles(a.balance)} y saldrá de tu saldo total. Podrás restaurarla cuando quieras.`
+        : "Dejará de aparecer para nuevos movimientos. Podrás restaurarla desde Dinero → Cuentas archivadas.",
+      confirmLabel: "Archivar",
+      cancelLabel: "Cancelar",
+    });
+    if (!ok) return;
+    setArchiving(true);
+    try {
+      await api.archiveAccount(id);
+      router.replace("/money" as never);
+    } catch (e) {
+      await dialog.fail(e, "No se pudo archivar");
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const doRemove = async () => {
+    if (removing) return;
+    const ok = await dialog.confirm({
+      title: `¿Eliminar ${a.name}?`,
+      message: "Esta acción es definitiva. Solo se permite si la cuenta nunca tuvo movimientos ni registros vinculados.",
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+      danger: true,
+    });
+    if (!ok) return;
+    setRemoving(true);
+    try {
+      await api.removeAccount(id);
+      router.replace("/money" as never);
+    } catch (e) {
+      await dialog.fail(e, "No se pudo eliminar");
+    } finally {
+      setRemoving(false);
+    }
+  };
+
   return (
-    <Screen title="Editar cuenta" subtitle={a.name}
+    <Screen title="Editar cuenta" subtitle={a.name} refreshing={refreshing} onRefresh={onRefresh}
       footer={a.status === "active" ? <Button title="Guardar cambios" busy={save.busy} disabled={!dirty} onPress={async () => { if (await save.submit()) done(`/account/${id}`); }} /> : undefined}>
       {a.status === "active" ? (
         <>
@@ -52,18 +101,7 @@ export function AccountEditScreen() {
           <Card>
             <Txt bold>Archivar cuenta</Txt>
             <Txt size={12} muted style={{ marginBottom: 8 }}>Deja de aparecer para nuevos movimientos, pero su historial se conserva y podrás restaurarla desde Dinero.</Txt>
-            <Button title="Archivar cuenta" variant="secondary" icon="archive-outline" busy={archive.busy} onPress={async () => {
-              const ok = await dialog.confirm({
-                title: `¿Archivar ${a.name}?`,
-                message: hasBalance
-                  ? `Esta cuenta tiene un saldo actual de ${formatSoles(a.balance)} y saldrá de tu saldo total. Podrás restaurarla cuando quieras.`
-                  : "Dejará de aparecer para nuevos movimientos. Podrás restaurarla desde Dinero → Cuentas archivadas.",
-                confirmLabel: "Archivar",
-                cancelLabel: "Cancelar",
-              });
-              if (ok && await archive.submit()) router.replace("/money" as never);
-            }} />
-            {archive.error && <Notice tone="err">{archive.error}</Notice>}
+            <Button title="Archivar cuenta" variant="secondary" icon="archive-outline" busy={archiving} onPress={doArchive} />
           </Card>
         </>
       ) : (
@@ -78,17 +116,7 @@ export function AccountEditScreen() {
       <Card>
         <Txt bold>Eliminar cuenta</Txt>
         <Txt size={12} muted style={{ marginBottom: 8 }}>Solo se puede eliminar definitivamente si no tiene movimientos ni configuración vinculada.</Txt>
-        <Button title="Eliminar cuenta" variant="outlineDanger" icon="trash-outline" busy={remove.busy} onPress={async () => {
-          const ok = await dialog.confirm({
-            title: `¿Eliminar ${a.name}?`,
-            message: "Esta acción es definitiva. Solo se permite si la cuenta nunca tuvo movimientos ni registros vinculados.",
-            confirmLabel: "Eliminar",
-            cancelLabel: "Cancelar",
-            danger: true,
-          });
-          if (ok && await remove.submit()) router.replace("/money" as never);
-        }} />
-        {remove.error && <Notice tone="err">{remove.error}</Notice>}
+        <Button title="Eliminar cuenta" variant="outlineDanger" icon="trash-outline" busy={removing} onPress={doRemove} />
       </Card>
     </Screen>
   );

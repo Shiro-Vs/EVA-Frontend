@@ -10,7 +10,7 @@ import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, humanRange, isIsoDate } from "../../utils/dates";
-import { formatSoles, normalizeMoneyInput } from "../../utils/money";
+import { cmpMoney, formatSoles, normalizeMoneyInput } from "../../utils/money";
 
 const KIND_TEXT: Record<string, string> = { income: "Ingreso", expense: "Gasto", transfer: "Transferencia", opening: "Saldo inicial", adjustment: "Ajuste", reversal: "Reversión" };
 
@@ -32,6 +32,11 @@ export function OperationScreen() {
   const [mode, setMode] = useState<"reverse" | null>(null);
   const [reason, setReason] = useState("");
   const [date, setDate] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try { await Promise.all([op.reload(), accounts.reload()]); } finally { setRefreshing(false); }
+  };
   const save = useSubmit(async () => {
     const o = op.data!;
     return api.patchOperation(id, {
@@ -66,7 +71,7 @@ export function OperationScreen() {
   const contactOpts = [{ id: "__none__", label: "Ninguno" }, ...(contacts.data ?? []).map((c) => ({ id: c.id, label: c.name }))];
 
   return (
-    <Screen title={KIND_TEXT[o.kind] ?? o.kind} subtitle={humanDate(o.occurredOn)}>
+    <Screen title={KIND_TEXT[o.kind] ?? o.kind} subtitle={humanDate(o.occurredOn)} refreshing={refreshing} onRefresh={onRefresh}>
       <Card>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}><Chip status={o.status === "confirmed" ? "paid" : "converted"} label={o.status === "confirmed" ? "Confirmado" : "Revertido"} /></View>
         {o.entries.map((e, i) => <KV key={i} label={accountName(accounts.data, e.accountId)} value={formatSoles(e.amount)} strong />)}
@@ -169,13 +174,13 @@ export function OperationCorrectScreen() {
 /** Nuevo ingreso, gasto o transferencia manual. */
 export function OperationNewScreen() {
   const done = useDone();
-  const params = useLocalSearchParams<{ kind?: string }>();
+  const params = useLocalSearchParams<{ kind?: string; accountId?: string; toAccountId?: string }>();
   const initialKind: "income" | "expense" | "transfer" =
     params.kind === "income" || params.kind === "transfer" ? params.kind : "expense";
   const contacts = useAsync(() => api.contacts(), []);
   const [kind, setKind] = useState<"income" | "expense" | "transfer">(initialKind);
-  const [from, setFrom] = useState<string | null>(null);
-  const [to, setTo] = useState<string | null>(null);
+  const [from, setFrom] = useState<string | null>(params.accountId ?? null);
+  const [to, setTo] = useState<string | null>(params.toAccountId ?? null);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
@@ -200,8 +205,15 @@ export function OperationNewScreen() {
       throw e;
     }
   });
-  const ready = !!from && !!normalizeMoneyInput(amount) && (date === "" || isIsoDate(date)) && (kind !== "transfer" || (!!to && to !== from));
+  const normAmount = normalizeMoneyInput(amount);
+  const ready = !!from && !!normAmount && cmpMoney(normAmount, "0.00") > 0 && (date === "" || isIsoDate(date)) && (kind !== "transfer" || (!!to && to !== from));
   const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); setConflict(null); create.resetKey(); };
+  const changeFrom = (v: string) => {
+    setFrom(v);
+    if (kind === "transfer" && v === to) setTo(null);
+    setConflict(null);
+    create.resetKey();
+  };
   if (impact) {
     return (
       <Screen title="Movimiento registrado">
@@ -217,7 +229,13 @@ export function OperationNewScreen() {
     <Screen title="Nuevo movimiento" footer={<Button title="Registrar" busy={create.busy} disabled={!ready} onPress={async () => { const r = await create.submit(); if (r) { if (r.budgetImpact && r.budgetImpact.length > 0) { setImpactId(r.id); setImpact(r.budgetImpact); } else done(`/operation/${r.id}`); } }} />}>
       <Card>
         <Choice label="Tipo" value={kind} onChange={touch(setKind)} options={[{ id: "expense", label: "Gasto" }, { id: "income", label: "Ingreso" }, { id: "transfer", label: "Transferencia" }]} />
-        <AccountPicker label={kind === "transfer" ? "Sale de" : kind === "income" ? "Entra a" : "Se paga con"} value={from} onChange={touch(setFrom)} />
+        <AccountPicker
+          label={kind === "transfer" ? "Sale de" : kind === "income" ? "Entra a" : "Se paga con"}
+          value={from}
+          onChange={changeFrom}
+          exclude={kind === "transfer" ? to : undefined}
+          excludeTypes={kind === "income" ? ["credit"] : undefined}
+        />
         {kind === "transfer" && <AccountPicker label="Llega a" value={to} onChange={touch(setTo)} exclude={from} />}
         <MoneyField label="Importe" value={amount} onChange={touch(setAmount)} />
         <DateField label="Fecha (hoy si la dejas vacía)" value={date} optional onChange={touch(setDate)} />

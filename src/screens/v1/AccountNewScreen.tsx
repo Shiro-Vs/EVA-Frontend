@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useDone } from "../../hooks/useDone";
 import { SelectField } from "../../components/v1/Select";
 import { DateInput } from "../../components/v1/DatePicker";
-import { isIsoDate } from "../../utils/dates";
+import { isIsoDate, todayLocalIso } from "../../utils/dates";
 import { api } from "../../api/client";
 import type { AccountType } from "../../api/types";
 import { Button, Card, Field, Notice, Screen, SwitchRow } from "../../components/v1/ui";
@@ -18,6 +18,7 @@ export default function AccountNewScreen() {
   const done = useDone();
   const [name, setName] = useState("");
   const [type, setType] = useState<AccountType>("bank");
+  const [typeTouched, setTypeTouched] = useState(false);
   const [amountText, setAmountText] = useState("");
   const [institution, setInstitution] = useState("");
   const [other, setOther] = useState(false);
@@ -28,7 +29,7 @@ export default function AccountNewScreen() {
     const b = BANK_PRESETS.find((x) => x.id === id);
     if (!b) return;
     setOther(false); setInstitution(b.label);
-    setType((cur) => (cur === "credit" && b.type === "bank" ? "credit" : b.type));
+    if (!typeTouched) setType(b.type);
     if (!name.trim()) setName(b.label);
   };
   const [openingDate, setOpeningDate] = useState("");
@@ -44,6 +45,7 @@ export default function AccountNewScreen() {
     // En una tarjeta de crédito lo que se escribe es la DEUDA; la API la guarda como saldo negativo.
     const signed = amount === null || amount === "0.00" ? undefined : isCredit ? `-${amount}` : amount;
     if (openingDate && !isIsoDate(openingDate)) throw Object.assign(new Error("La fecha del saldo debe ser AAAA-MM-DD."), { code: "VALIDATION" });
+    if (openingDate && openingDate > todayLocalIso()) throw Object.assign(new Error("La fecha del saldo no puede ser posterior a hoy."), { code: "FUTURE_DATE_NOT_ALLOWED" });
     return api.createAccount({
       name: name.trim(), type, ...(institution.trim() ? { institution: institution.trim() } : {}), ...(isDefault ? { isDefault: true } : {}), ...(exclude ? { excludeFromTotal: true } : {}),
       ...(signed ? { openingBalance: { amount: signed, ...(openingDate ? { date: openingDate } : {}) } } : {}),
@@ -53,14 +55,14 @@ export default function AccountNewScreen() {
   const save = async () => {
     setFormError(null);
     const r = await create.submit();
-    if (r) done("/");
+    if (r) done("/money");
   };
 
   return (
     <Screen title="Nueva cuenta" footer={<Button title="Crear cuenta" onPress={save} busy={create.busy} />}>
       <Card>
         <Field label="Nombre" value={name} onChangeText={(t) => { setName(t); create.resetKey(); }} placeholder="BCP, Efectivo, Yape…" autoCapitalize="words" />
-        <SelectField label="Tipo" value={type} onChange={(v) => { setType(v); create.resetKey(); }} options={TYPES} />
+        <SelectField label="Tipo" value={type} onChange={(v) => { setType(v); setTypeTouched(true); create.resetKey(); }} options={TYPES} />
         <SelectField label="Entidad" value={other ? "other" : preset?.id ?? null} onChange={pickEntity} placeholder="Elegir" options={[...BANK_PRESETS.map((b) => ({ id: b.id, label: b.label })), { id: "other", label: "Otra o ninguna" }]} />
         {other && <Field label="Nombre de la entidad (opcional)" value={institution} onChangeText={(t) => { setInstitution(t); create.resetKey(); }} placeholder="Banco, billetera…" autoCapitalize="words" />}
         <Field label={isCredit ? "Deuda actual (S/)" : "Saldo actual (S/)"} value={amountText} onChangeText={(t) => { setAmountText(t); create.resetKey(); }} placeholder="0.00" keyboardType="decimal-pad" />

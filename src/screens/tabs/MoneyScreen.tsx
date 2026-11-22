@@ -33,6 +33,7 @@ export default function MoneyScreen() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const ops = useAsync(async () => {
     const r = await api.operations({ limit: PAGE, kind, accountId });
@@ -42,6 +43,11 @@ export default function MoneyScreen() {
 
   const reload = useCallback(() => { void accounts.reload(); void summary.reload(); void ops.reload(); }, [accounts.reload, summary.reload, ops.reload]);
   useFocusReload(reload);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try { await Promise.all([accounts.reload(), summary.reload(), ops.reload()]); } finally { setRefreshing(false); }
+  }, [accounts.reload, summary.reload, ops.reload]);
 
   const loadMore = async () => {
     if (!cursor || loadingMore) return;
@@ -63,7 +69,7 @@ export default function MoneyScreen() {
   const accountOptions = [{ id: "all", label: "Todas las cuentas" }, ...list.map((a) => ({ id: a.id, label: a.name }))];
 
   return (
-    <Screen title="Dinero" back={false} right={<Button title="Cuenta" icon="add" size="compact" onPress={() => router.push("/account/new" as never)} />}>
+    <Screen title="Dinero" back={false} refreshing={refreshing} onRefresh={onRefresh} right={<Button title="Cuenta" icon="add" size="compact" onPress={() => router.push("/account/new" as never)} />}>
       <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 18, overflow: "hidden", gap: 4 }}>
         <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
         <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Saldo total</Text>

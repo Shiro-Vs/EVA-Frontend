@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { api, errorMessage } from "../../api/client";
-import type { Preview } from "../../api/types";
+import type { AccountType, Preview } from "../../api/types";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
@@ -44,17 +44,19 @@ export function Choice<T extends string>({ label, options, value, onChange, sele
 }
 
 /** Cuentas activas para elegir. Preselecciona la predeterminada. */
-export function AccountPicker({ label = "Cuenta", value, onChange, exclude }: { label?: string; value: string | null; onChange: (id: string) => void; exclude?: string | null }) {
+export function AccountPicker({ label = "Cuenta", value, onChange, exclude, excludeTypes }: { label?: string; value: string | null; onChange: (id: string) => void; exclude?: string | null; excludeTypes?: AccountType[] }) {
   const accounts = useAsync(() => api.accounts(), []);
-  const list = (accounts.data ?? []).filter((a) => a.status === "active" && a.id !== exclude);
+  const list = (accounts.data ?? []).filter((a) => a.status === "active" && a.id !== exclude && !(excludeTypes && excludeTypes.includes(a.type)));
+  const valid = !!value && list.some((a) => a.id === value);
   useEffect(() => {
-    if (!value && list.length) onChange((list.find((a) => a.isDefault) ?? list[0]!).id);
+    if (!accounts.data) return;
+    if (!valid && list.length) onChange((list.find((a) => a.isDefault) ?? list[0]!).id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, list.length]);
+  }, [valid, list.length, accounts.data]);
   if (accounts.loading && !accounts.data) return <Loading />;
   if (accounts.error) return <Notice tone="err">{accounts.error}</Notice>;
-  if (list.length === 0) return <Notice tone="warn">Primero crea una cuenta desde Inicio.</Notice>;
-  return <SelectField label={label} options={list.map((a) => ({ id: a.id, label: a.name, hint: formatSoles(a.balance) }))} value={value} onChange={onChange} />;
+  if (list.length === 0) return <Notice tone="warn">{excludeTypes?.includes("credit") ? "Necesitas una cuenta que no sea tarjeta de crédito para registrar un ingreso." : "Primero crea una cuenta desde Inicio."}</Notice>;
+  return <SelectField label={label} options={list.map((a) => ({ id: a.id, label: a.name, hint: formatSoles(a.balance) }))} value={valid ? value : null} onChange={onChange} />;
 }
 
 /** Cuenta opcional (p. ej. la cuenta con la que se suele pagar un servicio): permite elegir «Ninguna». */
