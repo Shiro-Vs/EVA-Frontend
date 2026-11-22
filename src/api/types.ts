@@ -65,6 +65,29 @@ export interface SubscriptionPreview {
   cycles: Array<{ seq: number; startDate: IsoDate; endDate: IsoDate }>;
   baseDays: number; previewToken: string;
 }
+export interface DeleteSubscriptionPreview {
+  subscription: { id: string; name: string; mode: "personal" | "shared"; status: "active" | "suspended" | "archived" };
+  isEmpty: boolean;
+  impact: {
+    supplierPayments: number;
+    activeSupplierPayments: number;
+    totalPaidToSupplier: Money;
+    participants: number;
+    charges: number;
+    appliedPaymentsCount: number;
+    appliedPaymentsTotal: Money;
+    activeReservations: number;
+    activeReservationsTotal: Money;
+    calendarChanges: number;
+  };
+  pendingDebts: Array<{ contactId: string; contactName: string; chargesCount: number; amount: Money }>;
+  totalPendingDebt: Money;
+}
+export interface DeleteSubscriptionResult {
+  id: string;
+  deleted: true;
+  convertedLoans?: Array<{ id: string; contactId: string; contactName: string; principal: Money }>;
+}
 export interface SeatPreview {
   cycle: { id: string; startDate: IsoDate; endDate: IsoDate }; contact: { id: string; name: string };
   calculation: {

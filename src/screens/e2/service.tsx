@@ -1,11 +1,14 @@
 import React, { useState } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api, type CalendarChangeBody } from "../../api/client";
-import type { Interval } from "../../api/types";
+import type { DeleteSubscriptionPreview, Interval } from "../../api/types";
+import BottomSheet from "../../components/common/BottomSheet";
 import { Choice, DateField, FlowResult, FutureCyclePicker, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Button, Card, Chip, ErrorBox, Field, Heading, Loading, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
 import { useDialog } from "../../context/DialogContext";
+import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -16,27 +19,112 @@ import { cmpMoney, formatSoles, normalizeMoneyInput } from "../../utils/money";
 /** Gestión de un servicio: precio, calendario, cambio a individual, plazas y versiones de precio. */
 export function ServiceManageScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { colors } = useAppTheme();
   const router = useRouter();
   const dialog = useDialog();
   const sub = useAsync(() => api.subscription(id), [id]);
   const terms = useAsync(() => api.terms(id), [id]);
   const seats = useAsync(() => api.seats(id), [id]);
   const [refreshing, setRefreshing] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deletePreview, setDeletePreview] = useState<DeleteSubscriptionPreview | null>(null);
+  const [unpaidHandling, setUnpaidHandling] = useState<"convert_to_loan" | "discard">("convert_to_loan");
   const reload = React.useCallback(() => { void sub.reload(); void terms.reload(); void seats.reload(); }, [sub.reload, terms.reload, seats.reload]);
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     try { await Promise.all([sub.reload(), terms.reload(), seats.reload()]); } finally { setRefreshing(false); }
   }, [sub.reload, terms.reload, seats.reload]);
   useFocusReload(reload);
-  const archive = useSubmit(async () => api.archiveSubscription(id));
   const restore = useSubmit(async () => api.restoreSubscription(id));
-  const remove = useSubmit(async () => api.deleteSubscription(id));
 
   if (sub.loading && !sub.data) return <Screen title="Gestionar servicio"><Loading /></Screen>;
   if (sub.error || !sub.data) return <Screen title="Gestionar servicio"><ErrorBox message={sub.error ?? "No se encontró el servicio."} onRetry={sub.reload} /></Screen>;
   const s = sub.data;
   const suspended = s.status === "suspended";
   const full = s.occupiedSeats >= s.capacity;
+
+  const doArchive = async () => {
+    if (archiving) return;
+    const ok = await dialog.confirm({
+      title: `¿Archivar ${s.name}?`,
+      message: "Dejará de generar ciclos nuevos, pero conservará todo su historial. Podrás restaurarlo desde Servicios → Archivados.",
+      confirmLabel: "Archivar",
+      cancelLabel: "Cancelar",
+    });
+    if (!ok) return;
+    setArchiving(true);
+    try {
+      await api.archiveSubscription(id);
+      router.replace("/planning" as never);
+    } catch (e) {
+      await dialog.fail(e, "No se pudo archivar");
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const openDeletePreview = async () => {
+    if (loadingDelete) return;
+    setLoadingDelete(true);
+    try {
+      const p = await api.previewDeleteSubscription(id);
+      setUnpaidHandling("convert_to_loan");
+      setDeletePreview(p);
+    } catch (e) {
+      await dialog.fail(e, "No se pudo revisar el servicio");
+    } finally {
+      setLoadingDelete(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deletePreview || deleting) return;
+    setDeleting(true);
+    try {
+      const hasDebt = deletePreview.pendingDebts.length > 0;
+      const res = await api.deleteSubscription(id, {
+        force: !deletePreview.isEmpty,
+        ...(hasDebt ? { unpaidHandling } : {}),
+      });
+      setDeletePreview(null);
+      if (res.convertedLoans && res.convertedLoans.length > 0) {
+        const n = res.convertedLoans.length;
+        await dialog.success(
+          "Servicio eliminado",
+          `Se pasó a préstamo la deuda pendiente de ${n} ${n === 1 ? "persona" : "personas"}.`,
+        );
+      }
+      router.replace("/planning" as never);
+    } catch (e) {
+      setDeletePreview(null);
+      await dialog.fail(e, "No se pudo eliminar");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const impactLines = deletePreview ? [
+    deletePreview.impact.participants > 0
+      ? `Se eliminarán ${deletePreview.impact.participants} ${deletePreview.impact.participants === 1 ? "participante" : "participantes"} y sus plazas en este servicio.`
+      : null,
+    deletePreview.impact.charges > 0
+      ? `Se borrarán ${deletePreview.impact.charges} ${deletePreview.impact.charges === 1 ? "cargo" : "cargos"} y el historial de ciclos del servicio.`
+      : null,
+    deletePreview.impact.supplierPayments > 0
+      ? `Se perderá el registro de ${deletePreview.impact.supplierPayments} ${deletePreview.impact.supplierPayments === 1 ? "pago" : "pagos"} al proveedor dentro del servicio (tus movimientos y saldos de cuenta no se borran).`
+      : null,
+    deletePreview.impact.appliedPaymentsCount > 0
+      ? `Los ${formatSoles(deletePreview.impact.appliedPaymentsTotal)} ya cobrados a participantes quedarán como crédito libre en sus contactos.`
+      : null,
+    deletePreview.impact.activeReservations > 0
+      ? `Se liberarán ${formatSoles(deletePreview.impact.activeReservationsTotal)} en anticipos reservados (pasarán a crédito libre).`
+      : null,
+    deletePreview.impact.calendarChanges > 0
+      ? `Se borrarán ${deletePreview.impact.calendarChanges} ${deletePreview.impact.calendarChanges === 1 ? "cambio" : "cambios"} de calendario.`
+      : null,
+  ].filter((x): x is string => x !== null) : [];
 
   return (
     <Screen title={s.name} subtitle="Gestionar servicio" refreshing={refreshing} onRefresh={onRefresh}>
@@ -111,33 +199,104 @@ export function ServiceManageScreen() {
       ) : (
         <>
           <Heading>Archivar</Heading>
-          <Button title="Archivar servicio" variant="secondary" icon="archive-outline" busy={archive.busy} onPress={async () => {
-            const ok = await dialog.confirm({
-              title: `¿Archivar ${s.name}?`,
-              message: "Dejará de generar ciclos nuevos, pero conservará su historial. Podrás restaurarlo desde Servicios → Archivados.",
-              confirmLabel: "Archivar",
-              cancelLabel: "Cancelar",
-            });
-            if (ok && await archive.submit()) router.replace("/planning" as never);
-          }} />
-          <Txt size={12} muted>No se archiva con plazas activas de terceros ni con crédito reservado.</Txt>
-          {archive.error && <Notice tone="err">{archive.error}</Notice>}
+          <Button title="Archivar servicio" variant="secondary" icon="archive-outline" busy={archiving} onPress={doArchive} />
+          <Txt size={12} muted>Conserva todo el historial. No se archiva con plazas activas de terceros ni con crédito reservado.</Txt>
         </>
       )}
 
       <Heading>Eliminar</Heading>
-      <Button title="Eliminar servicio" variant="outlineDanger" icon="trash-outline" busy={remove.busy} onPress={async () => {
-        const ok = await dialog.confirm({
-          title: `¿Eliminar ${s.name}?`,
-          message: "Se borrará definitivamente. Solo se permite si el servicio no tiene pagos al proveedor, cargos ni participantes.",
-          confirmLabel: "Eliminar",
-          cancelLabel: "Cancelar",
-          danger: true,
-        });
-        if (ok && await remove.submit()) router.replace("/planning" as never);
-      }} />
-      <Txt size={12} muted>Si ya tiene historial, usa Archivar para no perder tus registros.</Txt>
-      {remove.error && <Notice tone="err">{remove.error}</Notice>}
+      <Button title="Eliminar servicio" variant="outlineDanger" icon="trash-outline" busy={loadingDelete} onPress={openDeletePreview} />
+      <Txt size={12} muted>Antes de borrar te mostraremos qué datos se perderán y qué hacer si alguien todavía te debe.</Txt>
+
+      <BottomSheet
+        visible={!!deletePreview}
+        onClose={() => { if (!deleting) setDeletePreview(null); }}
+        title={`Eliminar ${s.name}`}
+        maxHeight={0.85}
+      >
+        {deletePreview && (
+          <View style={{ gap: 12, paddingBottom: 8 }}>
+            <Notice tone="err">
+              Esta acción eliminará «{s.name}» definitivamente y no se puede deshacer.
+            </Notice>
+
+            {deletePreview.isEmpty ? (
+              <Card outlined>
+                <Txt size={13} muted>
+                  Este servicio no tiene pagos, participantes ni deudas pendientes. Puedes eliminarlo sin afectar tus cuentas ni contactos.
+                </Txt>
+              </Card>
+            ) : (
+              <>
+                <View style={{ gap: 6 }}>
+                  <Txt bold size={14}>Qué se perderá o cambiará</Txt>
+                  <Card outlined>
+                    <View style={{ gap: 8 }}>
+                      {impactLines.map((line, idx) => (
+                        <View key={idx} style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                          <Ionicons name="alert-circle-outline" size={16} color={colors.warningStrong} style={{ marginTop: 1 }} />
+                          <Text style={{ flex: 1, color: colors.text, fontSize: 13, fontFamily: "Asap", lineHeight: 18 }}>{line}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </Card>
+                </View>
+
+                {deletePreview.pendingDebts.length > 0 && (
+                  <View style={{ gap: 8 }}>
+                    <Txt bold size={14}>Personas que todavía te deben ({formatSoles(deletePreview.totalPendingDebt)})</Txt>
+                    <Card outlined>
+                      <View style={{ gap: 6 }}>
+                        {deletePreview.pendingDebts.map((d) => (
+                          <View key={d.contactId} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                            <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 14, fontFamily: "AsapBold" }}>{d.contactName}</Text>
+                            <Text style={{ color: colors.expenseStrong, fontSize: 14, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(d.amount)}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </Card>
+
+                    <Choice
+                      label="¿Qué hacemos con lo que aún te deben?"
+                      value={unpaidHandling}
+                      onChange={setUnpaidHandling}
+                      options={[
+                        { id: "convert_to_loan", label: "Pasar a deuda (préstamo)", hint: "Crea un préstamo por cada persona para no perder ese cobro" },
+                        { id: "discard", label: "Descartar deuda", hint: "Borra los cargos pendientes; ya no te los deberán" },
+                      ]}
+                    />
+                  </View>
+                )}
+              </>
+            )}
+
+            <View style={{ gap: 8, marginTop: 4 }}>
+              <Button
+                title="Eliminar definitivamente"
+                variant="danger"
+                icon="trash-outline"
+                busy={deleting}
+                onPress={confirmDelete}
+              />
+              {!deletePreview.isEmpty && s.status !== "archived" && (
+                <Button
+                  title="Mejor archivar (conserva el historial)"
+                  variant="secondary"
+                  icon="archive-outline"
+                  disabled={deleting}
+                  onPress={() => { setDeletePreview(null); setTimeout(() => void doArchive(), 150); }}
+                />
+              )}
+              <Button
+                title="Cancelar"
+                variant="outline"
+                disabled={deleting}
+                onPress={() => setDeletePreview(null)}
+              />
+            </View>
+          </View>
+        )}
+      </BottomSheet>
     </Screen>
   );
 }
