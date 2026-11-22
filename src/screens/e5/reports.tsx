@@ -109,17 +109,18 @@ export function ReportBody({
   ] as const).filter(([, v]) => isNonZero(v));
   const hasFinancial = isNonZero(r.financialCosts.total) || isNonZero(r.financialIncome);
 
-  const otherItems: Array<[string, string]> = [];
-  if (isNonZero(d.other.transfers.in) || isNonZero(d.other.transfers.out)) {
-    otherItems.push(["Transferencias propias", `${formatSoles(d.other.transfers.in)} / ${formatSoles(d.other.transfers.out)}`]);
+  const extraFlowNotes: Array<[string, string]> = [];
+  if (isNonZero(d.other.loans.capitalIn)) {
+    extraFlowNotes.push(["Préstamos recibidos o cobrados", formatSoles(d.other.loans.capitalIn)]);
   }
-  if (isNonZero(d.other.cardPayments)) otherItems.push(["Pagos de tarjeta de crédito", formatSoles(d.other.cardPayments)]);
-  if (isNonZero(d.other.loans.capitalIn) || isNonZero(d.other.loans.capitalOut)) {
-    otherItems.push(["Capital de préstamos (entra / sale)", `${formatSoles(d.other.loans.capitalIn)} / ${formatSoles(d.other.loans.capitalOut)}`]);
+  if (isNonZero(d.other.loans.capitalOut)) {
+    extraFlowNotes.push(["Préstamos otorgados o pagados", formatSoles(d.other.loans.capitalOut)]);
   }
-  if (isNonZero(d.other.adjustments)) otherItems.push(["Ajustes de saldo", formatSoles(d.other.adjustments)]);
-  if (d.other.reversals.reversed > 0 || d.other.reversals.reversalEntries > 0) {
-    otherItems.push(["Movimientos revertidos (no suman)", `${d.other.reversals.reversed}`]);
+  if (d.other.reversals.reversed > 0) {
+    extraFlowNotes.push([
+      "Movimientos revertidos (no suman)",
+      `${d.other.reversals.reversed} ${d.other.reversals.reversed === 1 ? "movimiento" : "movimientos"}`,
+    ]);
   }
 
   const toggleOps = () => {
@@ -343,30 +344,132 @@ export function ReportBody({
         onPress={() => setShowFlow((v) => !v)}
       />
       {showFlow && (
-        <View style={{ gap: 10 }}>
-          <Card outlined>
-            <Txt bold size={13} style={{ marginBottom: 4 }}>Flujo total de dinero</Txt>
-            <KV label="Saldo al inicio del mes" value={formatSoles(d.flow.opening)} strong />
-            <KV label="Entró en total" value={formatSoles(d.flow.totalIn)} />
-            <KV label="Salió en total" value={formatSoles(d.flow.totalOut)} />
-            <KV label="Saldo al cierre" value={formatSoles(d.flow.closing)} strong />
-            {d.flow.lines.length > 0 && (
-              <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-                {d.flow.lines.map((l) => (
-                  <KV key={l.type} label={l.label} value={`+${formatSoles(l.in)} / −${formatSoles(l.out)}`} />
-                ))}
-              </View>
-            )}
-          </Card>
+        <View style={{ gap: 12, paddingTop: 2 }}>
+          {/* Resumen rápido de inicio -> cierre */}
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: `${colors.text}07`, gap: 2 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "AsapMedium" }}>Inicio del mes</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+                {formatSoles(d.flow.opening)}
+              </Text>
+            </View>
+            <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: `${colors.text}07`, gap: 2 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "AsapMedium" }}>Saldo al cierre</Text>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={{
+                  color: cmpMoney(d.flow.closing, "0.00") < 0 ? colors.expenseStrong : colors.text,
+                  fontSize: 15,
+                  fontFamily: "AsapBold",
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {formatSoles(d.flow.closing)}
+              </Text>
+            </View>
+          </View>
 
-          {otherItems.length > 0 && (
-            <Card outlined>
-              <Txt bold size={13} style={{ marginBottom: 4 }}>Movimientos que no son ingreso ni gasto</Txt>
-              {otherItems.map(([label, val]) => <KV key={label} label={label} value={val} />)}
-            </Card>
+          {/* Tabla limpia de 3 columnas: Concepto | Entró | Salió */}
+          {d.flow.lines.length > 0 && (
+            <View style={{ gap: 0 }}>
+              {/* Cabecera de la tabla */}
+              <View style={{ flexDirection: "row", alignItems: "center", paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <Text style={{ flex: 1, color: colors.textSecondary, fontSize: 11, fontFamily: "AsapSemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Concepto
+                </Text>
+                <Text style={{ width: 88, textAlign: "right", color: colors.incomeStrong, fontSize: 11, fontFamily: "AsapSemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Entró
+                </Text>
+                <Text style={{ width: 88, textAlign: "right", color: colors.expenseStrong, fontSize: 11, fontFamily: "AsapSemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Salió
+                </Text>
+              </View>
+
+              {/* Filas de la tabla */}
+              {d.flow.lines.map((l, i) => {
+                const hasIn = isNonZero(l.in);
+                const hasOut = isNonZero(l.out);
+                return (
+                  <View
+                    key={l.type}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingVertical: 9,
+                      borderBottomWidth: i === d.flow.lines.length - 1 ? 0 : 1,
+                      borderBottomColor: `${colors.border}80`,
+                    }}
+                  >
+                    <Text numberOfLines={2} style={{ flex: 1, paddingRight: 8, color: colors.text, fontSize: 13, fontFamily: "AsapMedium" }}>
+                      {l.label}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      style={{
+                        width: 88,
+                        textAlign: "right",
+                        color: hasIn ? colors.incomeStrong : colors.muted,
+                        fontSize: 12.5,
+                        fontFamily: hasIn ? "AsapSemiBold" : "Asap",
+                        fontVariant: ["tabular-nums"],
+                      }}
+                    >
+                      {hasIn ? formatSoles(l.in) : "—"}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      style={{
+                        width: 88,
+                        textAlign: "right",
+                        color: hasOut ? colors.expenseStrong : colors.muted,
+                        fontSize: 12.5,
+                        fontFamily: hasOut ? "AsapSemiBold" : "Asap",
+                        fontVariant: ["tabular-nums"],
+                      }}
+                    >
+                      {hasOut ? formatSoles(l.out) : "—"}
+                    </Text>
+                  </View>
+                );
+              })}
+
+              {/* Fila de totales */}
+              <View style={{ flexDirection: "row", alignItems: "center", paddingTop: 9, paddingBottom: 4, borderTopWidth: 1, borderTopColor: colors.border }}>
+                <Text style={{ flex: 1, color: colors.text, fontSize: 13, fontFamily: "AsapBold" }}>Total movido</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ width: 88, textAlign: "right", color: colors.incomeStrong, fontSize: 13, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+                  {formatSoles(d.flow.totalIn)}
+                </Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ width: 88, textAlign: "right", color: colors.expenseStrong, fontSize: 13, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+                  {formatSoles(d.flow.totalOut)}
+                </Text>
+              </View>
+            </View>
           )}
 
-          {d.notes.map((n, i) => <Notice key={i} tone="info">{n}</Notice>)}
+          {extraFlowNotes.length > 0 && (
+            <View style={{ gap: 4, paddingTop: 6, borderTopWidth: 1, borderTopColor: `${colors.border}80` }}>
+              {extraFlowNotes.map(([label, val]) => (
+                <View key={label} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 2 }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "Asap" }}>{label}</Text>
+                  <Text style={{ color: colors.text, fontSize: 12.5, fontFamily: "AsapSemiBold", fontVariant: ["tabular-nums"] }}>{val}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {d.notes.length > 0 && (
+            <View style={{ gap: 6 }}>
+              {d.notes.map((n, i) => (
+                <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+                  <Ionicons name="information-circle-outline" size={15} color={colors.textSecondary} style={{ marginTop: 1 }} />
+                  <Text style={{ flex: 1, color: colors.textSecondary, fontSize: 12, fontFamily: "Asap", lineHeight: 17 }}>{n}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       )}
 
