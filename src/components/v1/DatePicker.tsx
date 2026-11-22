@@ -101,7 +101,7 @@ export function DateInput({ label, value, onChange, optional, placeholder, error
         label={`${label}${optional ? " (opcional)" : ""}`}
         value={value}
         onChangeText={(t) => onChange(formatDateTyping(t))}
-        placeholder={placeholder ?? todayLocalIso()}
+        placeholder={placeholder ?? (optional ? "Ej. hoy (opcional)" : "AAAA-MM-DD")}
         keyboardType="number-pad"
         maxLength={10}
         error={error ?? (bad ? "Esa fecha no existe" : incomplete ? "Escribe AAAA-MM-DD o usa el calendario" : undefined)}

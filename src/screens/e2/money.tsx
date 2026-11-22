@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { Account } from "../../api/types";
 import { ApiError } from "../../api/http";
 import { AccountPicker, CategoryPicker, Choice, DateField, FlowResult, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Button, Card, Chip, ErrorBox, Field, Heading, KV, Loading, Money, Notice, Screen, Txt, SwitchRow } from "../../components/v1/ui";
+import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -173,6 +175,7 @@ export function OperationCorrectScreen() {
 
 /** Nuevo ingreso, gasto o transferencia manual. */
 export function OperationNewScreen() {
+  const { colors } = useAppTheme();
   const done = useDone();
   const params = useLocalSearchParams<{ kind?: string; accountId?: string; toAccountId?: string }>();
   const initialKind: "income" | "expense" | "transfer" =
@@ -186,11 +189,40 @@ export function OperationNewScreen() {
   const [description, setDescription] = useState("");
   const [contactId, setContactId] = useState<string | null>(null);
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [suggestedCat, setSuggestedCat] = useState<{ categoryId: string; categoryName: string; ruleName: string } | null>(null);
+  const suggestSeq = useRef(0);
   const [conflict, setConflict] = useState<{ eaten: string; goals: Array<{ goalId: string; name: string; reserved: string }> } | null>(null);
   const [deduct, setDeduct] = useState<Record<string, string>>({});
   const [shortfall, setShortfall] = useState(false);
   const [impactId, setImpactId] = useState("");
   const [impact, setImpact] = useState<Array<Record<string, any>> | null>(null);
+  const normAmount = normalizeMoneyInput(amount);
+
+  // Sugerencia automática de categoría según tus reglas activas (sin cambiar tu elección manual).
+  useEffect(() => {
+    setSuggestedCat(null);
+    if (kind === "transfer" || !from || categoryId) return;
+    if (!description.trim() && (!normAmount || cmpMoney(normAmount, "0.00") <= 0)) return;
+    const mine = ++suggestSeq.current;
+    const t = setTimeout(async () => {
+      try {
+        const res = await api.suggestCategory({
+          accountId: from,
+          direction: kind,
+          amount: normAmount && cmpMoney(normAmount, "0.00") > 0 ? normAmount : "1.00",
+          ...(description.trim() ? { text: description.trim() } : {}),
+        });
+        const applied = res?.applied as { categoryId?: string; categoryName?: string; ruleName?: string } | null | undefined;
+        if (mine === suggestSeq.current && applied?.categoryId && applied.categoryName) {
+          setSuggestedCat({ categoryId: applied.categoryId, categoryName: applied.categoryName, ruleName: applied.ruleName ?? "Regla" });
+        }
+      } catch {
+        // Silencioso: es solo una ayuda opcional.
+      }
+    }, 450);
+    return () => clearTimeout(t);
+  }, [kind, from, normAmount, description, categoryId]);
+
   const create = useSubmit(async (key: string) => {
     const deductions = Object.entries(deduct).map(([goalId, v]) => ({ goalId, amount: normalizeMoneyInput(v) })).filter((d): d is { goalId: string; amount: string } => !!d.amount && d.amount !== "0.00");
     try {
@@ -205,7 +237,6 @@ export function OperationNewScreen() {
       throw e;
     }
   });
-  const normAmount = normalizeMoneyInput(amount);
   const ready = !!from && !!normAmount && cmpMoney(normAmount, "0.00") > 0 && (date === "" || isIsoDate(date)) && (kind !== "transfer" || (!!to && to !== from));
   const touch = <T,>(set: (v: T) => void) => (v: T) => { set(v); setConflict(null); create.resetKey(); };
   const changeFrom = (v: string) => {
@@ -239,8 +270,22 @@ export function OperationNewScreen() {
         {kind === "transfer" && <AccountPicker label="Llega a" value={to} onChange={touch(setTo)} exclude={from} />}
         <MoneyField label="Importe" value={amount} onChange={touch(setAmount)} />
         <DateField label="Fecha (hoy si la dejas vacía)" value={date} optional onChange={touch(setDate)} />
-        <Field label="Descripción (opcional)" value={description} onChangeText={touch(setDescription)} autoCapitalize="sentences" maxLength={200} />
+        <Field label="Descripción (opcional)" value={description} onChangeText={touch(setDescription)} placeholder="Ej. Almuerzo, supermercado, sueldo…" autoCapitalize="sentences" maxLength={200} />
         {kind !== "transfer" && <CategoryPicker value={categoryId} onChange={touch(setCategoryId)} />}
+        {kind !== "transfer" && suggestedCat && !categoryId && (
+          <TouchableOpacity
+            onPress={() => { setCategoryId(suggestedCat.categoryId); setSuggestedCat(null); create.resetKey(); }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: `${colors.primary}12`, borderWidth: 1, borderColor: `${colors.primary}30` }}
+          >
+            <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
+            <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 12, fontFamily: "Asap" }}>
+              Sugerida por «{suggestedCat.ruleName}»: <Text style={{ fontFamily: "AsapBold" }}>{suggestedCat.categoryName}</Text>
+            </Text>
+            <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>Usar</Text>
+          </TouchableOpacity>
+        )}
         {kind !== "transfer" && (contacts.data ?? []).length > 0 && (
           <Choice select label="Persona (opcional)" value={contactId} onChange={(v) => touch(setContactId)(v === contactId ? null : v)}
             options={(contacts.data ?? []).filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }))} />

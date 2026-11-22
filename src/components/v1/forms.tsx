@@ -101,7 +101,7 @@ export function DateField({ label, value, onChange, optional }: { label: string;
 }
 
 /** Importe en soles con validación. */
-export function MoneyField({ label, value, onChange, optional, placeholder = "0.00" }: { label: string; value: string; onChange: (v: string) => void; optional?: boolean; placeholder?: string }) {
+export function MoneyField({ label, value, onChange, optional, placeholder = "Ej. 0.00" }: { label: string; value: string; onChange: (v: string) => void; optional?: boolean; placeholder?: string }) {
   const bad = value.trim() !== "" && !normalizeMoneyInput(value);
   return <Field label={`${label} (S/)${optional ? " · opcional" : ""}`} value={value} onChangeText={onChange} placeholder={placeholder} keyboardType="decimal-pad" error={bad ? "Importe inválido" : undefined} />;
 }

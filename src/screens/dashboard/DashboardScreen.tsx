@@ -70,6 +70,7 @@ export default function DashboardScreen() {
     void summary.reload();
     void dash.reload();
     void monthlyFallback.reload();
+    AsyncStorage.getItem(HIDE_KEY).then((v) => setHidden(v === "1")).catch(() => {});
   }, [summary.reload, dash.reload, monthlyFallback.reload]);
   useFocusReload(reload);
 

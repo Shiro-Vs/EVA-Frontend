@@ -10,17 +10,20 @@ interface EVAInputProps extends TextInputProps {
   rightAction?: React.ReactNode;
 }
 
-export function EVAInput({ label, error, icon, rightAction, style, onFocus, onBlur, editable, multiline, ...props }: EVAInputProps) {
+export function EVAInput({ label, error, icon, rightAction, style, onFocus, onBlur, editable, multiline, value, ...props }: EVAInputProps) {
   const { colors, fonts } = useAppTheme();
   const [focused, setFocused] = useState(false);
   const disabled = editable === false;
+  const hasValue = value !== undefined ? String(value).length > 0 : true;
   const borderColor = error
     ? colors.expenseStrong
     : focused
       ? colors.primary
       : disabled
         ? colors.border
-        : colors.borderStrong;
+        : hasValue
+          ? colors.borderStrong
+          : colors.border;
 
   return (
     <View style={{ marginBottom: 4, width: "100%" }}>
@@ -48,14 +51,15 @@ export function EVAInput({ label, error, icon, rightAction, style, onFocus, onBl
           borderRadius: radius.md,
           backgroundColor: colors.card,
           borderColor,
-          borderWidth: focused && !error ? 1.5 : 1,
+          borderWidth: focused || error ? 1.5 : 1,
           minHeight: control.field,
           opacity: disabled ? 0.7 : 1,
         }}
       >
         {icon && <View style={{ marginRight: 10, marginTop: multiline ? 2 : 0 }}>{icon}</View>}
         <TextInput
-          placeholderTextColor={colors.muted}
+          value={value}
+          placeholderTextColor={`${colors.muted}73`}
           editable={editable}
           multiline={multiline}
           textAlignVertical={multiline ? "top" : "center"}
@@ -74,7 +78,7 @@ export function EVAInput({ label, error, icon, rightAction, style, onFocus, onBl
               paddingTop: 0,
               paddingBottom: 0,
               color: disabled ? colors.muted : colors.text,
-              fontFamily: fonts.family.medium,
+              fontFamily: hasValue ? fonts.family.semiBold : fonts.family.italic,
             },
             style,
           ]}

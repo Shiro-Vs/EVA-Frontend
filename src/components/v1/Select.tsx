@@ -41,8 +41,8 @@ export function SelectField<T extends string>({ label, value, options, onChange,
     <View style={{ marginBottom: 4 }}>
       {label ? <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "AsapSemiBold", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6, marginLeft: 4 }}>{label}</Text> : null}
       <TouchableOpacity onPress={() => (inline ? setOpen((v) => !v) : setOpen(true))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`${label ?? "Elegir"}: ${current?.label ?? "sin elegir"}`}
-        style={{ minHeight: 44, borderRadius: 16, borderWidth: 1, borderColor: open && inline ? colors.primary : colors.borderStrong, backgroundColor: colors.card, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Text numberOfLines={1} style={{ flex: 1, color: current ? colors.text : colors.muted, fontSize: 15, fontFamily: current ? "AsapBold" : "Asap" }}>{current ? current.label : placeholder}</Text>
+        style={{ minHeight: 44, borderRadius: 16, borderWidth: 1, borderColor: open && inline ? colors.primary : current ? colors.borderStrong : colors.border, backgroundColor: colors.card, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Text numberOfLines={1} style={{ flex: 1, color: current ? colors.text : `${colors.muted}88`, fontSize: 15, fontFamily: current ? "AsapSemiBold" : "AsapItalic" }}>{current ? current.label : placeholder}</Text>
         {current?.hint ? <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap", maxWidth: "40%" }}>{current.hint}</Text> : null}
         <Ionicons name={open && inline ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
       </TouchableOpacity>
