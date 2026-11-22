@@ -15,6 +15,14 @@ import { humanDate, humanRange, isIsoDate } from "../../utils/dates";
 import { cmpMoney, formatSoles, normalizeMoneyInput } from "../../utils/money";
 
 const KIND_TEXT: Record<string, string> = { income: "Ingreso", expense: "Gasto", transfer: "Transferencia", opening: "Saldo inicial", adjustment: "Ajuste", reversal: "Reversión" };
+const KIND_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
+  income: "arrow-down-circle-outline",
+  expense: "arrow-up-circle-outline",
+  transfer: "swap-horizontal-outline",
+  opening: "flag-outline",
+  adjustment: "construct-outline",
+  reversal: "refresh-outline",
+};
 const LEGACY_REV_RE = /^Reversión de [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const cleanOpDesc = (desc: string) => (LEGACY_REV_RE.test(desc.trim()) ? "Reversión de movimiento" : desc);
 
@@ -25,24 +33,25 @@ const accountName = (accounts: Account[] | null, id: string, fallback?: string, 
 
 // ───────────────────────── Operaciones ─────────────────────────
 
-/** Movimiento: detalle, editar descripción, corregir importe/cuenta/fecha, revertir y vínculo al registro de origen. */
+/** Movimiento: vista detallada en modo lectura con botón para editar, corregir importe/cuenta/fecha, revertir y vínculo al origen. */
 export function OperationScreen() {
+  const { colors } = useAppTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const op = useAsync(() => api.operation(id), [id]);
   const accounts = useAsync(() => api.accounts(), []);
-  const contacts = useAsync(() => api.contacts("active"), []);
+  const contacts = useAsync(() => api.contacts(), []);
   useFocusReload(op.reload);
   const [description, setDescription] = useState<string | null>(null);
   const [categoryId, setCategoryId] = useState<string | null | undefined>(undefined);
   const [contactId, setContactId] = useState<string | null | undefined>(undefined);
-  const [mode, setMode] = useState<"reverse" | null>(null);
+  const [mode, setMode] = useState<"edit" | "reverse" | null>(null);
   const [reason, setReason] = useState("");
   const [date, setDate] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
-    try { await Promise.all([op.reload(), accounts.reload()]); } finally { setRefreshing(false); }
+    try { await Promise.all([op.reload(), accounts.reload(), contacts.reload()]); } finally { setRefreshing(false); }
   };
   const save = useSubmit(async () => {
     const o = op.data!;
@@ -75,25 +84,110 @@ export function OperationScreen() {
   const metaDirty = (description !== null && description.trim() !== o.description)
     || (categoryId !== undefined && categoryId !== (o.category?.id ?? null))
     || (contactId !== undefined && contactId !== (o.contactId ?? null));
-  const contactOpts = [{ id: "__none__", label: "Ninguno" }, ...(contacts.data ?? []).map((c) => ({ id: c.id, label: c.name }))];
+  const activeContacts = (contacts.data ?? []).filter((c) => c.status === "active");
+  const contactOpts = [{ id: "__none__", label: "Ninguno" }, ...activeContacts.map((c) => ({ id: c.id, label: c.name }))];
+  const contactLabel = o.contactId ? (contacts.data ?? []).find((c) => c.id === o.contactId)?.name ?? null : null;
 
+  const isTransfer = o.kind === "transfer";
+  const fromEntry = isTransfer ? o.entries.find((e) => e.amount.startsWith("-")) ?? o.entries[0] : o.entries[0];
+  const toEntry = isTransfer ? o.entries.find((e) => !e.amount.startsWith("-")) ?? o.entries[1] : undefined;
+  const displayAmount = isTransfer
+    ? (toEntry?.amount ?? fromEntry?.amount.replace("-", "") ?? "0.00")
+    : (fromEntry?.amount ?? "0.00");
+  const amtNum = cmpMoney(displayAmount, "0.00");
+  const heroTone = isTransfer
+    ? colors.primary
+    : o.kind === "income" || (o.kind !== "expense" && amtNum > 0)
+      ? colors.incomeStrong
+      : o.kind === "expense" || amtNum < 0
+        ? colors.expenseStrong
+        : colors.text;
+  const heroIconColor = isTransfer ? colors.primary : o.kind === "income" ? colors.incomeStrong : o.kind === "expense" ? colors.expenseStrong : colors.textSecondary;
+  const prettyDesc = o.description?.trim() ? cleanOpDesc(o.description) : "";
   const anyDeletedAccount = o.entries.some((e) => e.accountDeleted);
 
+  const openEdit = () => {
+    setDescription(null);
+    setCategoryId(undefined);
+    setContactId(undefined);
+    save.resetKey();
+    setMode("edit");
+  };
+  const closeEdit = () => {
+    setDescription(null);
+    setCategoryId(undefined);
+    setContactId(undefined);
+    setMode(null);
+  };
+
   return (
-    <Screen title={KIND_TEXT[o.kind] ?? o.kind} subtitle={humanDate(o.occurredOn)} refreshing={refreshing} onRefresh={onRefresh}>
+    <Screen
+      title="Detalle del movimiento"
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      right={editable && mode !== "edit" ? <Button title="Editar" icon="create-outline" variant="secondary" size="compact" onPress={openEdit} /> : undefined}
+    >
+      {/* Cabecera tipo comprobante */}
+      <Card style={{ alignItems: "center", paddingVertical: 20, gap: 6, opacity: o.status === "reversed" ? 0.72 : 1 }}>
+        <Ionicons name={KIND_ICON[o.kind] ?? "receipt-outline"} size={30} color={heroIconColor} />
+        <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapSemiBold", textTransform: "uppercase", letterSpacing: 1 }}>
+          {KIND_TEXT[o.kind] ?? o.kind}
+        </Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={{ color: heroTone, fontSize: 32, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}
+        >
+          {isTransfer ? formatSoles(displayAmount) : `${amtNum > 0 ? "+" : ""}${formatSoles(displayAmount)}`}
+        </Text>
+        {prettyDesc ? (
+          <Text style={{ color: colors.text, fontSize: 15, fontFamily: "AsapSemiBold", textAlign: "center", marginTop: 2 }}>
+            {prettyDesc}
+          </Text>
+        ) : null}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
+          <Chip status={o.status === "confirmed" ? "paid" : "converted"} label={o.status === "confirmed" ? "Confirmado" : "Revertido"} />
+          <Txt size={12} muted>
+            {humanDate(o.occurredOn)}{o.occurredTime ? ` · ${o.occurredTime}` : ""}
+          </Txt>
+        </View>
+      </Card>
+
+      {/* Información detallada en solo lectura */}
       <Card>
-        <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}><Chip status={o.status === "confirmed" ? "paid" : "converted"} label={o.status === "confirmed" ? "Confirmado" : "Revertido"} /></View>
-        {o.entries.map((e, i) => <KV key={i} label={accountName(accounts.data, e.accountId, e.accountName, e.accountDeleted)} value={formatSoles(e.amount)} strong />)}
-        {o.kind === "reversal" && o.description ? <KV label="Detalle" value={cleanOpDesc(o.description)} /> : null}
-        {o.category && <KV label="Categoría" value={o.category.name} />}
+        <Txt bold size={13} style={{ marginBottom: 4 }}>Información</Txt>
+        <KV label="Tipo" value={KIND_TEXT[o.kind] ?? o.kind} />
+        <KV label="Fecha" value={`${humanDate(o.occurredOn)}${o.occurredTime ? ` · ${o.occurredTime}` : ""}`} />
+        {isTransfer && fromEntry && toEntry ? (
+          <>
+            <KV label="Sale de" value={accountName(accounts.data, fromEntry.accountId, fromEntry.accountName, fromEntry.accountDeleted)} strong />
+            <KV label="Llega a" value={accountName(accounts.data, toEntry.accountId, toEntry.accountName, toEntry.accountDeleted)} strong />
+          </>
+        ) : (
+          o.entries.map((e, i) => (
+            <KV key={i} label={o.entries.length > 1 ? `Cuenta ${i + 1}` : "Cuenta"} value={accountName(accounts.data, e.accountId, e.accountName, e.accountDeleted)} strong />
+          ))
+        )}
+        <KV label="Descripción" value={prettyDesc || "Sin descripción"} />
+        {["income", "expense"].includes(o.kind) || o.category ? (
+          <KV label="Categoría" value={o.category?.name ?? "Sin categoría"} />
+        ) : null}
+        {contactLabel ? <KV label="Persona" value={contactLabel} /> : null}
         {o.reason ? <KV label="Motivo" value={o.reason} /> : null}
       </Card>
+
       {anyDeletedAccount && (
         <Notice tone="info">La cuenta asociada a este movimiento fue eliminada. El movimiento se conserva en tu historial.</Notice>
       )}
 
-      {editable && (
+      {o.reversalOfId && (
+        <Button title="Ver movimiento original" variant="secondary" icon="return-up-back-outline" onPress={() => router.push(`/operation/${o.reversalOfId}` as never)} />
+      )}
+
+      {/* Edición (solo al pulsar Editar) */}
+      {mode === "edit" && editable && (
         <Card>
+          <Txt bold size={14} style={{ marginBottom: 4 }}>Editar detalles</Txt>
           <Field label="Descripción" value={description ?? o.description} onChangeText={(v) => { setDescription(v); save.resetKey(); }} autoCapitalize="sentences" maxLength={200} />
           {canCategorize && <CategoryPicker value={curCat} onChange={(v) => { setCategoryId(v); save.resetKey(); }} />}
           {contactOpts.length > 1 && (
@@ -101,12 +195,40 @@ export function OperationScreen() {
               onChange={(v) => { setContactId(v === "__none__" ? null : v); save.resetKey(); }}
               options={contactOpts} />
           )}
-          <Button title="Guardar cambios" variant="secondary" busy={save.busy} disabled={!metaDirty}
-            onPress={async () => { if (await save.submit()) { setDescription(null); setCategoryId(undefined); setContactId(undefined); void op.reload(); } }} />
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
+            <View style={{ flex: 1 }}>
+              <Button title="Cancelar" variant="secondary" disabled={save.busy} onPress={closeEdit} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button title="Guardar" busy={save.busy} disabled={!metaDirty}
+                onPress={async () => { if (await save.submit()) { closeEdit(); void op.reload(); } }} />
+            </View>
+          </View>
           {save.error && <Notice tone="err">{save.error}</Notice>}
         </Card>
       )}
 
+      {/* Reversión (solo al pulsar Revertir) */}
+      {mode === "reverse" && (
+        <Card>
+          <Txt bold size={14} style={{ marginBottom: 4 }}>Revertir movimiento</Txt>
+          <ReasonField value={reason} onChange={(v) => { setReason(v); reverse.resetKey(); }} label="Motivo de la reversión" />
+          <DateField label="Fecha de la reversión" value={date} optional onChange={(v) => { setDate(v); reverse.resetKey(); }} />
+          <Notice tone="info">Se crea la operación contraria; la original queda marcada como revertida y no se borra. Revertir no es devolver dinero.</Notice>
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Button title="Cancelar" variant="secondary" disabled={reverse.busy} onPress={() => setMode(null)} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button title="Confirmar" variant="danger" busy={reverse.busy} disabled={reason.trim().length === 0 || (date !== "" && !isIsoDate(date))}
+                onPress={async () => { if (await reverse.submit()) { setMode(null); void op.reload(); } }} />
+            </View>
+          </View>
+          {reverse.error && <Notice tone="err">{reverse.error}</Notice>}
+        </Card>
+      )}
+
+      {/* Opciones y vínculos */}
       <View style={{ gap: 10 }}>
         {o.links.receiptId && <Button title="Ver el cobro de este movimiento" icon="cash-outline" onPress={() => router.push(`/receipt/${o.links.receiptId}` as never)} />}
         {o.links.supplierPaymentId && <Notice tone="info">Es el pago de un servicio al proveedor: se revierte desde el detalle del ciclo del servicio.</Notice>}
@@ -116,21 +238,16 @@ export function OperationScreen() {
         {o.links.loanDisbursementId && <Notice tone="info">Es el desembolso de un préstamo: se anula desde el detalle del préstamo.</Notice>}
         {o.links.cardStatementPaymentId && <Notice tone="info">Está vinculado a un estado de cuenta de tarjeta: quita primero el vínculo en la tarjeta.</Notice>}
         {o.links.installmentPlanId && <Notice tone="info">Es una compra en cuotas con tarjeta: cancela el plan de cuotas antes de revertir o corregir.</Notice>}
-        {correctable && <Button title="Corregir importe, cuenta o fecha" variant="secondary" icon="create-outline" onPress={() => router.push(`/operation/${id}/correct` as never)} />}
-        {editable && !linked && <Button title="Revertir" variant="danger" icon="arrow-undo-outline" onPress={() => setMode("reverse")} />}
+        {editable && mode !== "edit" && (
+          <Button title="Editar descripción, categoría o persona" variant="secondary" icon="create-outline" onPress={openEdit} />
+        )}
+        {correctable && (
+          <Button title="Corregir importe, cuenta o fecha" variant="secondary" icon="swap-horizontal-outline" onPress={() => router.push(`/operation/${id}/correct` as never)} />
+        )}
+        {editable && !linked && mode !== "reverse" && (
+          <Button title="Revertir movimiento" variant="outlineDanger" icon="arrow-undo-outline" onPress={() => setMode("reverse")} />
+        )}
       </View>
-
-      {mode === "reverse" && (
-        <Card>
-          <ReasonField value={reason} onChange={(v) => { setReason(v); reverse.resetKey(); }} label="Motivo de la reversión" />
-          <DateField label="Fecha de la reversión" value={date} optional onChange={(v) => { setDate(v); reverse.resetKey(); }} />
-          <Notice tone="info">Se crea la operación contraria; la original queda marcada como revertida y no se borra. Revertir no es devolver dinero.</Notice>
-          <View style={{ height: 8 }} />
-          <Button title="Confirmar reversión" variant="danger" busy={reverse.busy} disabled={reason.trim().length === 0 || (date !== "" && !isIsoDate(date))}
-            onPress={async () => { if (await reverse.submit()) { setMode(null); void op.reload(); } }} />
-          {reverse.error && <Notice tone="err">{reverse.error}</Notice>}
-        </Card>
-      )}
     </Screen>
   );
 }
