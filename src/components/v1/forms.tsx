@@ -127,6 +127,7 @@ const LABELS: Record<string, string> = {
   issues: "Observaciones", obligationsAfter: "Cómo queda lo adeudado", accountId: "Cuenta", accountName: "Cuenta", toAccountName: "Cuenta destino", date: "Fecha", receivedOn: "Fecha del cobro", description: "Descripción", principal: "Capital", concept: "Concepto",
   periodLabel: "Periodo", totalDebtBefore: "Deuda total antes", totalDebtAfter: "Deuda total después", executedAt: "Ejecutado", applied: "Aplicado", net: "Neto", exemption: "Exención",
   account: "Cuenta", asOf: "A la fecha", registeredBalance: "Saldo en EVA", realBalance: "Saldo real", difference: "Diferencia", review: "Movimientos recientes",
+  count: "Cantidad", occurredOn: "Fecha", ruleName: "Regla", action: "Acción", categoryName: "Categoría", priority: "Prioridad",
 };
 // Valores técnicos de la API → texto para leer.
 const VALUES: Record<string, string> = {
@@ -135,7 +136,7 @@ const VALUES: Record<string, string> = {
   shift_renewal: "Desplazar renovación", advance_renewal: "Adelantar renovación", change_interval: "Cambiar frecuencia", suspend: "Suspender", reactivate: "Reactivar",
   cycles: "Por ciclos", until_date: "Hasta una fecha", permanent: "Permanente", keep: "Mantener en el servicio", convert: "Convertir en préstamo",
   active: "Vigente", suspended: "Suspendido", personal: "Personal", shared: "Compartido", income: "Ingreso", expense: "Gasto", transfer: "Transferencia",
-  matched: "El saldo coincide", difference: "Hay diferencia",
+  matched: "El saldo coincide", difference: "Hay diferencia", assign: "Asignar categoría", suggest: "Sugerir categoría",
   REFUND_AND_DEBT: "Hay crédito a devolver y también deuda: puedes cancelar la devolución y aplicar ese crédito al préstamo",
 };
 const HIDE = new Set(["previewToken", "id", "ownerId"]);

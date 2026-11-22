@@ -17,6 +17,7 @@ import { getDismissedUncategorized } from "../../utils/dismissedUncategorized";
 import { cmpMoney, formatSoles } from "../../utils/money";
 
 const HIDE_KEY = "eva_hide_balances";
+const HIDE_CARD_TIP_KEY = "eva_hide_card_tip_date";
 const MASK = "S/ ••••";
 const KINDS: Array<[string | undefined, string]> = [[undefined, "Todos"], ["income", "Ingresos"], ["expense", "Gastos"], ["transfer", "Transferencias"]];
 const PAGE = 15;
@@ -55,6 +56,7 @@ export default function MoneyScreen() {
   const [moreError, setMoreError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [dismissedUncat, setDismissedUncat] = useState<Set<string>>(new Set());
+  const [tipDismissedToday, setTipDismissedToday] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -64,7 +66,13 @@ export default function MoneyScreen() {
   useEffect(() => {
     AsyncStorage.getItem(HIDE_KEY).then((v) => setHidden(v === "1")).catch(() => {});
     getDismissedUncategorized().then(setDismissedUncat).catch(() => {});
+    AsyncStorage.getItem(HIDE_CARD_TIP_KEY).then((v) => setTipDismissedToday(v === todayLocalIso())).catch(() => {});
   }, []);
+
+  const dismissCardTip = () => {
+    setTipDismissedToday(true);
+    void AsyncStorage.setItem(HIDE_CARD_TIP_KEY, todayLocalIso()).catch(() => {});
+  };
 
   const toggleHidden = () => {
     setHidden((prev) => {
@@ -143,11 +151,11 @@ export default function MoneyScreen() {
   );
   const uncatCount = visibleUncat.length;
   const uncatHasMore = !!uncategorized.data?.nextCursor && uncatCount > 0;
-  const bestCard = advisor.data?.cards && advisor.data.cards.length >= 2 ? advisor.data.best : null;
+  const bestCard = advisor.data?.cards && advisor.data.cards.length >= 2 && !tipDismissedToday ? advisor.data.best : null;
 
   return (
     <Screen title="Dinero" back={false} refreshing={refreshing} onRefresh={onRefresh} right={<Button title="Cuenta" icon="add" size="compact" onPress={() => router.push("/account/new" as never)} />}>
-      <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 18, overflow: "hidden", gap: 4 }}>
+      <View style={{ backgroundColor: colors.primarySurface, borderRadius: 22, padding: 15, overflow: "hidden", gap: 3 }}>
         <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Saldo total</Text>
@@ -156,80 +164,76 @@ export default function MoneyScreen() {
             accessibilityRole="button"
             accessibilityLabel={hidden ? "Mostrar saldos" : "Ocultar saldos"}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.16)" }}
+            style={{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.16)" }}
           >
-            <Ionicons name={hidden ? "eye-off-outline" : "eye-outline"} size={17} color={colors.onPrimary} />
+            <Ionicons name={hidden ? "eye-off-outline" : "eye-outline"} size={16} color={colors.onPrimary} />
           </TouchableOpacity>
         </View>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 32, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
           {hidden ? MASK : s ? formatSoles(s.balance.net) : "…"}
         </Text>
-        <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "Asap" }}>
-          {includedCount} {includedCount === 1 ? "cuenta" : "cuentas"}{excludedCount > 0 ? ` (${excludedCount} excluida${excludedCount === 1 ? "" : "s"})` : ""} · lo que debes en tarjetas ya está descontado
+        <Text style={{ color: colors.onPrimaryMuted, fontSize: 11.5, fontFamily: "Asap" }}>
+          {includedCount} {includedCount === 1 ? "cuenta" : "cuentas"}{excludedCount > 0 ? ` (${excludedCount} excluida${excludedCount === 1 ? "" : "s"})` : ""} · deuda de tarjetas ya descontada
         </Text>
         {s?.creditLines && s.creditLines.cards > 0 && (
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.16)" }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Ionicons name="card-outline" size={14} color={colors.onPrimaryMuted} />
-              <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "AsapMedium" }}>Línea de crédito disponible</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6, paddingTop: 7, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.16)" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+              <Ionicons name="card-outline" size={13} color={colors.onPrimaryMuted} />
+              <Text style={{ color: colors.onPrimaryMuted, fontSize: 11.5, fontFamily: "AsapMedium" }}>Línea de crédito disponible</Text>
             </View>
-            <Text style={{ color: colors.onPrimary, fontSize: 13.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+            <Text style={{ color: colors.onPrimary, fontSize: 13, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
               {hidden ? MASK : formatSoles(s.creditLines.available)}
             </Text>
           </View>
         )}
       </View>
 
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <LinkTile icon="people-outline" iconColor={colors.sections.people.ink} title="A personas" text="préstamos" onPress={() => router.push("/loans" as never)} />
-        <LinkTile icon="business-outline" iconColor={colors.sections.money.ink} title="Bancarios" text="préstamos" onPress={() => router.push("/bank-loans" as never)} />
-        <LinkTile icon="bar-chart-outline" iconColor={colors.primary} title="Resumen" text="del mes" onPress={() => router.push("/reports" as never)} />
-      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -24 }} contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}>
+        <QuickPill icon="people-outline" iconColor={colors.sections.people.ink} label="Préstamos" onPress={() => router.push("/loans" as never)} />
+        <QuickPill icon="business-outline" iconColor={colors.sections.money.ink} label="Bancarios" onPress={() => router.push("/bank-loans" as never)} />
+        <QuickPill icon="bar-chart-outline" iconColor={colors.primary} label="Resumen del mes" onPress={() => router.push("/reports" as never)} />
+      </ScrollView>
 
-      {(uncatCount > 0 || bestCard) && (
-        <View style={{ gap: 8 }}>
-          {uncatCount > 0 && (
-            <TouchableOpacity
-              onPress={() => router.push("/classify" as never)}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
-            >
-              <Ionicons name="pricetag-outline" size={18} color={colors.primary} />
-              <View style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, fontFamily: "AsapBold" }}>
-                  {uncatHasMore ? `${uncatCount}+` : uncatCount} {uncatCount === 1 ? "movimiento sin categoría" : "movimientos sin categoría"}
-                </Text>
-                <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
-                  Toca para clasificar a mano o con tus reglas
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.muted} />
-            </TouchableOpacity>
-          )}
-          {bestCard && (
+      <View style={{ gap: 6 }}>
+        <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>Mis cuentas</Text>
+        {bestCard && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingLeft: 12,
+              paddingRight: 8,
+              paddingVertical: 7,
+              borderRadius: 12,
+              backgroundColor: `${colors.primary}10`,
+              borderWidth: 1,
+              borderColor: `${colors.primary}25`,
+            }}
+          >
             <TouchableOpacity
               onPress={() => router.push(`/account/${bestCard.accountId}/card` as never)}
               activeOpacity={0.75}
               accessibilityRole="button"
-              style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 7 }}
             >
-              <Ionicons name="card-outline" size={18} color={colors.sections.money.ink} />
-              <View style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, fontFamily: "AsapBold" }}>
-                  Mejor tarjeta hoy: {bestCard.name}
-                </Text>
-                <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
-                  {bestCard.daysToPay} días para pagar · corte {humanDate(bestCard.cutoffDate)}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+              <Ionicons name="sparkles-outline" size={15} color={colors.primary} />
+              <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 12, fontFamily: "Asap" }}>
+                Sugerencia hoy: usa <Text style={{ fontFamily: "AsapBold" }}>{bestCard.name}</Text> ({bestCard.daysToPay} días)
+              </Text>
             </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold", marginTop: 4 }}>Mis cuentas</Text>
+            <TouchableOpacity
+              onPress={dismissCardTip}
+              accessibilityRole="button"
+              accessibilityLabel="Ocultar sugerencia por hoy"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ width: 24, height: 24, alignItems: "center", justifyContent: "center" }}
+            >
+              <Ionicons name="close" size={15} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
       {accounts.loading && !accounts.data ? <Loading /> : accounts.error ? <ErrorBox message={accounts.error} onRetry={accounts.reload} /> : list.length === 0 ? (
         <Empty icon="wallet-outline" title="Aún no tienes cuentas" text="Crea tu primera cuenta con su saldo actual. No cuenta como ingreso del mes." action={<Button title="Crear cuenta" icon="add" onPress={() => router.push("/account/new" as never)} />} />
       ) : (
@@ -263,17 +267,32 @@ export default function MoneyScreen() {
         </View>
       )}
 
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>Movimientos</Text>
-        <TouchableOpacity
-          onPress={() => router.push("/analysis" as never)}
-          activeOpacity={0.75}
-          accessibilityRole="button"
-          style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
-        >
-          <GeminiMark size={13} />
-          <Text style={{ color: colors.text, fontSize: 12, fontFamily: "AsapBold" }}>Analizar con IA</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {uncatCount > 0 && (
+            <TouchableOpacity
+              onPress={() => router.push("/classify" as never)}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 99, backgroundColor: `${colors.primary}14`, borderWidth: 1, borderColor: `${colors.primary}30` }}
+            >
+              <Ionicons name="pricetag-outline" size={12} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontSize: 11.5, fontFamily: "AsapBold" }}>
+                {uncatHasMore ? `${uncatCount}+` : uncatCount} sin categoría
+              </Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            onPress={() => router.push("/analysis" as never)}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+          >
+            <GeminiMark size={13} />
+            <Text style={{ color: colors.text, fontSize: 11.5, fontFamily: "AsapBold" }}>IA</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 42, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: search ? colors.borderStrong : colors.border }}>
@@ -349,16 +368,28 @@ export default function MoneyScreen() {
   );
 }
 
-function LinkTile({ icon, iconColor, title, text, onPress }: { icon: keyof typeof Ionicons.glyphMap; iconColor: string; title: string; text: string; onPress: () => void }) {
+function QuickPill({ icon, iconColor, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; iconColor: string; label: string; onPress: () => void }) {
   const { colors } = useAppTheme();
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel={`${title} ${text}`}
-      style={{ flex: 1, gap: 6, padding: 12, borderRadius: 18, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
-      <Ionicons name={icon} size={20} color={iconColor} />
-      <View>
-        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, fontFamily: "AsapBold" }}>{title}</Text>
-        <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Asap" }}>{text}</Text>
-      </View>
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        minHeight: 36,
+        paddingHorizontal: 12,
+        borderRadius: 99,
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
+      <Ionicons name={icon} size={15} color={iconColor} />
+      <Text style={{ color: colors.text, fontSize: 12.5, fontFamily: "AsapSemiBold" }}>{label}</Text>
     </TouchableOpacity>
   );
 }

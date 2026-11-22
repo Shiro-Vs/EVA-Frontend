@@ -13,7 +13,7 @@ import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate } from "../../utils/dates";
 import { clearDismissedUncategorized, dismissUncategorized, getDismissedUncategorized, undismissUncategorized } from "../../utils/dismissedUncategorized";
-import { normalizeMoneyInput } from "../../utils/money";
+import { formatSoles, normalizeMoneyInput } from "../../utils/money";
 
 /** Categorías (dos niveles): árbol con líneas, renombrar, archivar, restaurar y eliminar (solo si no tiene uso). */
 export function CategoriesScreen() {
@@ -230,11 +230,53 @@ export function ClassifyScreen() {
   const pendingItems = allItems.filter((o) => !dismissed.has(o.id));
   const omittedItems = allItems.filter((o) => dismissed.has(o.id));
   const shown = showDismissed ? allItems : pendingItems;
+  const previewItems = ((flow.data?.items as Array<{ operationId: string; description: string; occurredOn: string; amount: string; ruleName: string; categoryName: string }> | undefined) ?? []);
+  const previewCount = Number(flow.data?.count ?? previewItems.length);
 
   return (
     <Screen title="Sin categoría" subtitle="Clasifica a mano, omite o usa tus reglas"
-      footer={pendingItems.length > 0 ? <PreviewFooter flow={flow} previewLabel="Clasificar con mis reglas" confirmLabel="Aplicar reglas" onConfirm={async () => { if (await flow.confirm()) { flow.invalidate(); void list.reload(); } }} /> : undefined}>
-      <FlowResult flow={flow} />
+      footer={
+        pendingItems.length > 0 ? (
+          flow.data && previewCount === 0 ? (
+            <Button title="Entendido" variant="secondary" onPress={flow.invalidate} />
+          ) : (
+            <PreviewFooter
+              flow={flow}
+              previewLabel="Clasificar con mis reglas"
+              confirmLabel={`Aplicar a ${previewCount} ${previewCount === 1 ? "movimiento" : "movimientos"}`}
+              confirmDisabled={previewCount === 0}
+              onConfirm={async () => { if (await flow.confirm()) { flow.invalidate(); void list.reload(); } }}
+            />
+          )
+        ) : undefined
+      }>
+      {flow.error && <Notice tone="err">{flow.error}</Notice>}
+      {flow.applyError && <Notice tone="err">{flow.applyError}</Notice>}
+      {flow.data && (
+        previewCount === 0 ? (
+          <Notice tone="info">Ninguno de tus movimientos sin categoría coincide con tus reglas activas.</Notice>
+        ) : (
+          <Card outlined>
+            <Txt bold size={14}>
+              Se {previewCount === 1 ? "clasificará 1 movimiento" : `clasificarán ${previewCount} movimientos`}
+            </Txt>
+            <Txt size={12} muted style={{ marginBottom: 4 }}>
+              Solo se aplicará a movimientos sin categoría. Lo que ya clasificaste a mano no se toca.
+            </Txt>
+            {previewItems.map((it) => (
+              <View key={it.operationId} style={{ paddingTop: 8, marginTop: 4, borderTopWidth: 1, borderTopColor: "rgba(128,128,128,0.18)", gap: 2 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                  <Txt bold size={13} numberOfLines={1} style={{ flex: 1 }}>{it.description || "Movimiento"}</Txt>
+                  <Txt bold size={13}>{formatSoles(it.amount)}</Txt>
+                </View>
+                <Txt size={12} muted>
+                  {humanDate(it.occurredOn)} · Categoría: {it.categoryName} (regla «{it.ruleName}»)
+                </Txt>
+              </View>
+            ))}
+          </Card>
+        )
+      )}
       {pendingItems.length > 1 && !showDismissed && (
         <Button
           title={`No categorizar ninguno (${pendingItems.length})`}
