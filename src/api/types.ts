@@ -311,7 +311,7 @@ export type CardId = "accounts_balance" | "credit_debt" | "period_flow" | "budge
 export type LeadKind = { enabled: boolean; leadDays: number[] };
 export interface Preferences {
   dashboard: { cards: Array<{ id: CardId; enabled: boolean }> };
-  notifications: { enabled: boolean; discreet: boolean; time: string; quiet: { from: string; to: string } | null; repeatOverdue: boolean; kinds: { renewal: LeadKind; collection: LeadKind; recurring: LeadKind; loan: LeadKind; budget: { enabled: boolean }; capture: { enabled: boolean } } };
+  notifications: { enabled: boolean; discreet: boolean; time: string; quiet: { from: string; to: string } | null; repeatOverdue: boolean; kinds: { renewal: LeadKind; collection: LeadKind; recurring: LeadKind; loan: LeadKind; card: LeadKind; budget: { enabled: boolean }; capture: { enabled: boolean } } };
   capture: { reviewMode: "individual" | "batch"; duplicates: "separate" | "grouped" };
   security: { lockAfterSeconds: number };
   backup: { frequency: "off" | "weekly" | "monthly"; keep: 1 | 2 };

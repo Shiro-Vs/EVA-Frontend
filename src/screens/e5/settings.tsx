@@ -116,7 +116,14 @@ export function DashboardSettingsScreen() {
 
 // ───────────────────────── Avisos ─────────────────────────
 
-const KIND_LABEL: Record<string, string> = { renewal: "Renovaciones de servicios", collection: "Cobros pendientes", recurring: "Movimientos recurrentes", loan: "Cuotas de préstamos bancarios" };
+const KIND_LABEL: Record<string, string> = {
+  renewal: "Renovaciones de servicios",
+  collection: "Cobros pendientes",
+  recurring: "Movimientos recurrentes",
+  loan: "Cuotas de préstamos bancarios",
+  card: "Pagos de tarjetas de crédito",
+};
+const DEFAULT_CARD_KIND: LeadKind = { enabled: true, leadDays: [3, 1, 0] };
 const LEADS = [0, 1, 2, 3, 5, 7];
 
 export function NotificationsSettingsScreen() {
@@ -138,7 +145,12 @@ export function NotificationsSettingsScreen() {
     return () => sub.remove();
   }, [refreshDevice]);
 
-  useEffect(() => { if (prefs.data) setN(prefs.data.notifications); }, [prefs.data]);
+  useEffect(() => {
+    if (prefs.data) {
+      const notif = prefs.data.notifications;
+      setN({ ...notif, kinds: { ...notif.kinds, card: notif.kinds.card ?? DEFAULT_CARD_KIND } });
+    }
+  }, [prefs.data]);
   const allow = useSubmit(async () => {
     const p = await requestPermission();
     setPerm(p);
@@ -187,7 +199,7 @@ export function NotificationsSettingsScreen() {
           </>
         )}
       </Card>
-      {(["renewal", "collection", "recurring", "loan"] as const).map((k) => (
+      {(["renewal", "collection", "recurring", "loan", "card"] as const).map((k) => (
         <Card key={k}>
           <Row label={KIND_LABEL[k]!} value={n.kinds[k].enabled} onChange={(v) => setKind(k, { enabled: v })} />
           {n.kinds[k].enabled && <MultiChoice label="Avisar con anticipación de (días)" options={LEADS.map((d) => ({ id: String(d), label: d === 0 ? "El mismo día" : `${d} día${d > 1 ? "s" : ""}` }))} value={n.kinds[k].leadDays.map(String)} onChange={(v) => setKind(k, { leadDays: v.map(Number).sort((a, b) => b - a).slice(0, 5) })} />}

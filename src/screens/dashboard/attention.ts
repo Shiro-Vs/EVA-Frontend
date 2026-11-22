@@ -57,9 +57,16 @@ export function buildAttention({ cards, recurringPending = 0, today }: Attention
     if (d <= 7) out.push({ id: `ren-${r.subscriptionId}`, icon: "calendar-outline", tone: d <= 1 ? "warn" : "info", title: `${r.name} renueva ${whenText(d)}`, text: `S/ ${r.price}`, route: `/service/${r.subscriptionId}`, urgency: d <= 1 ? 85 : d <= 3 ? 70 : 50 });
   }
 
+  const upcomingRoute = (p: { type: string; id: string }) => {
+    if (p.type === "bank_loan") return `/bank-loan/${p.id}`;
+    if (p.type === "card_statement") return `/card-statement/${p.id}`;
+    if (p.type === "card_debt") return `/account/${p.id}/card`;
+    return `/recurring/occurrence/${p.id}`;
+  };
+
   for (const p of upcomingItems) {
     const d = daysUntil(p.dueDate, today);
-    if (d <= 7) out.push({ id: `pay-${p.type}-${p.id}`, icon: "card-outline", tone: d < 0 ? "danger" : d <= 1 ? "warn" : "info", title: `${p.name} ${dueText(d)}`, text: `S/ ${p.amount}`, route: p.type === "bank_loan" ? `/bank-loan/${p.id}` : `/recurring/occurrence/${p.id}`, urgency: d < 0 ? 95 : d <= 1 ? 85 : 55 });
+    if (d <= 7) out.push({ id: `pay-${p.type}-${p.id}`, icon: "card-outline", tone: d < 0 ? "danger" : d <= 1 ? "warn" : "info", title: `${p.name} ${dueText(d)}`, text: `S/ ${p.amount}`, route: upcomingRoute(p), urgency: d < 0 ? 95 : d <= 1 ? 85 : 55 });
   }
 
   return out.sort((a, b) => b.urgency - a.urgency || a.title.localeCompare(b.title));

@@ -58,4 +58,25 @@ describe("Qué merece atención en el inicio", () => {
     });
     expect(items.map((x) => x.id)).toEqual(["pay-recurring-o1"]);
   });
+
+  it("muestra pagos próximos y vencidos de tarjetas de crédito con su ruta correcta", () => {
+    const items = buildAttention({
+      today: TODAY,
+      cards: [
+        {
+          id: "upcoming_payments",
+          data: {
+            items: [
+              { type: "card_debt", id: "c1", name: "Pago tarjeta Visa BCP", dueDate: "2026-10-30", amount: "100.00" },
+              { type: "card_statement", id: "st1", name: "Pago tarjeta Interbank", dueDate: "2026-10-28", amount: "250.00" },
+            ],
+          },
+        },
+      ],
+    });
+    expect(items).toEqual([
+      expect.objectContaining({ id: "pay-card_statement-st1", tone: "danger", title: "Pago tarjeta Interbank venció ayer", text: "S/ 250.00", route: "/card-statement/st1" }),
+      expect.objectContaining({ id: "pay-card_debt-c1", tone: "warn", title: "Pago tarjeta Visa BCP vence mañana", text: "S/ 100.00", route: "/account/c1/card" }),
+    ]);
+  });
 });
