@@ -30,26 +30,32 @@ export function ContactList({ contacts, onContactPress, onMenuPress }: ContactLi
     <View>
       {contacts.map((c, i) => {
         const owes = cmpMoney(c.deuda ?? "0.00", "0.00") > 0;
+        const overdue = cmpMoney(c.vencido ?? "0.00", "0.00") > 0;
+        const hasCredit = cmpMoney(c.creditoLibre ?? "0.00", "0.00") > 0 || cmpMoney(c.creditoReservado ?? "0.00", "0.00") > 0;
         const services = c.total_servicios || 0;
-        const bar = owes ? colors.expense : services > 0 ? colors.income : colors.muted;
+        const subtitleParts: string[] = [
+          services === 0 ? "Sin servicios" : `${services} ${services === 1 ? "servicio" : "servicios"}`,
+        ];
+        if (overdue) subtitleParts.push(`Vencido ${formatSoles(c.vencido)}`);
+        else if (hasCredit) subtitleParts.push("Saldo a favor");
+
         return (
           <TouchableOpacity key={c.id} onPress={() => onContactPress(c)} activeOpacity={0.75} accessibilityRole="button"
             style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
-            <View style={{ alignSelf: "stretch", width: 4, borderRadius: 2, backgroundColor: bar }} />
             <EVAAvatar name={c.nombre} color={getAdjustedColor(c.color, isDark)} size={40} fontSize={17} />
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, gap: 1 }}>
               <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{c.nombre}</Text>
-              <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
-                {services === 0 ? "Sin servicios" : `${services} ${services === 1 ? "servicio" : "servicios"}`}
+              <Text numberOfLines={1} style={{ color: overdue ? colors.expenseStrong : colors.textSecondary, fontSize: 12, fontFamily: overdue ? "AsapSemiBold" : "Asap" }}>
+                {subtitleParts.join(" · ")}
               </Text>
             </View>
-            {(owes || services > 0) && (
-              <Text style={{ color: owes ? colors.expenseStrong : colors.incomeStrong, fontSize: 13, fontFamily: "AsapBold" }}>
-                {owes ? `Debe ${formatSoles(c.deuda)}` : "Al día"}
+            {(owes || services > 0 || hasCredit) && (
+              <Text style={{ color: owes ? colors.expenseStrong : colors.incomeStrong, fontSize: 13.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+                {owes ? `Debe ${formatSoles(c.deuda)}` : hasCredit ? "A favor" : "Al día"}
               </Text>
             )}
             <TouchableOpacity onPress={() => onMenuPress(c)} accessibilityRole="button" accessibilityLabel={`Acciones de ${c.nombre}`} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" }}>
+              style={{ width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" }}>
               <Ionicons name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </TouchableOpacity>

@@ -17,9 +17,10 @@ const CONCEPT = { principal: "Capital", interest: "Interés", late_fee: "Mora" }
 /** Nuevo préstamo, recibido u otorgado: vista previa del cronograma antes de registrarlo. */
 export function LoanNewScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ contactId?: string }>();
   const contacts = useAsync(() => api.contacts(), []);
   const [direction, setDirection] = useState<"lent" | "borrowed">("lent");
-  const [contactId, setContactId] = useState<string | null>(null);
+  const [contactId, setContactId] = useState<string | null>(params.contactId ?? null);
   const [party, setParty] = useState("");
   const [principal, setPrincipal] = useState("");
   const [openedOn, setOpenedOn] = useState("");
@@ -74,7 +75,7 @@ export function LoanNewScreen() {
       </Card>
       <Card>
         <Choice label="Dentro de cada cuota se paga primero" value={order} onChange={touch(setOrder)} options={[{ id: "capital_first", label: "El capital" }, { id: "interest_first", label: "El interés" }]} />
-        <Choice label="Si se paga por adelantado" value={early} onChange={touch(setEarly)} options={[{ id: "keep", label: "Mantener el interés acordado" }, { id: "accrued", label: "Solo el interés devengado" }]} />
+        <Choice label="Si se paga por adelantado" value={early} onChange={touch(setEarly)} options={[{ id: "keep", label: "Mantener el interés acordado" }, { id: "accrued", label: "Solo el interés hasta hoy" }]} />
         <Field label="Nota (opcional)" value={note} onChangeText={setNote} autoCapitalize="sentences" />
       </Card>
       <FlowResult flow={flow} />
@@ -157,7 +158,7 @@ export function LedgerLoanScreen() {
       {open && (
         <>
           <Heading>Acciones</Heading>
-          <Choice label="Acción" value={action} onChange={(a) => { setAction(a); invalidateAll(); }} options={[{ id: "pay", label: "Registrar pago" }, { id: "payoff", label: "Pago anticipado" }, { id: "fees", label: "Mora" }, { id: "capitalize", label: "Capitalizar interés" }, { id: "cancel", label: "Anular" }]} />
+          <Choice label="Acción" value={action} onChange={(a) => { setAction(a); invalidateAll(); }} options={[{ id: "pay", label: "Registrar pago" }, { id: "payoff", label: "Pago anticipado" }, { id: "fees", label: "Mora" }, { id: "capitalize", label: "Sumar interés al capital" }, { id: "cancel", label: "Anular" }]} />
           {(action === "pay" || action === "payoff") && (
             <Card>
               <AccountPicker label={l.direction === "lent" ? "Entra a la cuenta" : "Sale de la cuenta"} value={account} onChange={(v) => { setAccount(v); invalidateAll(); }} />

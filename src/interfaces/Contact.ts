@@ -12,5 +12,9 @@ export interface Contact {
   deuda?: string;
   /** Parte vencida del pendiente. */
   vencido?: string;
+  /** Crédito libre a favor del contacto. */
+  creditoLibre?: string;
+  /** Crédito reservado para servicios. */
+  creditoReservado?: string;
   version?: number;
 }

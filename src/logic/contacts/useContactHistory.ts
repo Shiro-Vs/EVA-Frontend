@@ -15,14 +15,43 @@ export interface HistoryPayment { mes_anio: string; cuota: string; free: boolean
 export interface HistoryService {
   serviceId: string; serviceName: string; color: string; icon: string; debt: string; overdueCount: number; history: HistoryPayment[];
 }
-export interface HistorySummary { totalDebt: string; services: HistoryService[] }
+export interface HistoryLoan {
+  id: string;
+  direction: "lent" | "borrowed";
+  pending: string;
+  principal: string;
+  openedOn: string;
+  origin: string;
+}
+export interface HistorySummary {
+  totalDebt: string;
+  overdue: string;
+  creditTotal: string;
+  creditFree: string;
+  creditReserved: string;
+  reservations: Array<{ id: string; subscriptionName: string; amount: string }>;
+  shareText: string;
+  services: HistoryService[];
+  openLoans: HistoryLoan[];
+}
 
 const ZERO = "0.00";
 
 /** Reorganiza el estado de cuenta de la API en la forma que dibuja la pantalla; los importes se muestran tal cual llegan. */
-function toSummary(st: Statement, style: Map<string, { color: string; icon: string }>): HistorySummary {
+function toSummary(
+  st: Statement,
+  style: Map<string, { color: string; icon: string }>,
+  reservations: Array<{ id: string; subscriptionName: string; amount: string }>,
+  creditTotal: string,
+): HistorySummary {
   return {
     totalDebt: st.totals.pending,
+    overdue: st.totals.overdue,
+    creditTotal,
+    creditFree: st.totals.creditFree,
+    creditReserved: st.totals.creditReserved,
+    reservations,
+    shareText: st.shareText,
     services: st.services.map((s) => ({
       serviceId: s.subscriptionId,
       serviceName: s.name,
@@ -37,6 +66,16 @@ function toSummary(st: Statement, style: Map<string, { color: string; icon: stri
         status: c.paymentStatus === "converted" ? "converted" : cmpMoney(c.pending, ZERO) === 0 ? "paid" : cmpMoney(c.applied, ZERO) > 0 ? "partial" : "pending",
       })),
     })),
+    openLoans: (st.loans ?? [])
+      .filter((l) => l.status === "open")
+      .map((l) => ({
+        id: l.id,
+        direction: l.direction === "borrowed" ? "borrowed" : "lent",
+        pending: l.pending,
+        principal: l.principal,
+        openedOn: l.openedOn,
+        origin: l.origin,
+      })),
   };
 }
 
@@ -55,9 +94,15 @@ export const useContactHistory = (contact: Contact, refreshTrigger?: number) => 
 
   const loadSummary = useCallback(async () => {
     try {
-      const [st, subs] = await Promise.all([api.contactStatement(contact.id), api.subscriptions()]);
+      const [st, subs, credit] = await Promise.all([
+        api.contactStatement(contact.id),
+        api.subscriptions(),
+        api.contactCredit(contact.id).catch(() => null),
+      ]);
       const style = new Map(subs.map((s) => [s.id, { color: s.color ?? "#3B82F6", icon: s.icon ?? "receipt" }]));
-      setSummary(toSummary(st, style));
+      const creditTotal = credit?.total ?? serverSum([st.totals.creditFree, st.totals.creditReserved]);
+      const reservations = (credit?.reservations ?? []).map((r) => ({ id: r.id, subscriptionName: r.subscriptionName, amount: r.amount }));
+      setSummary(toSummary(st, style, reservations, creditTotal));
       setError(null);
     } catch (e) {
       setError(errorMessage(e));

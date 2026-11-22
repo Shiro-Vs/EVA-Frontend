@@ -16,6 +16,8 @@ export function toUiContact(c: ApiContact): Contact {
     plazasActivas: c.activeSeats,
     deuda: c.totals.pending,
     vencido: c.totals.overdue,
+    creditoLibre: c.totals.creditFree,
+    creditoReservado: c.totals.creditReserved,
     version: c.version,
   };
 }

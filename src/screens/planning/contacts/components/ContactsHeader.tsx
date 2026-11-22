@@ -28,9 +28,9 @@ export function ContactsHeader({ totalDeuda, count, debtorCount, onRemindPress }
           </Text>
         </View>
         {!none && (
-          <TouchableOpacity onPress={onRemindPress} accessibilityRole="button" activeOpacity={0.85} style={{ height: 40, paddingHorizontal: 16, borderRadius: 14, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.accent }}>
+          <TouchableOpacity onPress={onRemindPress} accessibilityRole="button" activeOpacity={0.85} style={{ height: 40, paddingHorizontal: 14, borderRadius: 14, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.accent }}>
             <Ionicons name="logo-whatsapp" size={17} color={colors.onAccent} />
-            <Text style={{ color: colors.onAccent, fontSize: 14, fontFamily: "AsapBold" }}>Cobrar</Text>
+            <Text style={{ color: colors.onAccent, fontSize: 13.5, fontFamily: "AsapBold" }}>Recordar</Text>
           </TouchableOpacity>
         )}
       </View>

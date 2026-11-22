@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -30,6 +31,8 @@ import { AddSubscriberModal } from "./components/AddSubscriberModal";
 export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = {}) {
   const { fonts } = useAppTheme();
   const {
+    contacts,
+    archivedContacts,
     loading,
     statusFilter,
     searchQuery,
@@ -68,6 +71,7 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
   } = useContacts();
 
   const [menuFor, setMenuFor] = useState<Contact | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { action } = useLocalSearchParams<{ action?: string }>();
   useEffect(() => {
     if (action === "add") {
@@ -77,25 +81,60 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
   }, [action]); // eslint-disable-line react-hooks/exhaustive-deps
   const pick = (fn: (c: Contact) => void) => { const c = menuFor; setMenuFor(null); if (c) setTimeout(() => fn(c), 0); };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try { await loadContacts(); } finally { setRefreshing(false); }
+  };
+
+  // Mantener actualizado el contacto mostrado en el perfil si se edita desde ahí.
+  const liveSelectedContact = selectedContact
+    ? (contacts.find((c) => c.id === selectedContact.id)
+      ?? archivedContacts.find((c) => c.id === selectedContact.id)
+      ?? selectedContact)
+    : null;
+
+  const activeDebtors = contacts.filter((c) => cmpMoney(c.deuda ?? "0.00", "0.00") > 0);
+
   if (loading && filteredContacts.length === 0) {
     return <EVALoading message="Cargando contactos..." />;
   }
 
-  // Vista de Historial
-  if (showHistory && selectedContact) {
+  // Vista de Perfil unificado de la persona
+  if (showHistory && liveSelectedContact) {
     return (
       <View className="flex-1" style={{ backgroundColor: colors.background }}>
         <ContactHistory
-          contact={selectedContact}
+          contact={liveSelectedContact}
           onBack={closeHistory}
           onAddServicePress={() => setIsAddSubModalVisible(true)}
+          onEditPress={() => handleEditContact(liveSelectedContact)}
           refreshTrigger={historyRefreshKey}
         />
         <AddSubscriberModal
           visible={isAddSubModalVisible}
           onClose={() => setIsAddSubModalVisible(false)}
-          contact={selectedContact}
+          contact={liveSelectedContact}
           onSuccess={() => setHistoryRefreshKey((prev) => prev + 1)}
+        />
+        <ContactModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          onSave={handleSaveContact}
+          contactDraft={contactDraft}
+          setContactDraft={setContactDraft}
+          isEditing={!!editingContact}
+        />
+        <EVAAlert
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          buttonText={alertConfig.onConfirm ? "Confirmar" : "Entendido"}
+          onClose={alertConfig.onConfirm || (() => setAlertConfig((prev) => ({ ...prev, visible: false })))}
+          secondaryButtonText={alertConfig.onConfirm ? "Cancelar" : undefined}
+          onSecondaryAction={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+          onDismiss={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+          horizontalButtons={!!alertConfig.onConfirm}
         />
       </View>
     );
@@ -114,8 +153,38 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
           <Button title={asTab ? "Nueva" : "Nuevo"} icon="add" size="compact" onPress={handleNewContact} />
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} bounces={false} overScrollMode="never" keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 14, paddingBottom: asTab ? 120 : 24 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          overScrollMode="never"
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
+          contentContainerStyle={{ gap: 14, paddingBottom: asTab ? 120 : 24 }}
+        >
           <ContactsHeader totalDeuda={stats.totalDeudaGlobal} count={stats.totalCount} debtorCount={stats.debtorCount} onRemindPress={() => setIsRemindModalVisible(true)} />
+
+          {asTab && (
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => router.push("/loans" as never)}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, backgroundColor: `${colors.text}08` }}
+              >
+                <Ionicons name="swap-horizontal-outline" size={16} color={colors.primary} />
+                <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, fontFamily: fonts.family.bold }}>Préstamos</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push("/refunds" as never)}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, backgroundColor: `${colors.text}08` }}
+              >
+                <Ionicons name="return-down-back-outline" size={16} color={colors.primary} />
+                <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, fontFamily: fonts.family.bold }}>Devoluciones</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, height: 44, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.card }}>
@@ -149,19 +218,12 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
           )}
 
           <ContactList contacts={filteredContacts} onContactPress={openHistory} onMenuPress={setMenuFor} />
-
-          {asTab && (
-            <View style={{ gap: 10, marginTop: 4 }}>
-              <MenuRow section="people" icon="return-down-back-outline" title="Devoluciones" text="Dinero que debes devolver a alguien" onPress={() => router.push("/refunds" as never)} />
-              <MenuRow section="people" icon="people-outline" title="Préstamos entre personas" text="Lo que prestaste o te prestaron" onPress={() => router.push("/loans" as never)} />
-            </View>
-          )}
         </ScrollView>
       </View>
 
       <BottomSheet visible={!!menuFor} onClose={() => setMenuFor(null)} title={menuFor?.nombre} maxHeight={0.55}>
         <View style={{ paddingHorizontal: 4, paddingBottom: 4, gap: 6 }}>
-          <MenuRow icon="time-outline" title="Ver historial" onPress={() => pick((c) => openHistory(c))} />
+          <MenuRow icon="person-outline" title="Ver perfil" onPress={() => pick((c) => openHistory(c))} />
           <MenuRow icon="create-outline" title="Editar" onPress={() => pick(handleEditContact)} />
           {statusFilter === "archived" ? (
             <MenuRow icon="refresh-outline" title="Restaurar" text="Vuelve a aparecer en tu lista activa" onPress={() => pick(handleRestoreContact)} />
@@ -205,7 +267,7 @@ export default function ContactsScreen({ asTab = false }: { asTab?: boolean } = 
       <RemindModal
         visible={isRemindModalVisible}
         onClose={() => setIsRemindModalVisible(false)}
-        debtors={filteredContacts.filter((c) => cmpMoney(c.deuda ?? "0.00", "0.00") > 0)}
+        debtors={activeDebtors}
       />
     </SafeAreaView>
   );

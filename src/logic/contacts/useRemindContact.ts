@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Alert, Linking, Share } from "react-native";
+import { Alert } from "react-native";
 import { api, errorMessage } from "../../api/client";
 import { Contact } from "../../interfaces/Contact";
+import { openWhatsApp, shareText } from "../../utils/share";
 
 export const useRemindContact = (visible: boolean, debtors: Contact[]) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -24,17 +25,18 @@ export const useRemindContact = (visible: boolean, debtors: Contact[]) => {
     return () => { cancelled = true; };
   }, [visible, selectedId]);
 
+  const selectedContact = debtors.find((d) => d.id === selectedId) ?? null;
+
   const handleShare = async () => {
-    try { await Share.share({ message }); } catch (error) { console.error(error); }
+    try { await shareText(message); } catch (error) { console.error(error); }
   };
 
-  const handleWhatsApp = () => {
-    const url = `whatsapp://send?text=${encodeURIComponent(message)}`;
-    Linking.canOpenURL(url).then((supported) => {
-      if (supported) Linking.openURL(url);
-      else Alert.alert("WhatsApp", "WhatsApp no está instalado en este dispositivo");
-    });
+  const handleWhatsApp = async () => {
+    const ok = await openWhatsApp(message, selectedContact?.telefono);
+    if (!ok) {
+      Alert.alert("WhatsApp", "No se pudo abrir WhatsApp en este dispositivo.");
+    }
   };
 
-  return { selectedId, setSelectedId, loading, message, handleShare, handleWhatsApp };
+  return { selectedId, setSelectedId, selectedContact, loading, message, handleShare, handleWhatsApp };
 };

@@ -164,7 +164,8 @@ export interface LoanComponent {
   obligationId: string; concept: string; periodLabel: string | null; originObligationId: string | null; amount: Money; pending: Money; dueDate: IsoDate | null;
 }
 export interface Loan {
-  id: string; contactId: string; contactName: string; principal: Money; openedOn: IsoDate; origin: string; status: "open" | "closed"; pending: Money;
+  id: string; contactId: string; contactName: string; principal: Money; openedOn: IsoDate; origin: string; status: "open" | "closed" | "cancelled"; pending: Money;
+  engine?: "ledger" | "components"; direction?: "lent" | "borrowed";
   conversion: { trigger: string; reason: string } | null; createdAt: string; components: LoanComponent[];
 }
 export interface Courtesy {

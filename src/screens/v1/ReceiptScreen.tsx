@@ -90,7 +90,7 @@ export default function ReceiptScreen() {
         {activeAccounts.length > 0 ? (
           <Choice label="Entró a" value={accountId} onChange={(id) => { setAccountId(id); save.resetKey(); }} options={activeAccounts.map((a) => ({ id: a.id, label: a.name }))} />
         ) : (
-          <Notice tone="warn">Primero crea una cuenta desde Inicio.</Notice>
+          <Notice tone="warn">Primero crea una cuenta desde Dinero.</Notice>
         )}
         <DateInput label="Fecha" value={date} onChange={(t) => { setDate(t); save.resetKey(); }} />
         <Field label="Nota (opcional)" value={note} onChangeText={(t) => { setNote(t); save.resetKey(); }} autoCapitalize="sentences" maxLength={200} />

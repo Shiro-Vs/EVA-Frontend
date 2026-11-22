@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { Switch, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { Charge, Refund } from "../../api/types";
 import { AccountPicker, Choice, DateField, FlowResult, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Button, Card, Chip, Empty, ErrorBox, Field, Heading, KV, Loading, Money, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -75,23 +77,49 @@ export function ContactReceiptsScreen() {
 }
 
 export function LoansScreen() {
+  const { colors } = useAppTheme();
   const { contactId } = useLocalSearchParams<{ contactId?: string }>();
   const router = useRouter();
   const loans = useAsync(() => api.loans(contactId), [contactId]);
   useFocusReload(loans.reload);
   return (
-    <Screen title="Préstamos" footer={<Button title="Nuevo préstamo" icon="add" onPress={() => router.push("/loans/new" as never)} />}>
+    <Screen
+      title="Préstamos"
+      footer={
+        <Button
+          title="Nuevo préstamo"
+          icon="add"
+          onPress={() => router.push((contactId ? { pathname: "/loans/new", params: { contactId } } : "/loans/new") as never)}
+        />
+      }
+    >
       {loans.loading && !loans.data ? <Loading /> : loans.error ? <ErrorBox message={loans.error} onRetry={loans.reload} /> : (loans.data ?? []).length === 0 ? (
         <Empty icon="swap-horizontal-outline" title="Sin préstamos" text="Registra uno nuevo, o conviértelo desde una deuda de servicio (por ejemplo, al dar de baja a alguien que debe)." />
-      ) : (loans.data ?? []).map((l) => (
-        <RowLink key={l.id} onPress={() => router.push(`/loan/${l.id}` as never)}>
-          <View style={{ flex: 1 }}>
-            <Txt bold>{l.contactName}</Txt>
-            <Txt size={12} muted>Desde {humanDate(l.openedOn)} · capital {formatSoles(l.principal)}</Txt>
-          </View>
-          <View style={{ alignItems: "flex-end", gap: 4 }}><Chip status={l.status === "open" ? "partial" : "paid"} label={l.status === "open" ? "Abierto" : "Cerrado"} /><Txt bold size={13}>{formatSoles(l.pending)}</Txt></View>
-        </RowLink>
-      ))}
+      ) : (loans.data ?? []).map((l) => {
+        const isBorrowed = l.direction === "borrowed";
+        const dirLabel = isBorrowed ? "Te prestó" : "Le prestaste";
+        const dirColor = isBorrowed ? colors.expenseStrong : colors.incomeStrong;
+        return (
+          <RowLink key={l.id} onPress={() => router.push(`/loan/${l.id}` as never)}>
+            <Ionicons
+              name={isBorrowed ? "arrow-down-circle-outline" : "arrow-up-circle-outline"}
+              size={22}
+              color={dirColor}
+            />
+            <View style={{ flex: 1 }}>
+              <Txt bold>{l.contactName}</Txt>
+              <Txt size={12} muted>{dirLabel} · desde {humanDate(l.openedOn)} · capital {formatSoles(l.principal)}</Txt>
+            </View>
+            <View style={{ alignItems: "flex-end", gap: 4 }}>
+              <Chip
+                status={l.status === "open" ? "partial" : l.status === "cancelled" ? "converted" : "paid"}
+                label={l.status === "open" ? "Abierto" : l.status === "cancelled" ? "Anulado" : "Cerrado"}
+              />
+              <Txt bold size={13}>{formatSoles(l.pending)}</Txt>
+            </View>
+          </RowLink>
+        );
+      })}
     </Screen>
   );
 }
@@ -114,7 +142,7 @@ export function LoanScreen() {
         <View style={{ marginTop: 6 }}><Chip status={l.status === "open" ? "partial" : "paid"} label={l.status === "open" ? "Abierto" : "Cerrado"} /></View>
       </Card>
       {l.status === "open" && <Button title="Registrar cobro del préstamo" icon="cash-outline" onPress={() => router.push({ pathname: "/receipt/new", params: { contactId: l.contactId } })} />}
-      <Heading>Componentes</Heading>
+      <Heading>Detalle de la deuda</Heading>
       {l.components.map((c) => (
         <Card key={c.obligationId} outlined>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
