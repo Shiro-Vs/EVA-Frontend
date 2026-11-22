@@ -1,8 +1,11 @@
 import React, { useState } from "react";
+import { View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
+import type { DeleteAccountPreview } from "../../api/types";
+import BottomSheet from "../../components/common/BottomSheet";
 import { BankCardCustomizer } from "../../components/v1/BankCard";
-import { Button, Card, ErrorBox, Field, Loading, Notice, Screen, SwitchRow, Txt } from "../../components/v1/ui";
+import { Button, Card, ErrorBox, Field, KV, Loading, Notice, Screen, SwitchRow, Txt } from "../../components/v1/ui";
 import { normalizeCardPattern, type CardPattern } from "../../constants/banks";
 import { useDialog } from "../../context/DialogContext";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
@@ -24,6 +27,8 @@ export function AccountEditScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [deleteSheet, setDeleteSheet] = useState<DeleteAccountPreview | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
   const save = useSubmit(async () => {
     const a = acc.data!;
     const currentPattern = normalizeCardPattern(a.icon);
@@ -80,22 +85,43 @@ export function AccountEditScreen() {
     }
   };
 
-  const doRemove = async () => {
+  const openRemove = async () => {
+    if (removing || loadingPreview) return;
+    setLoadingPreview(true);
+    try {
+      const preview = await api.previewDeleteAccount(id);
+      if (preview.isEmpty) {
+        const ok = await dialog.confirm({
+          title: `¿Eliminar ${a.name} definitivamente?`,
+          message: "Esta cuenta no tiene movimientos ni registros vinculados. Se borrará para siempre y no se puede deshacer.",
+          confirmLabel: "Eliminar",
+          cancelLabel: "Cancelar",
+          danger: true,
+        });
+        if (!ok) return;
+        setRemoving(true);
+        await api.removeAccount(id);
+        router.replace("/money" as never);
+      } else {
+        setDeleteSheet(preview);
+      }
+    } catch (e) {
+      await dialog.fail(e, "No se pudo preparar la eliminación");
+    } finally {
+      setLoadingPreview(false);
+      setRemoving(false);
+    }
+  };
+
+  const confirmForceRemove = async () => {
     if (removing) return;
-    const ok = await dialog.confirm({
-      title: `¿Eliminar ${a.name}?`,
-      message: "Esta acción es definitiva. Solo se permite si la cuenta nunca tuvo movimientos ni registros vinculados.",
-      confirmLabel: "Eliminar",
-      cancelLabel: "Cancelar",
-      danger: true,
-    });
-    if (!ok) return;
     setRemoving(true);
     try {
-      await api.removeAccount(id);
+      await api.removeAccount(id, { force: true });
+      setDeleteSheet(null);
       router.replace("/money" as never);
     } catch (e) {
-      await dialog.fail(e, "No se pudo eliminar");
+      await dialog.fail(e, "No se pudo eliminar la cuenta");
     } finally {
       setRemoving(false);
     }
@@ -108,7 +134,7 @@ export function AccountEditScreen() {
         <>
           <Card>
             <BankCardCustomizer
-              account={{ name: trimmedName || a.name, type: a.type, institution: a.institution, balance: a.balance, color: curColor, icon: curPattern }}
+              account={{ name: trimmedName || a.name, type: a.type, institution: a.institution, balance: a.balance, color: curColor, icon: curPattern, credit: a.credit }}
               color={curColor}
               pattern={curPattern}
               onChangeColor={(c) => { setColor(c); save.resetKey(); }}
@@ -139,9 +165,38 @@ export function AccountEditScreen() {
 
       <Card>
         <Txt bold>Eliminar cuenta</Txt>
-        <Txt size={12} muted style={{ marginBottom: 8 }}>Solo se puede eliminar definitivamente si no tiene movimientos ni configuración vinculada.</Txt>
-        <Button title="Eliminar cuenta" variant="outlineDanger" icon="trash-outline" busy={removing} onPress={doRemove} />
+        <Txt size={12} muted style={{ marginBottom: 8 }}>Si ya no usas esta cuenta puedes eliminarla definitivamente. Si tiene movimientos, te avisaremos antes y su historial quedará marcado como «Cuenta eliminada».</Txt>
+        <Button title="Eliminar cuenta" variant="outlineDanger" icon="trash-outline" busy={removing || loadingPreview} onPress={openRemove} />
       </Card>
+
+      <BottomSheet visible={!!deleteSheet} onClose={() => { if (!removing) setDeleteSheet(null); }} title={`Eliminar «${a.name}»`} maxHeight={0.8}>
+        {deleteSheet && (
+          <View style={{ gap: 12, paddingBottom: 8 }}>
+            <Notice tone="warn">
+              Esta cuenta desaparecerá definitivamente de tu lista y dejará de contar en tu saldo total. No podrás restaurarla.
+            </Notice>
+            <Card outlined>
+              <Txt bold size={13} style={{ marginBottom: 4 }}>Lo que tiene esta cuenta</Txt>
+              {cmpMoney(deleteSheet.account.balance, "0.00") !== 0 && (
+                <KV label={a.type === "credit" ? "Deuda actual" : "Saldo actual"} value={formatSoles(a.type === "credit" && cmpMoney(deleteSheet.account.balance, "0.00") < 0 ? deleteSheet.account.balance.replace("-", "") : deleteSheet.account.balance)} strong />
+              )}
+              {Object.entries(deleteSheet.usage).map(([label, count]) => (
+                <KV key={label} label={label.charAt(0).toUpperCase() + label.slice(1)} value={String(count)} />
+              ))}
+            </Card>
+            <Txt size={12} muted>
+              Tus movimientos registrados no se borran para no alterar tus reportes pasados: en su detalle dirán «{a.name} (Cuenta eliminada)».
+            </Txt>
+            <View style={{ gap: 8 }}>
+              <Button title="Eliminar definitivamente" variant="danger" icon="trash-outline" busy={removing} onPress={confirmForceRemove} />
+              {a.status === "active" && (
+                <Button title="Mejor archivar (se puede restaurar)" variant="secondary" icon="archive-outline" disabled={removing} onPress={() => { setDeleteSheet(null); void doArchive(); }} />
+              )}
+              <Button title="Cancelar" variant="secondary" disabled={removing} onPress={() => setDeleteSheet(null)} />
+            </View>
+          </View>
+        )}
+      </BottomSheet>
     </Screen>
   );
 }

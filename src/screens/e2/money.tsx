@@ -15,8 +15,13 @@ import { humanDate, humanRange, isIsoDate } from "../../utils/dates";
 import { cmpMoney, formatSoles, normalizeMoneyInput } from "../../utils/money";
 
 const KIND_TEXT: Record<string, string> = { income: "Ingreso", expense: "Gasto", transfer: "Transferencia", opening: "Saldo inicial", adjustment: "Ajuste", reversal: "Reversión" };
+const LEGACY_REV_RE = /^Reversión de [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const cleanOpDesc = (desc: string) => (LEGACY_REV_RE.test(desc.trim()) ? "Reversión de movimiento" : desc);
 
-const accountName = (accounts: Account[] | null, id: string) => accounts?.find((a) => a.id === id)?.name ?? "Cuenta";
+const accountName = (accounts: Account[] | null, id: string, fallback?: string, deleted?: boolean) => {
+  const base = fallback || accounts?.find((a) => a.id === id)?.name || "Cuenta";
+  return deleted ? `${base} (Cuenta eliminada)` : base;
+};
 
 // ───────────────────────── Operaciones ─────────────────────────
 
@@ -72,14 +77,20 @@ export function OperationScreen() {
     || (contactId !== undefined && contactId !== (o.contactId ?? null));
   const contactOpts = [{ id: "__none__", label: "Ninguno" }, ...(contacts.data ?? []).map((c) => ({ id: c.id, label: c.name }))];
 
+  const anyDeletedAccount = o.entries.some((e) => e.accountDeleted);
+
   return (
     <Screen title={KIND_TEXT[o.kind] ?? o.kind} subtitle={humanDate(o.occurredOn)} refreshing={refreshing} onRefresh={onRefresh}>
       <Card>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}><Chip status={o.status === "confirmed" ? "paid" : "converted"} label={o.status === "confirmed" ? "Confirmado" : "Revertido"} /></View>
-        {o.entries.map((e, i) => <KV key={i} label={accountName(accounts.data, e.accountId)} value={formatSoles(e.amount)} strong />)}
+        {o.entries.map((e, i) => <KV key={i} label={accountName(accounts.data, e.accountId, e.accountName, e.accountDeleted)} value={formatSoles(e.amount)} strong />)}
+        {o.kind === "reversal" && o.description ? <KV label="Detalle" value={cleanOpDesc(o.description)} /> : null}
         {o.category && <KV label="Categoría" value={o.category.name} />}
         {o.reason ? <KV label="Motivo" value={o.reason} /> : null}
       </Card>
+      {anyDeletedAccount && (
+        <Notice tone="info">La cuenta asociada a este movimiento fue eliminada. El movimiento se conserva en tu historial.</Notice>
+      )}
 
       {editable && (
         <Card>
@@ -159,7 +170,7 @@ export function OperationCorrectScreen() {
   if (op.error || !o) return <Screen title="Corregir movimiento"><ErrorBox message={op.error ?? "No se encontró el movimiento."} onRetry={op.reload} /></Screen>;
   return (
     <Screen title="Corregir movimiento" subtitle={`${KIND_TEXT[o.kind] ?? o.kind} de ${formatSoles(oldAmount)} · ${humanDate(o.occurredOn)}`}
-      footer={<PreviewFooter flow={flow} disabled={Object.keys(body()).length === 0 || reason.trim().length === 0} confirmDisabled={reason.trim().length === 0} confirmLabel="Aplicar corrección" onConfirm={async () => { const res = await flow.confirm() as { operation?: { id?: string } } | undefined; if (res?.operation?.id) router.replace(`/operation/${res.operation.id}` as never); else if (res) done(`/operation/${id}`); }} />}>
+      footer={<PreviewFooter flow={flow} disabled={Object.keys(body()).length === 0 || reason.trim().length === 0} confirmDisabled={reason.trim().length === 0} confirmLabel="Aplicar corrección" onConfirm={async () => { const res = await flow.confirm(); if (res) { if (router.canDismiss()) router.dismissAll(); router.replace("/money" as never); } }} />}>
       <Card>
         <MoneyField label="Importe" value={amount ?? oldAmount} onChange={touch(setAmount)} />
         <AccountPicker label={transfer ? "Cuenta de origen" : "Cuenta"} value={from} onChange={touch(setFrom)} />
@@ -168,7 +179,7 @@ export function OperationCorrectScreen() {
         <ReasonField value={reason} onChange={(v) => { setReason(v); flow.invalidate(); }} label="Motivo de la corrección" />
       </Card>
       <Notice tone="info">Se revierte el movimiento original y se registra uno nuevo con estos datos, en una sola operación. No se registra ninguna devolución de dinero.</Notice>
-      <FlowResult flow={flow} />
+      <FlowResult flow={flow} hide={["willCreate", "note"]} />
     </Screen>
   );
 }

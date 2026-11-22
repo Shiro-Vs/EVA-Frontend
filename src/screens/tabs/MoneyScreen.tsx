@@ -13,6 +13,7 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, todayLocalIso } from "../../utils/dates";
+import { getDismissedUncategorized } from "../../utils/dismissedUncategorized";
 import { cmpMoney, formatSoles } from "../../utils/money";
 
 const HIDE_KEY = "eva_hide_balances";
@@ -53,6 +54,7 @@ export default function MoneyScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [dismissedUncat, setDismissedUncat] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -61,6 +63,7 @@ export default function MoneyScreen() {
 
   useEffect(() => {
     AsyncStorage.getItem(HIDE_KEY).then((v) => setHidden(v === "1")).catch(() => {});
+    getDismissedUncategorized().then(setDismissedUncat).catch(() => {});
   }, []);
 
   const toggleHidden = () => {
@@ -92,6 +95,7 @@ export default function MoneyScreen() {
     void uncategorized.reload();
     void advisor.reload();
     AsyncStorage.getItem(HIDE_KEY).then((v) => setHidden(v === "1")).catch(() => {});
+    getDismissedUncategorized().then(setDismissedUncat).catch(() => {});
   }, [accounts.reload, summary.reload, ops.reload, uncategorized.reload, advisor.reload]);
   useFocusReload(reload);
 
@@ -133,8 +137,12 @@ export default function MoneyScreen() {
     return out;
   }, [items, today]);
 
-  const uncatCount = uncategorized.data?.items.length ?? 0;
-  const uncatHasMore = !!uncategorized.data?.nextCursor;
+  const visibleUncat = useMemo(
+    () => (uncategorized.data?.items ?? []).filter((o) => !dismissedUncat.has(o.id)),
+    [uncategorized.data?.items, dismissedUncat],
+  );
+  const uncatCount = visibleUncat.length;
+  const uncatHasMore = !!uncategorized.data?.nextCursor && uncatCount > 0;
   const bestCard = advisor.data?.cards && advisor.data.cards.length >= 2 ? advisor.data.best : null;
 
   return (
@@ -159,6 +167,17 @@ export default function MoneyScreen() {
         <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "Asap" }}>
           {includedCount} {includedCount === 1 ? "cuenta" : "cuentas"}{excludedCount > 0 ? ` (${excludedCount} excluida${excludedCount === 1 ? "" : "s"})` : ""} · lo que debes en tarjetas ya está descontado
         </Text>
+        {s?.creditLines && s.creditLines.cards > 0 && (
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.16)" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Ionicons name="card-outline" size={14} color={colors.onPrimaryMuted} />
+              <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "AsapMedium" }}>Línea de crédito disponible</Text>
+            </View>
+            <Text style={{ color: colors.onPrimary, fontSize: 13.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+              {hidden ? MASK : formatSoles(s.creditLines.available)}
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={{ flexDirection: "row", gap: 10 }}>
@@ -297,22 +316,28 @@ export default function MoneyScreen() {
                 {g.label}
               </Text>
               <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14 }}>
-                {g.ops.map((o, i) => (
-                  <OperationRow
-                    key={o.id}
-                    op={o}
-                    first={i === 0}
-                    hidden={hidden}
-                    accountLabel={
-                      o.kind === "transfer" && o.accountId && o.toAccountId
-                        ? `${accountById.get(o.accountId) ?? "Cuenta"} → ${accountById.get(o.toAccountId) ?? "Cuenta"}`
-                        : o.accountId
-                          ? accountById.get(o.accountId) ?? null
-                          : null
-                    }
-                    onPress={() => router.push(`/operation/${o.id}` as never)}
-                  />
-                ))}
+                {g.ops.map((o, i) => {
+                  const fromName = o.accountName ?? (o.accountId ? accountById.get(o.accountId) : null) ?? "Cuenta";
+                  const fromLabel = o.accountDeleted ? `${fromName} (eliminada)` : fromName;
+                  const toName = o.toAccountName ?? (o.toAccountId ? accountById.get(o.toAccountId) : null) ?? "Cuenta";
+                  const toLabel = o.toAccountDeleted ? `${toName} (eliminada)` : toName;
+                  return (
+                    <OperationRow
+                      key={o.id}
+                      op={o}
+                      first={i === 0}
+                      hidden={hidden}
+                      accountLabel={
+                        o.kind === "transfer" && (o.accountId || o.accountName) && (o.toAccountId || o.toAccountName)
+                          ? `${fromLabel} → ${toLabel}`
+                          : (o.accountId || o.accountName)
+                            ? (o.accountDeleted ? `${fromName} (Cuenta eliminada)` : fromName)
+                            : null
+                      }
+                      onPress={() => router.push(`/operation/${o.id}` as never)}
+                    />
+                  );
+                })}
               </View>
             </View>
           ))}
@@ -356,6 +381,15 @@ const OP_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   reversal: "refresh-outline",
   opening: "flag-outline",
 };
+const OP_FALLBACK: Record<string, string> = {
+  income: "Ingreso",
+  expense: "Gasto",
+  transfer: "Transferencia",
+  adjustment: "Ajuste",
+  reversal: "Reversión",
+  opening: "Saldo inicial",
+};
+const LEGACY_REV_RE = /^Reversión de [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function OperationRow({ op, first, hidden, accountLabel, onPress }: { op: OperationItem; first: boolean; hidden: boolean; accountLabel: string | null; onPress: () => void }) {
   const { colors } = useAppTheme();
@@ -363,11 +397,13 @@ function OperationRow({ op, first, hidden, accountLabel, onPress }: { op: Operat
   const tone = op.kind === "income" ? "income" : op.kind === "expense" ? "expense" : "muted";
   const iconColor = op.kind === "income" ? colors.incomeStrong : op.kind === "expense" ? colors.expenseStrong : colors.textSecondary;
   const subParts = [accountLabel, op.category?.name].filter(Boolean).join(" · ");
+  const rawDesc = op.description?.trim() ?? "";
+  const title = !rawDesc ? (OP_FALLBACK[op.kind] ?? "Movimiento") : LEGACY_REV_RE.test(rawDesc) ? "Reversión de movimiento" : rawDesc;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.75} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 11, borderTopWidth: first ? 0 : 1, borderTopColor: colors.border, opacity: reversed ? 0.55 : 1 }}>
       <Ionicons name={OP_ICON[op.kind] ?? "ellipse-outline"} size={20} color={iconColor} />
       <View style={{ flex: 1, gap: 1 }}>
-        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{op.description || "Sin descripción"}</Text>
+        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{title}</Text>
         {subParts ? <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{subParts}</Text> : null}
       </View>
       {reversed && <Chip status="reversed" label="Revertido" />}

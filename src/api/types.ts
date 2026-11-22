@@ -10,9 +10,22 @@ export interface Profile {
 }
 
 export type AccountType = "bank" | "savings" | "cash" | "wallet" | "credit";
+export interface AccountCreditInfo {
+  creditLine: Money | null;
+  cutoffDay: number;
+  dueDay: number;
+  used: Money;
+  available: Money | null;
+}
 export interface Account {
   id: string; name: string; type: AccountType; currency: string; institution: string | null; color: string | null; icon: string | null;
   isDefault: boolean; excludeFromTotal: boolean; status: "active" | "archived"; balance: Money; version: number; createdAt: string;
+  credit?: AccountCreditInfo | null;
+}
+export interface DeleteAccountPreview {
+  account: { id: string; name: string; type: AccountType; status: string; balance: Money };
+  isEmpty: boolean;
+  usage: Record<string, number>;
 }
 export interface AccountEntry { id: string; operationId: string; kind: string; occurredOn: IsoDate; description: string; operationStatus: string; amount: Money; balanceAfter: Money }
 
@@ -131,11 +144,12 @@ export interface DailyTip {
 export interface Summary {
   asOf: IsoDate;
   balance: { net: Money; accounts: number };
+  creditLines?: { total: Money; available: Money; cards: number };
   receivable: { pending: Money; overdue: Money; debtors: number; creditFree: Money; creditReserved: Money };
   subscriptions: { active: number; currentCycleTotal: Money };
   recurring: { pending: number };
   loans: { lentPending: Money; borrowedPending: Money };
-  recent: Array<{ id: string; operationId: string; kind: "income" | "expense" | "transfer" | "adjustment" | "reversal"; status: string; occurredOn: IsoDate; description: string; account: { id: string; name: string }; amount: Money }>;
+  recent: Array<{ id: string; operationId: string; kind: "income" | "expense" | "transfer" | "adjustment" | "reversal"; status: string; occurredOn: IsoDate; description: string; account: { id: string; name: string; deleted?: boolean }; amount: Money }>;
 }
 
 // ---- Entrega 2 ----
@@ -175,7 +189,7 @@ export interface ContactReceipt {
 export interface OperationDetail {
   id: string; kind: string; occurredOn: IsoDate; occurredTime?: string | null; description: string; status: "confirmed" | "reversed"; reversalOfId: string | null; reason: string | null; version: number; createdAt: string;
   concept?: string; contactId?: string | null; category?: { id: string; name: string } | null;
-  entries: Array<{ accountId: string; amount: Money }>;
+  entries: Array<{ accountId: string; accountName?: string; accountDeleted?: boolean; amount: Money }>;
   links: {
     receiptId: string | null;
     supplierPaymentId: string | null;
@@ -196,7 +210,9 @@ export interface Rule {
 }
 export interface OperationItem {
   id: string; kind: string; concept: string; occurredOn: IsoDate; description: string; status: string; category: { id: string; name: string } | null; contactId: string | null;
-  accountId: string | null; toAccountId: string | null; amount: Money; links: { receipt: boolean; refund: boolean; supplierPayment: boolean };
+  accountId: string | null; accountName?: string | null; accountDeleted?: boolean;
+  toAccountId: string | null; toAccountName?: string | null; toAccountDeleted?: boolean;
+  amount: Money; links: { receipt: boolean; refund: boolean; supplierPayment: boolean };
 }
 export interface CreditDetails { creditLine: Money | null; cutoffDay: number; dueDay: number; version: number }
 export interface CardStatement {

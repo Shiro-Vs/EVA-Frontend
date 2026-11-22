@@ -4,6 +4,7 @@ import { api, errorMessage } from "../../api/client";
 import type { AccountEntry } from "../../api/types";
 import { useRouter } from "expo-router";
 import { Button, Card, Empty, ErrorBox, Heading, Loading, Money, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate } from "../../utils/dates";
@@ -12,6 +13,7 @@ import { cmpMoney, formatSoles } from "../../utils/money";
 const KIND: Record<string, string> = { opening: "Saldo inicial", income: "Ingreso", expense: "Gasto", transfer: "Transferencia", adjustment: "Ajuste", reversal: "Reversión" };
 
 export default function AccountDetailScreen({ accountId }: { accountId: string }) {
+  const { colors } = useAppTheme();
   const router = useRouter();
   const [more, setMore] = useState<AccountEntry[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -78,6 +80,22 @@ export default function AccountDetailScreen({ accountId }: { accountId: string }
       <Card>
         <Txt muted size={13}>{balanceLabel}</Txt>
         <Money value={displayAmount} size={32} tone={balanceTone} />
+        {isCredit && a.credit?.creditLine != null && a.credit?.available != null && cmpMoney(a.credit.creditLine, "0.00") > 0 && (() => {
+          const lineN = Number(a.credit!.creditLine);
+          const availN = Math.max(0, Number(a.credit!.available));
+          const pct = lineN > 0 ? Math.max(0, Math.min(100, Math.round((availN / lineN) * 100))) : 0;
+          return (
+            <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border, gap: 6 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <Txt size={12} muted>Línea disponible</Txt>
+                <Txt size={13} bold>{formatSoles(a.credit!.available!)} <Txt size={11} muted>de {formatSoles(a.credit!.creditLine!)}</Txt></Txt>
+              </View>
+              <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: "hidden" }}>
+                <View style={{ height: "100%", width: `${pct}%`, borderRadius: 3, backgroundColor: colors.primary }} />
+              </View>
+            </View>
+          );
+        })()}
       </Card>
 
       {isArchived ? (

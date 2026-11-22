@@ -16,6 +16,11 @@ export interface BankCardData {
   balance: string;
   color?: string | null;
   icon?: string | null;
+  credit?: {
+    creditLine: string | null;
+    used: string;
+    available: string | null;
+  } | null;
 }
 
 /** Tarjeta bancaria con proporción real (1.586:1), chip dorado, contactless, colores por entidad o personalizados y acabado. */
@@ -44,6 +49,11 @@ export function BankCard({
   const soft = customTheme?.soft ?? brand?.soft ?? (credit ? colors.textSecondary : wallet ? colors.onAccent : colors.onPrimaryMuted);
   const pattern = normalizeCardPattern(a.icon);
   const owes = cmpMoney(a.balance, "0.00") < 0;
+  const hasLine = credit && a.credit?.creditLine != null && a.credit?.available != null && cmpMoney(a.credit.creditLine, "0.00") > 0;
+  const lineNum = hasLine ? Number(a.credit!.creditLine) : 0;
+  const availNum = hasLine ? Math.max(0, Number(a.credit!.available)) : 0;
+  const remainPct = hasLine && lineNum > 0 ? Math.max(0, Math.min(100, Math.round((availNum / lineNum) * 100))) : 0;
+  const usedDisplay = hasLine ? a.credit!.used : owes ? a.balance.replace("-", "") : "0.00";
   const kind = credit ? "CRÉDITO" : a.type === "cash" ? "EFECTIVO" : a.type === "wallet" ? "BILLETERA" : a.type === "savings" ? "AHORROS" : "DÉBITO";
   const headerLabel = a.institution?.trim() || brand?.label || a.name.trim() || "Mi cuenta";
   const footerName = a.name.trim() || "Nombre de cuenta";
@@ -118,26 +128,38 @@ export function BankCard({
           </View>
           <View style={{ alignItems: "flex-end", flexShrink: 1 }}>
             <Text style={{ color: soft, fontSize: 10, fontFamily: "AsapMedium", letterSpacing: 1 }}>
-              {credit ? (owes || cmpMoney(a.balance, "0.00") === 0 ? "DEUDA" : "A FAVOR") : "SALDO"}
+              {hasLine ? "DISPONIBLE" : credit ? (owes || cmpMoney(a.balance, "0.00") === 0 ? "DEUDA" : "A FAVOR") : "SALDO"}
             </Text>
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
               style={{
-                color: credit && owes && !hasCustomOrBrand ? colors.expenseStrong : ink,
+                color: !hasLine && credit && owes && !hasCustomOrBrand ? colors.expenseStrong : ink,
                 fontSize: 18,
                 fontFamily: "AsapBold",
                 fontVariant: ["tabular-nums"],
               }}
             >
-              {hidden ? MASK : formatSoles(credit && owes ? a.balance.replace("-", "") : a.balance)}
+              {hidden ? MASK : hasLine ? formatSoles(a.credit!.available!) : formatSoles(credit && owes ? a.balance.replace("-", "") : a.balance)}
             </Text>
+            {hasLine && (
+              <Text numberOfLines={1} style={{ color: soft, fontSize: 9.5, fontFamily: "AsapMedium", fontVariant: ["tabular-nums"] }}>
+                {hidden ? "Línea ••••" : cmpMoney(usedDisplay, "0.00") > 0 ? `Usado ${formatSoles(usedDisplay)} de ${formatSoles(a.credit!.creditLine!)}` : `Línea ${formatSoles(a.credit!.creditLine!)}`}
+              </Text>
+            )}
           </View>
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-          <Text numberOfLines={1} style={{ flex: 1, color: ink, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>{footerName}</Text>
-          <Text style={{ color: soft, fontSize: 10, fontFamily: "AsapBold", letterSpacing: 1 }}>{kind}</Text>
+        <View style={{ gap: 4 }}>
+          {hasLine && (
+            <View style={{ height: 3.5, borderRadius: 2, backgroundColor: credit && !hasCustomOrBrand ? `${colors.text}18` : "rgba(255,255,255,0.22)", overflow: "hidden" }}>
+              <View style={{ height: "100%", width: `${remainPct}%`, borderRadius: 2, backgroundColor: credit && !hasCustomOrBrand ? colors.primary : ink }} />
+            </View>
+          )}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+            <Text numberOfLines={1} style={{ flex: 1, color: ink, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>{footerName}</Text>
+            <Text style={{ color: soft, fontSize: 10, fontFamily: "AsapBold", letterSpacing: 1 }}>{kind}</Text>
+          </View>
         </View>
       </View>
     </View>

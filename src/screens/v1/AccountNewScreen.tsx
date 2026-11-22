@@ -47,6 +47,14 @@ export default function AccountNewScreen() {
   const isCredit = type === "credit";
   const previewNorm = normalizeMoneyInput(amountText) ?? "0.00";
   const previewBalance = isCredit && previewNorm !== "0.00" ? `-${previewNorm}` : previewNorm;
+  const previewLineNorm = isCredit ? normalizeMoneyInput(creditLine) : null;
+  const previewCredit = isCredit && previewLineNorm && cmpMoney(previewLineNorm, "0.00") > 0
+    ? {
+        creditLine: previewLineNorm,
+        used: previewNorm,
+        available: (Math.max(0, Number(previewLineNorm) - Number(previewNorm))).toFixed(2),
+      }
+    : null;
 
   const create = useSubmit(async (key: string) => {
     const amount = amountText.trim() === "" ? null : normalizeMoneyInput(amountText);
@@ -104,7 +112,7 @@ export default function AccountNewScreen() {
     <Screen title="Nueva cuenta" footer={<Button title="Crear cuenta" onPress={save} busy={create.busy} />}>
       <Card>
         <BankCardCustomizer
-          account={{ name, type, institution: institution.trim() || null, balance: previewBalance, color: cardColor, icon: cardPattern }}
+          account={{ name, type, institution: institution.trim() || null, balance: previewBalance, color: cardColor, icon: cardPattern, credit: previewCredit }}
           color={cardColor}
           pattern={cardPattern}
           onChangeColor={(c) => { setCardColor(c); create.resetKey(); }}

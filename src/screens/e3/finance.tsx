@@ -12,6 +12,7 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate } from "../../utils/dates";
+import { clearDismissedUncategorized, dismissUncategorized, getDismissedUncategorized, undismissUncategorized } from "../../utils/dismissedUncategorized";
 import { normalizeMoneyInput } from "../../utils/money";
 
 /** Categorías (dos niveles): árbol con líneas, renombrar, archivar, restaurar y eliminar (solo si no tiene uso). */
@@ -205,32 +206,91 @@ export function RuleNewScreen() {
   );
 }
 
-/** Movimientos sin categoría: elegir una a mano o clasificarlos con las reglas (solo a petición y solo lo que no tiene categoría). */
+/** Movimientos sin categoría: elegir una a mano, omitir los que no quieras categorizar o clasificarlos con tus reglas. */
 export function ClassifyScreen() {
   const list = useAsync(() => api.operations({ uncategorized: "true", limit: 100 }), []);
-  useFocusReload(list.reload);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [showDismissed, setShowDismissed] = useState(false);
+  const reloadAll = () => {
+    void list.reload();
+    getDismissedUncategorized().then(setDismissed).catch(() => {});
+  };
+  useFocusReload(reloadAll);
+  React.useEffect(() => {
+    getDismissedUncategorized().then(setDismissed).catch(() => {});
+  }, []);
   const [picked, setPicked] = useState<Record<string, string | null>>({});
   const flow = usePreviewFlow({ preview: () => api.previewClassify({}), apply: (token, key) => api.applyClassify({ previewToken: token }, key) });
   const set = useSubmit(async (_k: string, o: OperationItem) => {
     const d = await api.operation(o.id);
     return api.patchOperation(o.id, { categoryId: picked[o.id] ?? null }, d.version);
   });
+
+  const allItems = list.data?.items ?? [];
+  const pendingItems = allItems.filter((o) => !dismissed.has(o.id));
+  const omittedItems = allItems.filter((o) => dismissed.has(o.id));
+  const shown = showDismissed ? allItems : pendingItems;
+
   return (
-    <Screen title="Sin categoría" subtitle="Clasifica a mano o con tus reglas"
-      footer={<PreviewFooter flow={flow} previewLabel="Clasificar con mis reglas" confirmLabel="Aplicar reglas" onConfirm={async () => { if (await flow.confirm()) { flow.invalidate(); void list.reload(); } }} />}>
+    <Screen title="Sin categoría" subtitle="Clasifica a mano, omite o usa tus reglas"
+      footer={pendingItems.length > 0 ? <PreviewFooter flow={flow} previewLabel="Clasificar con mis reglas" confirmLabel="Aplicar reglas" onConfirm={async () => { if (await flow.confirm()) { flow.invalidate(); void list.reload(); } }} /> : undefined}>
       <FlowResult flow={flow} />
-      {list.loading && !list.data ? <Loading /> : list.error ? <ErrorBox message={list.error} onRetry={list.reload} /> : (list.data?.items ?? []).length === 0 ? (
-        <Empty icon="checkmark-done-outline" title="Todo clasificado" text="No hay movimientos sin categoría." />
-      ) : (list.data?.items ?? []).map((o) => (
-        <Card key={o.id} outlined>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <View style={{ flex: 1 }}><Txt bold size={14}>{o.description || (o.kind === "income" ? "Ingreso" : "Gasto")}</Txt><Txt size={12} muted>{humanDate(o.occurredOn)}</Txt></View>
-            <Money value={o.amount} size={15} tone={o.amount.startsWith("-") ? "expense" : "income"} />
-          </View>
-          <CategoryPicker label="Categoría" value={picked[o.id] ?? null} onChange={(v) => setPicked((p) => ({ ...p, [o.id]: v }))} allowNone={false} />
-          <Button title="Guardar categoría" variant="secondary" busy={set.busy} disabled={!picked[o.id]} onPress={async () => { if (await set.submit(o)) void list.reload(); }} />
-        </Card>
-      ))}
+      {pendingItems.length > 1 && !showDismissed && (
+        <Button
+          title={`No categorizar ninguno (${pendingItems.length})`}
+          variant="secondary"
+          size="compact"
+          icon="eye-off-outline"
+          onPress={async () => { setDismissed(await dismissUncategorized(pendingItems.map((x) => x.id))); }}
+        />
+      )}
+      {list.loading && !list.data ? <Loading /> : list.error ? <ErrorBox message={list.error} onRetry={list.reload} /> : shown.length === 0 ? (
+        <Empty icon="checkmark-done-outline" title="Todo al día" text={omittedItems.length > 0 ? `Omitiste ${omittedItems.length} ${omittedItems.length === 1 ? "movimiento" : "movimientos"} sin categoría.` : "No hay movimientos sin categoría."} />
+      ) : shown.map((o) => {
+        const isOmitted = dismissed.has(o.id);
+        return (
+          <Card key={o.id} outlined style={{ opacity: isOmitted ? 0.72 : 1 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Txt bold size={14}>{o.description || (o.kind === "income" ? "Ingreso" : "Gasto")}</Txt>
+                <Txt size={12} muted>{humanDate(o.occurredOn)}{isOmitted ? " · Omitido" : ""}</Txt>
+              </View>
+              <Money value={o.amount} size={15} tone={o.amount.startsWith("-") ? "expense" : "income"} />
+            </View>
+            <CategoryPicker label="Categoría" value={picked[o.id] ?? null} onChange={(v) => setPicked((p) => ({ ...p, [o.id]: v }))} allowNone={false} />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Button title="Guardar" variant="secondary" busy={set.busy} disabled={!picked[o.id]} onPress={async () => { if (await set.submit(o)) void list.reload(); }} />
+              </View>
+              <View style={{ flex: 1 }}>
+                {isOmitted ? (
+                  <Button title="Volver a mostrar" variant="secondary" onPress={async () => { setDismissed(await undismissUncategorized(o.id)); }} />
+                ) : (
+                  <Button title="No categorizar" variant="secondary" onPress={async () => { setDismissed(await dismissUncategorized([o.id])); }} />
+                )}
+              </View>
+            </View>
+          </Card>
+        );
+      })}
+      {omittedItems.length > 0 && (
+        <View style={{ gap: 8 }}>
+          <Button
+            title={showDismissed ? "Ocultar omitidos" : `Ver ${omittedItems.length} omitido${omittedItems.length === 1 ? "" : "s"}`}
+            variant="secondary"
+            size="compact"
+            onPress={() => setShowDismissed((v) => !v)}
+          />
+          {showDismissed && (
+            <Button
+              title="Restaurar todos los omitidos"
+              variant="secondary"
+              size="compact"
+              onPress={async () => { await clearDismissedUncategorized(); setDismissed(new Set()); setShowDismissed(false); }}
+            />
+          )}
+        </View>
+      )}
       {set.error && <Notice tone="err">{set.error}</Notice>}
     </Screen>
   );

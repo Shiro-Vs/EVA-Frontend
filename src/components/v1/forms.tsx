@@ -124,8 +124,9 @@ const LABELS: Record<string, string> = {
   futureCycles: "Ciclos siguientes", removedCycles: "Ciclos que se eliminan", amountsUnchanged: "Los importes no cambian", old: "Antes", new: "Después", seq: "Nº", rule: "Regla", status: "Estado", hasCharges: "Tiene cargos", note: "Nota", modeAfter: "Modo después",
   before: "Antes", after: "Después", effects: "Efectos", accounts: "Cuentas", name: "Nombre", balanceBefore: "Saldo antes", balanceAfter: "Saldo después", delta: "Diferencia",
   releasedAllocations: "Aplicaciones que se liberan", rebuiltAllocations: "Aplicaciones nuevas", remainder: "Sobrante", reservedTo: "Reservado para", willCreate: "Se creará", reversal: "Reversión", valid: "Válido",
-  issues: "Observaciones", obligationsAfter: "Cómo queda lo adeudado", accountId: "Cuenta", date: "Fecha", receivedOn: "Fecha del cobro", description: "Descripción", principal: "Capital", concept: "Concepto",
+  issues: "Observaciones", obligationsAfter: "Cómo queda lo adeudado", accountId: "Cuenta", accountName: "Cuenta", toAccountName: "Cuenta destino", date: "Fecha", receivedOn: "Fecha del cobro", description: "Descripción", principal: "Capital", concept: "Concepto",
   periodLabel: "Periodo", totalDebtBefore: "Deuda total antes", totalDebtAfter: "Deuda total después", executedAt: "Ejecutado", applied: "Aplicado", net: "Neto", exemption: "Exención",
+  account: "Cuenta", asOf: "A la fecha", registeredBalance: "Saldo en EVA", realBalance: "Saldo real", difference: "Diferencia", review: "Movimientos recientes",
 };
 // Valores técnicos de la API → texto para leer.
 const VALUES: Record<string, string> = {
@@ -134,12 +135,13 @@ const VALUES: Record<string, string> = {
   shift_renewal: "Desplazar renovación", advance_renewal: "Adelantar renovación", change_interval: "Cambiar frecuencia", suspend: "Suspender", reactivate: "Reactivar",
   cycles: "Por ciclos", until_date: "Hasta una fecha", permanent: "Permanente", keep: "Mantener en el servicio", convert: "Convertir en préstamo",
   active: "Vigente", suspended: "Suspendido", personal: "Personal", shared: "Compartido", income: "Ingreso", expense: "Gasto", transfer: "Transferencia",
+  matched: "El saldo coincide", difference: "Hay diferencia",
   REFUND_AND_DEBT: "Hay crédito a devolver y también deuda: puedes cancelar la devolución y aplicar ese crédito al préstamo",
 };
 const HIDE = new Set(["previewToken", "id", "ownerId"]);
 const MONEY_RE = /^-?\d+\.\d{2}$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const isIdKey = (k: string) => HIDE.has(k) || /Ids?$/.test(k) && k !== "accountId";
+const isIdKey = (k: string) => HIDE.has(k) || /Ids?$/.test(k);
 
 function Scalar({ k, v }: { k: string; v: unknown }) {
   const { colors } = useAppTheme();
@@ -149,10 +151,20 @@ function Scalar({ k, v }: { k: string; v: unknown }) {
   else if (typeof v === "string" && DATE_RE.test(v)) text = humanDate(v) + ` (${v})`;
   else if (v === null || v === undefined) text = "—";
   else text = typeof v === "string" && VALUES[v] ? VALUES[v] : String(v);
+  const label = LABELS[k] ?? k;
+  // Si el valor es largo (p. ej. una nota explicativa), se apila debajo de la etiqueta para no apretar la etiqueta.
+  if (k === "note" || text.length > 36) {
+    return (
+      <View style={{ gap: 2, paddingVertical: 4 }}>
+        <Text style={{ color: colors.textSecondary, fontFamily: "AsapSemiBold", fontSize: 12 }}>{label}</Text>
+        <Text style={{ color: colors.text, fontFamily: "Asap", fontSize: 13, lineHeight: 18 }}>{text}</Text>
+      </View>
+    );
+  }
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, paddingVertical: 3 }}>
-      <Text style={{ color: colors.textSecondary, fontFamily: "Asap", fontSize: 13, flexShrink: 1 }}>{LABELS[k] ?? k}</Text>
-      <Text style={{ color: colors.text, fontFamily: "AsapBold", fontSize: 13, textAlign: "right", flexShrink: 1, fontVariant: ["tabular-nums"] }}>{text}</Text>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12, paddingVertical: 3 }}>
+      <Text style={{ color: colors.textSecondary, fontFamily: "Asap", fontSize: 13, flexShrink: 0, maxWidth: "48%" }}>{label}</Text>
+      <Text style={{ color: colors.text, fontFamily: "AsapBold", fontSize: 13, textAlign: "right", flex: 1, fontVariant: ["tabular-nums"] }}>{text}</Text>
     </View>
   );
 }

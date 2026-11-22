@@ -52,7 +52,22 @@ export function ReconcileScreen() {
         {needsReason && <ReasonField value={reason} onChange={(v) => { setReason(v); }} label="Motivo del ajuste" />}
       </Card>
       <Notice tone="info">Primero revisa y corrige los movimientos. Si el saldo coincide, queda registrado como verificado; si hay diferencia, el ajuste queda en una línea propia (no es ingreso ni gasto).</Notice>
-      <FlowResult flow={flow} />
+      {flow.error && <Notice tone="err">{flow.error}</Notice>}
+      {flow.data && (
+        <Card outlined>
+          <KV label="Cuenta" value={String(flow.data.account?.name ?? acc.data?.name ?? "")} strong />
+          <KV label="A la fecha" value={humanDate(String(flow.data.asOf))} />
+          <KV label={credit ? "Deuda en EVA" : "Saldo en EVA"} value={formatSoles(credit && String(flow.data.registeredBalance).startsWith("-") ? String(flow.data.registeredBalance).slice(1) : String(flow.data.registeredBalance))} />
+          <KV label={credit ? "Deuda real" : "Saldo real"} value={formatSoles(credit && String(flow.data.realBalance).startsWith("-") ? String(flow.data.realBalance).slice(1) : String(flow.data.realBalance))} />
+          <KV label="Diferencia" value={formatSoles(String(flow.data.difference))} strong />
+          <Txt size={12} muted style={{ marginTop: 6 }}>
+            {flow.data.status === "matched"
+              ? "El saldo coincide exactamente: se registrará la conciliación sin crear ningún ajuste."
+              : "Se creará un movimiento «Ajuste» por la diferencia (sin alterar tus ingresos ni gastos del mes)."}
+          </Txt>
+        </Card>
+      )}
+      {flow.applyError && <Notice tone="err">{flow.applyError}</Notice>}
       <Heading>Conciliaciones anteriores</Heading>
       {(hist.data ?? []).length === 0 ? <Card><Txt muted>Aún no hay conciliaciones.</Txt></Card> : hist.data!.map((h) => (
         <Card key={h.id} outlined><Txt bold size={13}>{humanDate(h.asOf)} · {h.adjusted ? `ajuste ${formatSoles(h.difference)}` : "coincidía"}</Txt><Txt size={12} muted>{formatSoles(h.registeredBefore)} → {formatSoles(h.balanceAfter)}{h.reason ? ` · ${h.reason}` : ""}</Txt></Card>

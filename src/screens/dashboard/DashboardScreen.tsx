@@ -21,6 +21,7 @@ type IconName = keyof typeof Ionicons.glyphMap;
 
 const HIDE_KEY = "eva_hide_balances";
 const MASK = "S/ ••••";
+const LEGACY_REV_RE = /^Reversión de [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const KIND: Record<Summary["recent"][number]["kind"], { icon: IconName; label: string }> = {
   income: { icon: "arrow-down-circle-outline", label: "Ingreso" },
@@ -322,6 +323,17 @@ export default function DashboardScreen() {
           <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 32, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], marginTop: 2 }}>
             {money(s.balance.net)}
           </Text>
+          {s.creditLines && s.creditLines.cards > 0 && (
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.14)" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                <Ionicons name="card-outline" size={13} color={colors.onPrimaryMuted} />
+                <Text style={{ color: colors.onPrimaryMuted, fontSize: 11.5, fontFamily: "AsapMedium" }}>Línea de crédito disponible</Text>
+              </View>
+              <Text style={{ color: colors.onPrimary, fontSize: 13, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+                {money(s.creditLines.available)}
+              </Text>
+            </View>
+          )}
           {flow ? (
             <TouchableOpacity onPress={() => go("/reports")} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Ver resumen mensual" style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
               <FlowPill label={`Ingresos · ${monthName}`} value={money(flow.income)} icon="arrow-down" />
@@ -387,9 +399,11 @@ export default function DashboardScreen() {
                       <Ionicons name={meta.icon} size={21} color={iconColor} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontFamily: "AsapBold" }}>{tx.description || meta.label}</Text>
+                      <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontFamily: "AsapBold" }}>
+                        {!tx.description?.trim() ? meta.label : LEGACY_REV_RE.test(tx.description.trim()) ? "Reversión de movimiento" : tx.description}
+                      </Text>
                       <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "Asap" }}>
-                        {tx.occurredOn === s.asOf ? "Hoy" : humanDate(tx.occurredOn)} · {tx.to ? `${tx.account.name} → ${tx.to}` : tx.account.name}
+                        {tx.occurredOn === s.asOf ? "Hoy" : humanDate(tx.occurredOn)} · {tx.to ? `${tx.account.name}${tx.account.deleted ? " (eliminada)" : ""} → ${tx.to}` : `${tx.account.name}${tx.account.deleted ? " (Cuenta eliminada)" : ""}`}
                       </Text>
                     </View>
                     <Text style={{ color: amountColor, fontSize: 14, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>

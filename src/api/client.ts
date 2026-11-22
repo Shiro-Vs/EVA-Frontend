@@ -19,7 +19,8 @@ export const api = {
   patchAccount: (id: string, body: { name?: string; color?: string | null; icon?: string | null; isDefault?: boolean; excludeFromTotal?: boolean }, version: number) => patch<T.Account>(`/accounts/${id}`, body, version),
   archiveAccount: (id: string) => post<{ account: T.Account; warnings: string[] }>(`/accounts/${id}/archive`),
   restoreAccount: (id: string) => post<T.Account>(`/accounts/${id}/restore`),
-  removeAccount: (id: string) => post<{ id: string; deleted: true }>(`/accounts/${id}/delete`),
+  previewDeleteAccount: (id: string) => post<T.DeleteAccountPreview>(`/accounts/${id}/delete/preview`),
+  removeAccount: (id: string, body?: { force?: boolean }) => post<{ id: string; deleted: true }>(`/accounts/${id}/delete`, body ?? {}),
 
   accounts: async (status?: string) => (await get<{ items: T.Account[] }>("/accounts", { status })).items,
   account: (id: string) => get<T.Account>(`/accounts/${id}`),
