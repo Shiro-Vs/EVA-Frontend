@@ -3,6 +3,7 @@ import {
   Animated,
   PanResponder,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -16,8 +17,7 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 import { moveItem } from "../../utils/accountOrder";
 import { BankCard } from "./BankCard";
 
-const LONG_PRESS_MS = 260;
-const MOVE_CANCEL_PX = 8;
+const LONG_PRESS_MS = 280;
 const EDGE_ZONE_PX = 56;
 const AUTO_SCROLL_STEP = 9;
 
@@ -34,8 +34,10 @@ interface ReorderableBankCardsProps {
 }
 
 /**
- * Carrusel horizontal de tarjetas bancarias con reordenamiento por mantener presionado y deslizar.
- * 100% compatible con OTA (usa Animated + PanResponder + expo-haptics).
+ * Carrusel horizontal de tarjetas bancarias:
+ * - Deslizar normal desplaza el carrusel de forma 100% nativa.
+ * - Mantener presionada una tarjeta (~280ms) la levanta y permite arrastrarla para reordenar.
+ * 100% compatible con OTA (Pressable + PanResponder en captura solo durante drag + Animated + expo-haptics).
  */
 export function ReorderableBankCards({
   accounts,
@@ -62,9 +64,12 @@ export function ReorderableBankCards({
     startIndex: number;
     targetIndex: number;
     startScrollX: number;
+    startPageX: number;
     lastDx: number;
     lastMoveX: number;
   } | null>(null);
+  const panGrantedRef = useRef(false);
+  const pressPageXRef = useRef(0);
 
   const dragX = useRef(new Animated.Value(0)).current;
   const dragScale = useRef(new Animated.Value(1)).current;
@@ -80,7 +85,6 @@ export function ReorderableBankCards({
     return v;
   };
 
-  // Mantener referencias frescas para los callbacks del PanResponder.
   const latestRef = useRef({ accounts, slotStep, screenW, onPressAccount, onReorder, onDragStateChange });
   latestRef.current = { accounts, slotStep, screenW, onPressAccount, onReorder, onDragStateChange };
 
@@ -161,16 +165,18 @@ export function ReorderableBankCards({
     }, 16);
   };
 
-  const beginDrag = (id: string, index: number, moveX: number) => {
+  const beginDrag = (id: string, index: number, pageX: number) => {
     const { accounts: list, onDragStateChange: notify } = latestRef.current;
-    if (list.length <= 1) return;
+    if (list.length <= 1 || draggingRef.current) return;
+    panGrantedRef.current = false;
     draggingRef.current = {
       id,
       startIndex: index,
       targetIndex: index,
       startScrollX: scrollXRef.current,
+      startPageX: pageX,
       lastDx: 0,
-      lastMoveX: moveX,
+      lastMoveX: pageX,
     };
     dragX.setValue(0);
     setDraggingId(id);
@@ -191,6 +197,7 @@ export function ReorderableBankCards({
     stopAutoScroll();
     const d = draggingRef.current;
     draggingRef.current = null;
+    panGrantedRef.current = false;
     const { accounts: list, onReorder: commitOrder, onDragStateChange: notify } = latestRef.current;
 
     dragX.stopAnimation();
@@ -207,201 +214,124 @@ export function ReorderableBankCards({
     }
   };
 
-  return (
-    <ScrollView
-      ref={scrollRef}
-      horizontal
-      scrollEnabled={!draggingId}
-      showsHorizontalScrollIndicator={false}
-      snapToInterval={draggingId ? undefined : slotStep}
-      decelerationRate="fast"
-      scrollEventThrottle={16}
-      onScroll={(e) => {
-        scrollXRef.current = e.nativeEvent.contentOffset.x;
-      }}
-      onContentSizeChange={(w) => {
-        contentWidthRef.current = w;
-      }}
-      style={{ marginHorizontal: -24, marginTop: -4, overflow: "visible" }}
-      contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 6, gap }}
-    >
-      {accounts.map((a, index) => {
-        const isDragging = draggingId === a.id;
-        const someDragging = draggingId !== null;
-        return (
-          <DraggableCardSlot
-            key={a.id}
-            account={a}
-            index={index}
-            cardW={cardW}
-            cardH={cardH}
-            hidden={hidden}
-            canDrag={accounts.length > 1}
-            isDragging={isDragging}
-            dimmed={someDragging && !isDragging}
-            dragX={dragX}
-            dragScale={dragScale}
-            shiftX={getShiftAnim(a.id)}
-            onBeginDrag={beginDrag}
-            onMoveDrag={(dx, moveX) => {
-              if (!draggingRef.current) return;
-              draggingRef.current.lastDx = dx;
-              draggingRef.current.lastMoveX = moveX;
-              recomputeDrag();
-            }}
-            onEndDrag={finishDrag}
-            onTap={() => onPressAccount(a.id)}
-          />
-        );
-      })}
-
-      <TouchableOpacity
-        onPress={onPressNew}
-        disabled={!!draggingId}
-        activeOpacity={0.75}
-        accessibilityRole="button"
-        accessibilityLabel="Nueva cuenta"
-        style={{
-          width: 104,
-          height: cardH,
-          borderRadius: 16,
-          borderWidth: 1.5,
-          borderStyle: "dashed",
-          borderColor: colors.muted,
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 5,
-          opacity: draggingId ? 0.35 : 1,
-        }}
-      >
-        <Ionicons name="add" size={22} color={colors.muted} />
-        <Text style={{ color: colors.muted, fontSize: 12, fontFamily: "AsapBold" }}>Nueva cuenta</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-}
-
-interface DraggableCardSlotProps {
-  account: Account;
-  index: number;
-  cardW: number;
-  cardH: number;
-  hidden: boolean;
-  canDrag: boolean;
-  isDragging: boolean;
-  dimmed: boolean;
-  dragX: Animated.Value;
-  dragScale: Animated.Value;
-  shiftX: Animated.Value;
-  onBeginDrag: (id: string, index: number, moveX: number) => void;
-  onMoveDrag: (dx: number, moveX: number) => void;
-  onEndDrag: (commit: boolean) => void;
-  onTap: () => void;
-}
-
-function DraggableCardSlot({
-  account,
-  index,
-  cardW,
-  cardH,
-  hidden,
-  canDrag,
-  isDragging,
-  dimmed,
-  dragX,
-  dragScale,
-  shiftX,
-  onBeginDrag,
-  onMoveDrag,
-  onEndDrag,
-  onTap,
-}: DraggableCardSlotProps) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeRef = useRef(false);
-  const movedRef = useRef(false);
-  const startPageXRef = useRef(0);
-
-  const propsRef = useRef({ account, index, canDrag, onBeginDrag, onMoveDrag, onEndDrag, onTap });
-  propsRef.current = { account, index, canDrag, onBeginDrag, onMoveDrag, onEndDrag, onTap };
-
-  const clearTimer = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  useEffect(() => () => clearTimer(), []);
-
-  const pan = useRef(
+  // El PanResponder SOLO captura el movimiento cuando ya se activó el modo arrastre por long-press.
+  // Así el ScrollView horizontal funciona 100% nativo en desplazamientos normales.
+  const containerPan = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => activeRef.current,
-      onPanResponderTerminationRequest: () => !activeRef.current,
-      onPanResponderGrant: (evt) => {
-        activeRef.current = false;
-        movedRef.current = false;
-        startPageXRef.current = evt.nativeEvent.pageX;
-        clearTimer();
-        if (propsRef.current.canDrag) {
-          timerRef.current = setTimeout(() => {
-            activeRef.current = true;
-            propsRef.current.onBeginDrag(
-              propsRef.current.account.id,
-              propsRef.current.index,
-              startPageXRef.current,
-            );
-          }, LONG_PRESS_MS);
-        }
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponderCapture: () => !!draggingRef.current,
+      onPanResponderTerminationRequest: () => !draggingRef.current,
+      onPanResponderGrant: () => {
+        panGrantedRef.current = true;
       },
-      onPanResponderMove: (_evt, g) => {
-        if (!activeRef.current) {
-          if (Math.abs(g.dx) > MOVE_CANCEL_PX || Math.abs(g.dy) > MOVE_CANCEL_PX) {
-            movedRef.current = true;
-            clearTimer();
-          }
-          return;
-        }
-        propsRef.current.onMoveDrag(g.dx, g.moveX);
+      onPanResponderMove: (evt, g) => {
+        const d = draggingRef.current;
+        if (!d) return;
+        const pageX = evt.nativeEvent.pageX ?? g.moveX;
+        d.lastDx = pageX - d.startPageX;
+        d.lastMoveX = pageX;
+        recomputeDrag();
       },
       onPanResponderRelease: () => {
-        clearTimer();
-        if (activeRef.current) {
-          activeRef.current = false;
-          propsRef.current.onEndDrag(true);
-        } else if (!movedRef.current) {
-          propsRef.current.onTap();
-        }
+        if (draggingRef.current) finishDrag(true);
       },
       onPanResponderTerminate: () => {
-        clearTimer();
-        if (activeRef.current) {
-          activeRef.current = false;
-          propsRef.current.onEndDrag(true);
-        }
+        if (draggingRef.current) finishDrag(true);
       },
     }),
   ).current;
 
   return (
-    <Animated.View
-      {...pan.panHandlers}
-      accessibilityRole="button"
-      accessibilityLabel={`${account.name}, mantén presionado para reordenar`}
-      style={{
-        zIndex: isDragging ? 50 : 1,
-        elevation: isDragging ? 12 : 0,
-        opacity: dimmed ? 0.72 : 1,
-        transform: isDragging
-          ? [{ translateX: dragX }, { scale: dragScale }]
-          : [{ translateX: shiftX }],
-        shadowColor: "#000",
-        shadowOpacity: isDragging ? 0.32 : 0,
-        shadowRadius: isDragging ? 14 : 0,
-        shadowOffset: { width: 0, height: isDragging ? 8 : 0 },
-      }}
-    >
-      <BankCard width={cardW} height={cardH} account={account} hidden={hidden} />
-    </Animated.View>
+    <View {...containerPan.panHandlers} style={{ marginHorizontal: -24, marginTop: -4 }}>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        scrollEnabled={!draggingId}
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={draggingId ? undefined : slotStep}
+        decelerationRate="fast"
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          scrollXRef.current = e.nativeEvent.contentOffset.x;
+        }}
+        onContentSizeChange={(w) => {
+          contentWidthRef.current = w;
+        }}
+        style={{ overflow: "visible" }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 6, gap }}
+      >
+        {accounts.map((a, index) => {
+          const isDragging = draggingId === a.id;
+          const someDragging = draggingId !== null;
+          return (
+            <Animated.View
+              key={a.id}
+              style={{
+                zIndex: isDragging ? 50 : 1,
+                elevation: isDragging ? 12 : 0,
+                opacity: someDragging && !isDragging ? 0.72 : 1,
+                transform: isDragging
+                  ? [{ translateX: dragX }, { scale: dragScale }]
+                  : [{ translateX: getShiftAnim(a.id) }],
+                shadowColor: "#000",
+                shadowOpacity: isDragging ? 0.32 : 0,
+                shadowRadius: isDragging ? 14 : 0,
+                shadowOffset: { width: 0, height: isDragging ? 8 : 0 },
+              }}
+            >
+              <Pressable
+                onPressIn={(evt) => {
+                  pressPageXRef.current = evt.nativeEvent.pageX;
+                }}
+                onLongPress={(evt) => {
+                  if (accounts.length <= 1) return;
+                  const px = evt.nativeEvent.pageX || pressPageXRef.current;
+                  beginDrag(a.id, index, px);
+                }}
+                delayLongPress={LONG_PRESS_MS}
+                onPress={() => {
+                  if (!draggingRef.current) onPressAccount(a.id);
+                }}
+                onPressOut={() => {
+                  // Si el usuario levantó el dedo tras el long-press sin llegar a arrastrar
+                  if (draggingRef.current && !panGrantedRef.current) {
+                    finishDrag(false);
+                  }
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`${a.name}, mantén presionado para reordenar`}
+              >
+                <BankCard width={cardW} height={cardH} account={a} hidden={hidden} />
+              </Pressable>
+            </Animated.View>
+          );
+        })}
+
+        <TouchableOpacity
+          onPress={onPressNew}
+          disabled={!!draggingId}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Nueva cuenta"
+          style={{
+            width: 104,
+            height: cardH,
+            borderRadius: 16,
+            borderWidth: 1.5,
+            borderStyle: "dashed",
+            borderColor: colors.muted,
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 5,
+            opacity: draggingId ? 0.35 : 1,
+          }}
+        >
+          <Ionicons name="add" size={22} color={colors.muted} />
+          <Text style={{ color: colors.muted, fontSize: 12, fontFamily: "AsapBold" }}>Nueva cuenta</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
