@@ -6,12 +6,13 @@ import { useRouter } from "expo-router";
 import { api, errorMessage } from "../../api/client";
 import type { Account, OperationItem } from "../../api/types";
 import GeminiMark from "../../components/common/GeminiMark";
-import { BankCard } from "../../components/v1/BankCard";
+import { ReorderableBankCards } from "../../components/v1/ReorderableBankCards";
 import { SelectField } from "../../components/v1/Select";
 import { Button, Chip, Empty, ErrorBox, Loading, Money, Screen, Txt } from "../../components/v1/ui";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
+import { applyAccountOrder, loadAccountOrder, saveAccountOrder } from "../../utils/accountOrder";
 import { humanDate, todayLocalIso } from "../../utils/dates";
 import { getDismissedUncategorized } from "../../utils/dismissedUncategorized";
 import { cmpMoney, formatSoles } from "../../utils/money";
@@ -57,6 +58,8 @@ export default function MoneyScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [dismissedUncat, setDismissedUncat] = useState<Set<string>>(new Set());
   const [tipDismissedToday, setTipDismissedToday] = useState(false);
+  const [accountOrder, setAccountOrder] = useState<string[]>([]);
+  const [draggingCards, setDraggingCards] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -67,6 +70,7 @@ export default function MoneyScreen() {
     AsyncStorage.getItem(HIDE_KEY).then((v) => setHidden(v === "1")).catch(() => {});
     getDismissedUncategorized().then(setDismissedUncat).catch(() => {});
     AsyncStorage.getItem(HIDE_CARD_TIP_KEY).then((v) => setTipDismissedToday(v === todayLocalIso())).catch(() => {});
+    loadAccountOrder().then(setAccountOrder).catch(() => {});
   }, []);
 
   const dismissCardTip = () => {
@@ -82,7 +86,15 @@ export default function MoneyScreen() {
     });
   };
 
-  const list = useMemo(() => (accounts.data ?? []).filter((a) => a.status === "active"), [accounts.data]);
+  const list = useMemo(
+    () => applyAccountOrder((accounts.data ?? []).filter((a) => a.status === "active"), accountOrder),
+    [accounts.data, accountOrder],
+  );
+  const handleReorderAccounts = useCallback((nextAccounts: Account[]) => {
+    const ids = nextAccounts.map((a) => a.id);
+    setAccountOrder(ids);
+    void saveAccountOrder(ids);
+  }, []);
   const archived = useMemo(() => (accounts.data ?? []).filter((a) => a.status === "archived"), [accounts.data]);
   const creditCount = useMemo(() => list.filter((a) => a.type === "credit").length, [list]);
   const advisor = useAsync(
@@ -154,7 +166,7 @@ export default function MoneyScreen() {
   const bestCard = advisor.data?.cards && advisor.data.cards.length >= 2 && !tipDismissedToday ? advisor.data.best : null;
 
   return (
-    <Screen title="Dinero" back={false} refreshing={refreshing} onRefresh={onRefresh} right={<Button title="Cuenta" icon="add" size="compact" onPress={() => router.push("/account/new" as never)} />}>
+    <Screen title="Dinero" back={false} scrollEnabled={!draggingCards} refreshing={refreshing} onRefresh={onRefresh} right={<Button title="Cuenta" icon="add" size="compact" onPress={() => router.push("/account/new" as never)} />}>
       <View style={{ backgroundColor: colors.primarySurface, borderRadius: 22, padding: 15, overflow: "hidden", gap: 3 }}>
         <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -195,7 +207,14 @@ export default function MoneyScreen() {
       </ScrollView>
 
       <View style={{ gap: 6 }}>
-        <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>Mis cuentas</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>Mis cuentas</Text>
+          {list.length > 1 && (
+            <Text style={{ color: draggingCards ? colors.primary : colors.muted, fontSize: 11.5, fontFamily: draggingCards ? "AsapBold" : "Asap" }}>
+              {draggingCards ? "Desliza para acomodar…" : "Mantén y arrastra"}
+            </Text>
+          )}
+        </View>
         {bestCard && (
           <View
             style={{
@@ -237,14 +256,17 @@ export default function MoneyScreen() {
       {accounts.loading && !accounts.data ? <Loading /> : accounts.error ? <ErrorBox message={accounts.error} onRetry={accounts.reload} /> : list.length === 0 ? (
         <Empty icon="wallet-outline" title="Aún no tienes cuentas" text="Crea tu primera cuenta con su saldo actual. No cuenta como ingreso del mes." action={<Button title="Crear cuenta" icon="add" onPress={() => router.push("/account/new" as never)} />} />
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardW + CARD_GAP} decelerationRate="fast" style={{ marginHorizontal: -24, marginTop: -4 }} contentContainerStyle={{ paddingHorizontal: 24, gap: CARD_GAP }}>
-          {list.map((a: Account) => <BankCard key={a.id} width={cardW} height={cardH} account={a} hidden={hidden} onPress={() => router.push(`/account/${a.id}` as never)} />)}
-          <TouchableOpacity onPress={() => router.push("/account/new" as never)} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel="Nueva cuenta"
-            style={{ width: 104, height: cardH, borderRadius: 16, borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.muted, alignItems: "center", justifyContent: "center", gap: 5 }}>
-            <Ionicons name="add" size={22} color={colors.muted} />
-            <Text style={{ color: colors.muted, fontSize: 12, fontFamily: "AsapBold" }}>Nueva cuenta</Text>
-          </TouchableOpacity>
-        </ScrollView>
+        <ReorderableBankCards
+          accounts={list}
+          cardW={cardW}
+          cardH={cardH}
+          gap={CARD_GAP}
+          hidden={hidden}
+          onPressAccount={(id) => router.push(`/account/${id}` as never)}
+          onPressNew={() => router.push("/account/new" as never)}
+          onReorder={handleReorderAccounts}
+          onDragStateChange={setDraggingCards}
+        />
       )}
 
       {archived.length > 0 && (

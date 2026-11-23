@@ -29,7 +29,7 @@ export function BackButton({ onPress }: { onPress?: () => void }) {
 }
 
 /** Pantalla con cabecera, contenido desplazable y, opcionalmente, un pie con la acción principal. */
-export function Screen({ title, children, back = true, right, footer, subtitle, scrollRef, refreshing, onRefresh }: { title: string; children: React.ReactNode; back?: boolean; right?: React.ReactNode; footer?: React.ReactNode; subtitle?: string; scrollRef?: React.RefObject<ScrollView | null>; refreshing?: boolean; onRefresh?: () => void }) {
+export function Screen({ title, children, back = true, right, footer, subtitle, scrollRef, refreshing, onRefresh, scrollEnabled = true }: { title: string; children: React.ReactNode; back?: boolean; right?: React.ReactNode; footer?: React.ReactNode; subtitle?: string; scrollRef?: React.RefObject<ScrollView | null>; refreshing?: boolean; onRefresh?: () => void; scrollEnabled?: boolean }) {
   const { colors } = useAppTheme();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -45,6 +45,7 @@ export function Screen({ title, children, back = true, right, footer, subtitle, 
       </View>
       <ScrollView
         ref={scrollRef}
+        scrollEnabled={scrollEnabled}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 12 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
