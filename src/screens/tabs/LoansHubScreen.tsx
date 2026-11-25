@@ -124,28 +124,17 @@ export default function LoansHubScreen() {
         </View>
       </View>
 
-      {/* Acceso rápido a Personas y Devoluciones (solo si Personas está activo) */}
+      {/* Acceso rápido a Personas (solo si Personas está activo) */}
       {modules.people && (
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <TouchableOpacity
-            onPress={() => router.push("/contacts" as never)}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, backgroundColor: `${colors.text}08` }}
-          >
-            <Ionicons name="people-outline" size={16} color={colors.sections.people.ink} />
-            <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, fontFamily: "AsapBold" }}>Personas</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push("/refunds" as never)}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, backgroundColor: `${colors.text}08` }}
-          >
-            <Ionicons name="return-down-back-outline" size={16} color={colors.primary} />
-            <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, fontFamily: "AsapBold" }}>Devoluciones</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={() => router.push("/contacts" as never)}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, backgroundColor: `${colors.text}08` }}
+        >
+          <Ionicons name="people-outline" size={16} color={colors.sections.people.ink} />
+          <Text numberOfLines={1} style={{ color: colors.text, fontSize: 13, fontFamily: "AsapBold" }}>Personas</Text>
+        </TouchableOpacity>
       )}
 
       {/* Sub-pestañas: Entre personas | Bancarios */}

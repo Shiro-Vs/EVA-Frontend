@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -9,33 +9,76 @@ import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate } from "../../utils/dates";
-import { formatSoles } from "../../utils/money";
+import { cmpMoney, formatSoles } from "../../utils/money";
 
 const PERIOD: Record<Budget["period"], string> = { weekly: "semanal", monthly: "mensual", yearly: "anual" };
 
 /** Pestaña Planificar: presupuestos, metas y movimientos recurrentes, con lo que requiere atención arriba. */
 export default function PlanScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
   const budgets = useAsync(() => api.budgets(), []);
   const goals = useAsync(() => api.goals(), []);
   const overview = useAsync(() => api.goalsOverview(), []);
   const pending = useAsync(() => api.recurringPending(7), []);
-  const reload = useCallback(() => { void budgets.reload(); void goals.reload(); void overview.reload(); void pending.reload(); }, [budgets.reload, goals.reload, overview.reload, pending.reload]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const reload = useCallback(() => {
+    void budgets.reload();
+    void goals.reload();
+    void overview.reload();
+    void pending.reload();
+  }, [budgets.reload, goals.reload, overview.reload, pending.reload]);
   useFocusReload(reload);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([budgets.reload(), goals.reload(), overview.reload(), pending.reload()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [budgets.reload, goals.reload, overview.reload, pending.reload]);
 
   const due = pending.data?.due.length ?? 0;
   const bl = (budgets.data ?? []).filter((b) => b.status === "active");
   const gl = (goals.data ?? []).filter((g) => g.status === "active");
+  const hasReserved = !!overview.data && cmpMoney(overview.data.totals.reserved, "0.00") > 0;
+  const showReserveTiles = gl.length > 0 || hasReserved;
 
   return (
-    <Screen title="Planificar" back={false} subtitle="Presupuestos, metas y recurrentes">
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <SummaryTile label="Libre para gastar" icon="lock-open-outline" value={overview.data ? formatSoles(overview.data.totals.free) : "…"} tone="income" onPress={() => router.push("/goals/accounts" as never)} />
-        <SummaryTile label="Reservado" icon="lock-closed-outline" value={overview.data ? formatSoles(overview.data.totals.reserved) : "…"} onPress={() => router.push("/goals/accounts" as never)} />
-      </View>
+    <Screen title="Planificar" back={false} subtitle="Presupuestos, metas y recurrentes" refreshing={refreshing} onRefresh={onRefresh}>
+      {due > 0 && (
+        <TouchableOpacity
+          onPress={() => router.push("/recurring" as never)}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            padding: 14,
+            borderRadius: 16,
+            backgroundColor: `${colors.warningStrong}18`,
+          }}
+        >
+          <Ionicons name="repeat-outline" size={22} color={colors.warningStrong} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt bold color={colors.text}>
+              {due === 1 ? "1 movimiento recurrente por decidir" : `${due} movimientos recurrentes por decidir`}
+            </Txt>
+            <Txt size={12} muted>Toca para confirmarlos u omitirlos</Txt>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.warningStrong} />
+        </TouchableOpacity>
+      )}
 
-      <Heading action={<SeeAll onPress={() => router.push("/recurring" as never)} />}>Recurrentes</Heading>
-      <MenuRow section="plan" icon="repeat-outline" title="Sueldo, alquiler y otros" text={due > 0 ? `${due} por decidir: confírmalos u omítelos` : "Nada pendiente por ahora"} badge={due > 0 ? due : null} onPress={() => router.push("/recurring" as never)} />
+      {showReserveTiles && (
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <SummaryTile label="Libre para gastar" icon="lock-open-outline" value={overview.data ? formatSoles(overview.data.totals.free) : "…"} tone="income" onPress={() => router.push("/goals/accounts" as never)} />
+          <SummaryTile label="Reservado" icon="lock-closed-outline" value={overview.data ? formatSoles(overview.data.totals.reserved) : "…"} onPress={() => router.push("/goals/accounts" as never)} />
+        </View>
+      )}
 
       <Heading action={<SeeAll onPress={() => router.push("/budgets" as never)} />}>Presupuestos</Heading>
       {budgets.loading && !budgets.data ? <Loading /> : budgets.error ? <ErrorBox message={budgets.error} onRetry={budgets.reload} /> : bl.length === 0 ? (
@@ -45,9 +88,16 @@ export default function PlanScreen() {
 
       <Heading action={<SeeAll label="Reservas" onPress={() => router.push("/goals/accounts" as never)} />}>Metas de ahorro</Heading>
       {goals.loading && !goals.data ? <Loading /> : goals.error ? <ErrorBox message={goals.error} onRetry={goals.reload} /> : gl.length === 0 ? (
-        <Empty icon="flag-outline" title="Aún no tienes metas" text="Crea una y reserva dinero que ya tienes en tus cuentas: reservar no lo mueve." />
-      ) : gl.map((g) => <GoalCard key={g.id} g={g} onPress={() => router.push(`/goals/${g.id}` as never)} />)}
-      <Button title="Nueva meta" variant="secondary" icon="add" onPress={() => router.push("/goals/new" as never)} />
+        <Empty icon="flag-outline" title="Aún no tienes metas" text="Crea una y aparta dinero que ya tienes en tus cuentas: reservar no lo mueve." action={<Button title="Nueva meta" icon="add" onPress={() => router.push("/goals/new" as never)} />} />
+      ) : (
+        <>
+          {gl.map((g) => <GoalCard key={g.id} g={g} onPress={() => router.push(`/goals/${g.id}` as never)} />)}
+          <Button title="Nueva meta" variant="secondary" icon="add" onPress={() => router.push("/goals/new" as never)} />
+        </>
+      )}
+
+      <Heading action={<SeeAll onPress={() => router.push("/recurring" as never)} />}>Recurrentes</Heading>
+      <MenuRow section="plan" icon="repeat-outline" title="Sueldo, alquiler y otros" text={due > 0 ? `${due} por decidir: confírmalos u omítelos` : "Nada pendiente por ahora"} badge={due > 0 ? due : null} onPress={() => router.push("/recurring" as never)} />
 
       <Heading>Ordenar tus datos</Heading>
       <MenuRow section="plan" icon="pricetags-outline" title="Categorías" text="Categorías y subcategorías" onPress={() => router.push("/categories" as never)} />
@@ -102,9 +152,7 @@ function GoalCard({ g, onPress }: { g: Goal; onPress: () => void }) {
             <Txt bold numberOfLines={1}>{g.name}</Txt>
             <Txt size={12} muted numberOfLines={1}>Objetivo {formatSoles(g.targetAmount)}{g.targetDate ? ` · hasta ${humanDate(g.targetDate)}` : ""}</Txt>
           </View>
-          <View style={{ padding: 8, borderRadius: 12, backgroundColor: `${tone}1A` }}>
-            <Ionicons name={g.achieved ? "checkmark-circle-outline" : "flag-outline"} size={22} color={tone} />
-          </View>
+          <Ionicons name={g.achieved ? "checkmark-circle-outline" : "flag-outline"} size={22} color={tone} />
         </View>
         <Bar pct={g.percent} color={tone} />
         <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 6 }}>

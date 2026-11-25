@@ -5,11 +5,12 @@ import { api } from "../../api/client";
 import type { CardStatement, CreditDetails, Occurrence } from "../../api/types";
 import { AccountPicker, CategoryPicker, Choice, DateField, FlowResult, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Button, Card, Chip, Empty, ErrorBox, Field, Heading, KV, Loading, Money, Notice, RowLink, Screen, Txt } from "../../components/v1/ui";
+import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDialog } from "../../context/DialogContext";
 import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
-import { humanDate, isIsoDate } from "../../utils/dates";
+import { humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
 import { cmpMoney, formatSoles, normalizeMoneyInput } from "../../utils/money";
 
 // ───────────────────────── Conciliación ─────────────────────────
@@ -304,15 +305,31 @@ export function InstallmentNewScreen() {
 
 // ───────────────────────── Recurrentes ─────────────────────────
 
+function formatFrequency(unit: "day" | "week" | "month" | "year", count: number): string {
+  const n = Math.max(1, Number.isFinite(count) ? count : 1);
+  if (n === 1) {
+    return unit === "day" ? "todos los días" : unit === "week" ? "cada semana" : unit === "month" ? "cada mes" : "cada año";
+  }
+  const label = unit === "day" ? "días" : unit === "week" ? "semanas" : unit === "month" ? "meses" : "años";
+  return `cada ${n} ${label}`;
+}
+
 export function RecurringScreen() {
   const router = useRouter();
   const [status, setStatus] = useState<"active" | "paused" | "archived">("active");
+  const [refreshing, setRefreshing] = useState(false);
   const pend = useAsync(() => api.recurringPending(14), []);
   const tpls = useAsync(() => api.recurringTemplates(status), [status]);
   useFocusReload(() => { void pend.reload(); void tpls.reload(); });
   const skip = useSubmit(async (_k: string, o: Occurrence) => api.skipOccurrence(o.id));
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try { await Promise.all([pend.reload(), tpls.reload()]); } finally { setRefreshing(false); }
+  };
+
   return (
-    <Screen title="Recurrentes" subtitle="Solo proponen: nada se registra solo" footer={<Button title="Nueva recurrencia" icon="add" onPress={() => router.push("/recurring/new" as never)} />}>
+    <Screen title="Recurrentes" subtitle="Solo proponen: nada se registra solo" refreshing={refreshing} onRefresh={onRefresh} footer={<Button title="Nueva recurrencia" icon="add" onPress={() => router.push("/recurring/new" as never)} />}>
       <Heading>Por decidir</Heading>
       {(pend.data?.due ?? []).length === 0 ? <Card><Txt muted>No hay nada por decidir.</Txt></Card> : pend.data!.due.map((o) => (
         <Card key={o.id} outlined>
@@ -326,7 +343,15 @@ export function RecurringScreen() {
       ))}
       {skip.error && <Notice tone="err">{skip.error}</Notice>}
       {(pend.data?.upcoming ?? []).length > 0 && <Heading>Próximas</Heading>}
-      {(pend.data?.upcoming ?? []).map((u) => <Card key={u.templateId} outlined><Txt size={13}>{humanDate(u.dueDate)} · {u.name} · {formatSoles(u.amount)}</Txt></Card>)}
+      {(pend.data?.upcoming ?? []).map((u) => (
+        <RowLink key={u.templateId} onPress={() => router.push(`/recurring/${u.templateId}` as never)}>
+          <View style={{ flex: 1 }}>
+            <Txt bold>{u.name}</Txt>
+            <Txt size={12} muted>{u.kind === "income" ? "Ingreso" : "Gasto"} · {humanDate(u.dueDate)}</Txt>
+          </View>
+          <Money value={u.amount} size={14} tone={u.kind === "income" ? "income" : "expense"} />
+        </RowLink>
+      ))}
       <Heading>Plantillas</Heading>
       <Choice value={status} onChange={setStatus} options={[{ id: "active", label: "Activas" }, { id: "paused", label: "En pausa" }, { id: "archived", label: "Archivadas" }]} />
       {(tpls.data ?? []).length === 0 ? (
@@ -345,6 +370,7 @@ const UNITS = [{ id: "day", label: "Días" }, { id: "week", label: "Semanas" }, 
 
 export function RecurringNewScreen() {
   const done = useDone();
+  const { colors } = useAppTheme();
   const [name, setName] = useState("");
   const [kind, setKind] = useState<"income" | "expense">("expense");
   const [account, setAccount] = useState<string | null>(null);
@@ -353,27 +379,45 @@ export function RecurringNewScreen() {
   const [desc, setDesc] = useState("");
   const [unit, setUnit] = useState<"day" | "week" | "month" | "year">("month");
   const [count, setCount] = useState("1");
-  const [start, setStart] = useState("");
+  const [start, setStart] = useState(() => todayLocalIso());
   const [end, setEnd] = useState("");
+
+  const normAmount = normalizeMoneyInput(amount);
+  const amountValid = !!normAmount && cmpMoney(normAmount, "0.00") > 0;
+  const parsedCount = Number.parseInt(count, 10);
+  const countValid = Number.isInteger(parsedCount) && parsedCount >= 1 && parsedCount <= 365;
+  const endBeforeStart = end !== "" && isIsoDate(end) && isIsoDate(start) && end < start;
+  const datesValid = isIsoDate(start) && (end === "" || (isIsoDate(end) && !endBeforeStart));
+
   const save = useSubmit(async () => api.createRecurring({
-    name: name.trim(), kind, accountId: account!, amount: normalizeMoneyInput(amount)!, ...(cat ? { categoryId: cat } : {}), ...(desc.trim() ? { description: desc.trim() } : {}),
-    interval: { unit, count: Math.max(1, Number.parseInt(count, 10) || 1) }, startDate: start, ...(end ? { endDate: end } : {}),
+    name: name.trim(),
+    kind,
+    accountId: account!,
+    amount: normAmount!,
+    ...(cat ? { categoryId: cat } : {}),
+    ...(desc.trim() ? { description: desc.trim() } : {}),
+    interval: { unit, count: parsedCount },
+    startDate: start,
+    ...(end ? { endDate: end } : {}),
   }));
+
   return (
-    <Screen title="Nueva recurrencia" footer={<Button title="Crear" busy={save.busy} disabled={!name.trim() || !account || !normalizeMoneyInput(amount) || !isIsoDate(start) || (end !== "" && !isIsoDate(end))} onPress={async () => { if (await save.submit()) done("/recurring"); }} />}>
+    <Screen title="Nueva recurrencia" footer={<Button title="Crear" busy={save.busy} disabled={!name.trim() || !account || !amountValid || !countValid || !datesValid} onPress={async () => { if (await save.submit()) done("/recurring"); }} />}>
       <Card>
-        <Field label="Nombre" value={name} onChangeText={(v) => { setName(v); save.resetKey(); }} placeholder="Alquiler" autoCapitalize="sentences" />
+        <Field label="Nombre" value={name} onChangeText={(v) => { setName(v); save.resetKey(); }} placeholder="Ej. Alquiler" autoCapitalize="sentences" />
         <Choice label="Tipo" value={kind} onChange={setKind} options={[{ id: "expense", label: "Gasto" }, { id: "income", label: "Ingreso" }]} />
-        <AccountPicker label={kind === "income" ? "Entra a" : "Se paga con"} value={account} onChange={setAccount} />
+        <AccountPicker label={kind === "income" ? "Entra a" : "Se paga con"} value={account} excludeTypes={kind === "income" ? ["credit"] : undefined} onChange={setAccount} />
         <MoneyField label="Importe esperado" value={amount} onChange={setAmount} />
         <CategoryPicker value={cat} onChange={setCat} />
         <Field label="Descripción (opcional)" value={desc} onChangeText={setDesc} autoCapitalize="sentences" />
       </Card>
       <Card>
-        <Choice label="Se repite cada…" value={unit} onChange={setUnit} options={UNITS.map((u) => ({ id: u.id, label: u.label }))} />
-        <Field label="Cantidad" value={count} onChangeText={setCount} keyboardType="number-pad" />
+        <Choice label="Frecuencia" value={unit} onChange={setUnit} options={UNITS.map((u) => ({ id: u.id, label: u.label }))} />
+        <Field label="Cada cuántos" value={count} onChangeText={setCount} keyboardType="number-pad" error={!countValid ? "Ingresa un número entre 1 y 365" : undefined} />
+        {countValid && <Txt size={12} muted>Se propondrá {formatFrequency(unit, parsedCount)}.</Txt>}
         <DateField label="Primera fecha" value={start} onChange={setStart} />
-        <DateField label="Hasta" value={end} optional onChange={setEnd} />
+        <DateField label="Termina el" value={end} optional onChange={setEnd} />
+        {endBeforeStart && <Txt size={12} color={colors.expenseStrong}>La fecha final no puede ser anterior a la primera fecha.</Txt>}
       </Card>
       {save.error && <Notice tone="err">{save.error}</Notice>}
     </Screen>
@@ -383,19 +427,24 @@ export function RecurringNewScreen() {
 export function RecurringDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const dialog = useDialog();
+  const { colors } = useAppTheme();
   const t = useAsync(() => api.recurringTemplate(id), [id]);
   useFocusReload(t.reload);
+  const [refreshing, setRefreshing] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState<string | null>(null);
   const [editCat, setEditCat] = useState<string | null | undefined>(undefined);
   const [editDesc, setEditDesc] = useState<string | null>(null);
   const [editEnd, setEditEnd] = useState<string | null>(null);
+
   const patch = useSubmit(async () => {
     const cur = t.data!;
     const normA = editAmount !== null ? normalizeMoneyInput(editAmount) : null;
     return api.patchRecurring(id, {
       ...(editName !== null && editName.trim() && editName.trim() !== cur.name ? { name: editName.trim() } : {}),
-      ...(normA && normA !== cur.amount ? { amount: normA } : {}),
+      ...(normA && cmpMoney(normA, "0.00") > 0 && normA !== cur.amount ? { amount: normA } : {}),
       ...(editCat !== undefined && editCat !== cur.categoryId ? { categoryId: editCat } : {}),
       ...(editDesc !== null && editDesc.trim() !== cur.description ? { description: editDesc.trim() } : {}),
       ...(editEnd !== null && (editEnd || null) !== cur.endDate ? { endDate: editEnd || null } : {}),
@@ -403,39 +452,98 @@ export function RecurringDetailScreen() {
   });
   const act = useSubmit(async (_k: string, a: "pause" | "resume" | "archive") => api.setRecurringStatus(id, a));
   const reopen = useSubmit(async (_k: string, oid: string) => api.reopenOccurrence(oid));
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try { await t.reload(); } finally { setRefreshing(false); }
+  };
+
   if (t.loading && !t.data) return <Screen title="Recurrencia"><Loading /></Screen>;
   if (t.error || !t.data) return <Screen title="Recurrencia"><ErrorBox message={t.error ?? "No se encontró la recurrencia."} onRetry={t.reload} /></Screen>;
   const d = t.data;
+  const editNormA = editAmount !== null ? normalizeMoneyInput(editAmount) : null;
+  const editAmountBad = editAmount !== null && (!editNormA || cmpMoney(editNormA, "0.00") <= 0);
+  const editEndBad = editEnd !== null && editEnd !== "" && (!isIsoDate(editEnd) || editEnd < d.startDate);
   const dirty = (editName !== null && editName.trim().length > 0 && editName.trim() !== d.name)
-    || (editAmount !== null && !!normalizeMoneyInput(editAmount) && normalizeMoneyInput(editAmount) !== d.amount)
+    || (editAmount !== null && !editAmountBad && editNormA !== d.amount)
     || (editCat !== undefined && editCat !== d.categoryId)
     || (editDesc !== null && editDesc.trim() !== d.description)
-    || (editEnd !== null && (editEnd === "" || isIsoDate(editEnd)) && (editEnd || null) !== d.endDate);
+    || (editEnd !== null && !editEndBad && (editEnd || null) !== d.endDate);
+
   return (
-    <Screen title={d.name} subtitle={`${d.kind === "income" ? "Ingreso" : "Gasto"} de ${formatSoles(d.amount)} · ${d.account.name}`}>
-      <Card><KV label="Estado" value={d.status === "active" ? "Activa" : d.status === "paused" ? "En pausa" : "Archivada"} />{d.nextDue && <KV label="Próxima" value={humanDate(d.nextDue)} />}</Card>
+    <Screen
+      title={d.name}
+      subtitle={`${d.kind === "income" ? "Ingreso" : "Gasto"} de ${formatSoles(d.amount)} · ${d.account.name}`}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      right={d.status !== "archived" ? (
+        <Button title={editing ? "Cerrar" : "Editar"} variant="secondary" size="compact" onPress={() => setEditing((v) => !v)} />
+      ) : undefined}
+    >
+      <Card>
+        <KV label="Estado" value={d.status === "active" ? "Activa" : d.status === "paused" ? "En pausa" : "Archivada"} />
+        <KV label="Frecuencia" value={formatFrequency(d.interval.unit, d.interval.count)} />
+        {d.nextDue && <KV label="Próxima" value={humanDate(d.nextDue)} />}
+        {d.endDate && <KV label="Termina el" value={humanDate(d.endDate)} />}
+      </Card>
+
+      {d.status !== "archived" && editing && (
+        <Card>
+          <Txt bold size={14}>Editar plantilla</Txt>
+          <Field label="Nombre" value={editName ?? d.name} onChangeText={setEditName} autoCapitalize="sentences" maxLength={80} />
+          <MoneyField label="Importe esperado" value={editAmount ?? d.amount} onChange={setEditAmount} />
+          {editAmountBad && <Txt size={12} color={colors.expenseStrong}>El importe debe ser mayor a S/ 0.00.</Txt>}
+          <CategoryPicker value={editCat === undefined ? d.categoryId : editCat} onChange={setEditCat} />
+          <Field label="Descripción" value={editDesc ?? d.description} onChangeText={setEditDesc} autoCapitalize="sentences" maxLength={200} />
+          <DateField label="Termina el" value={editEnd ?? d.endDate ?? ""} optional onChange={setEditEnd} />
+          {editEndBad && <Txt size={12} color={colors.expenseStrong}>La fecha final no puede ser anterior al inicio ({humanDate(d.startDate)}).</Txt>}
+          <Button
+            title="Guardar cambios"
+            busy={patch.busy}
+            disabled={!dirty || editAmountBad || editEndBad}
+            onPress={async () => {
+              if (await patch.submit()) {
+                setEditName(null);
+                setEditAmount(null);
+                setEditCat(undefined);
+                setEditDesc(null);
+                setEditEnd(null);
+                setEditing(false);
+                void t.reload();
+              }
+            }}
+          />
+          {patch.error && <Notice tone="err">{patch.error}</Notice>}
+        </Card>
+      )}
+
       <View style={{ gap: 10 }}>
         {d.status === "active" && <Button title="Pausar" variant="secondary" busy={act.busy} onPress={async () => { if (await act.submit("pause")) void t.reload(); }} />}
         {d.status === "paused" && <Button title="Reanudar" busy={act.busy} onPress={async () => { if (await act.submit("resume")) void t.reload(); }} />}
-        {d.status !== "archived" && <Button title="Archivar" variant="danger" busy={act.busy} onPress={async () => { if (await act.submit("archive")) router.back(); }} />}
+        {d.status !== "archived" && (
+          <Button
+            title="Archivar plantilla"
+            variant="outlineDanger"
+            busy={act.busy}
+            onPress={async () => {
+              const ok = await dialog.confirm({
+                title: `¿Archivar «${d.name}»?`,
+                message: "Dejará de proponer futuros movimientos. Los que ya confirmaste no se borran.",
+                confirmLabel: "Archivar",
+                cancelLabel: "Cancelar",
+                danger: true,
+              });
+              if (ok && await act.submit("archive")) router.back();
+            }}
+          />
+        )}
       </View>
       {act.error && <Notice tone="err">{act.error}</Notice>}
-      {d.status !== "archived" && (
-        <>
-          <Heading>Editar plantilla</Heading>
-          <Card>
-            <Field label="Nombre" value={editName ?? d.name} onChangeText={setEditName} autoCapitalize="sentences" maxLength={80} />
-            <MoneyField label="Importe esperado" value={editAmount ?? d.amount} onChange={setEditAmount} />
-            <CategoryPicker value={editCat === undefined ? d.categoryId : editCat} onChange={setEditCat} />
-            <Field label="Descripción" value={editDesc ?? d.description} onChangeText={setEditDesc} autoCapitalize="sentences" maxLength={200} />
-            <DateField label="Hasta" value={editEnd ?? d.endDate ?? ""} optional onChange={setEditEnd} />
-            <Button title="Guardar cambios" variant="secondary" busy={patch.busy} disabled={!dirty} onPress={async () => { if (await patch.submit()) { setEditName(null); setEditAmount(null); setEditCat(undefined); setEditDesc(null); setEditEnd(null); void t.reload(); } }} />
-            {patch.error && <Notice tone="err">{patch.error}</Notice>}
-          </Card>
-        </>
-      )}
+
       <Heading>Ocurrencias</Heading>
-      {(d.occurrences ?? []).map((o) => (
+      {(d.occurrences ?? []).length === 0 ? (
+        <Card><Txt muted>Todavía no se ha generado ninguna ocurrencia.</Txt></Card>
+      ) : (d.occurrences ?? []).map((o) => (
         <Card key={o.id} outlined>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Txt style={{ flex: 1 }} size={13}>{humanDate(o.dueDate)} · {formatSoles(o.amount)}</Txt>
@@ -457,7 +565,7 @@ export function OccurrenceScreen() {
   const dialog = useDialog();
   const pend = useAsync(() => api.recurringPending(0), []);
   const occ = (pend.data?.due ?? []).find((o) => o.id === id);
-  const ops = useAsync(() => api.operations({ limit: 30 }), []);
+  const ops = useAsync(() => api.operations({ limit: 60 }), []);
   useFocusReload(() => { void pend.reload(); void ops.reload(); });
   const [mode, setMode] = useState<"confirm" | "link">("confirm");
   const [amount, setAmount] = useState("");
@@ -465,8 +573,16 @@ export function OccurrenceScreen() {
   const [date, setDate] = useState("");
   const [opId, setOpId] = useState<string | null>(null);
   const [accept, setAccept] = useState(false);
+
+  const normAmount = normalizeMoneyInput(amount);
+  const amountInvalid = amount.trim() !== "" && (!normAmount || cmpMoney(normAmount, "0.00") <= 0);
+  const dateInvalid = date !== "" && !isIsoDate(date);
+
   const confirm = useSubmit(async (key: string) => api.confirmOccurrence(id, {
-    ...(normalizeMoneyInput(amount) ? { amount: normalizeMoneyInput(amount)! } : {}), ...(account ? { accountId: account } : {}), ...(date ? { date } : {}), ...(accept ? { acceptReserveShortfall: true } : {}),
+    ...(normAmount && cmpMoney(normAmount, "0.00") > 0 ? { amount: normAmount } : {}),
+    ...(account ? { accountId: account } : {}),
+    ...(date ? { date } : {}),
+    ...(accept ? { acceptReserveShortfall: true } : {}),
   }, key));
   const link = useSubmit(async () => api.linkOccurrence(id, opId!));
   const skip = useSubmit(async () => api.skipOccurrence(id));
@@ -479,16 +595,28 @@ export function OccurrenceScreen() {
       {mode === "confirm" ? (
         <Card>
           <MoneyField label={`Importe (esperado ${formatSoles(occ.amount)})`} value={amount} optional onChange={(v) => { setAmount(v); confirm.resetKey(); }} />
-          <AccountPicker label="Cuenta (si es otra)" value={account} onChange={(v) => { setAccount(v); confirm.resetKey(); }} />
+          <AccountPicker label="Cuenta (si es otra)" value={account} excludeTypes={occ.kind === "income" ? ["credit"] : undefined} onChange={(v) => { setAccount(v); confirm.resetKey(); }} />
           <DateField label="Fecha (si no es la esperada)" value={date} optional onChange={(v) => { setDate(v); confirm.resetKey(); }} />
           {goalConflict && <Button title={accept ? "Aceptado el faltante: confirma de nuevo" : "Aceptar que lo reservado supere el saldo"} variant="secondary" onPress={() => { setAccept(true); confirm.resetKey(); }} />}
-          <Button title="Confirmar y registrar" busy={confirm.busy} onPress={async () => { if (await confirm.submit()) done("/recurring"); }} />
+          <Button title="Confirmar y registrar" busy={confirm.busy} disabled={amountInvalid || dateInvalid} onPress={async () => { if (await confirm.submit()) done("/recurring"); }} />
           <Button title="Omitir esta vez" variant="secondary" busy={skip.busy} onPress={async () => { if (await skip.submit()) done("/recurring"); }} />
           {(confirm.error || skip.error) && <Notice tone="err">{confirm.error ?? skip.error}</Notice>}
         </Card>
       ) : (
         <Card>
-          <Choice select label="Movimiento ya registrado" value={opId} onChange={setOpId} options={(ops.data?.items ?? []).filter((o) => o.kind === occ.kind && o.status === "confirmed").map((o) => ({ id: o.id, label: `${humanDate(o.occurredOn)} · ${formatSoles(o.amount.replace("-", ""))}`, hint: o.description || undefined }))} />
+          <Choice
+            select
+            label="Movimiento ya registrado"
+            value={opId}
+            onChange={setOpId}
+            options={(ops.data?.items ?? [])
+              .filter((o) => o.kind === occ.kind && o.status === "confirmed")
+              .map((o) => ({
+                id: o.id,
+                label: `${humanDate(o.occurredOn)} · ${formatSoles(o.amount.replace("-", ""))}`,
+                hint: [o.accountName || null, o.description || null].filter(Boolean).join(" · ") || undefined,
+              }))}
+          />
           <Button title="Vincular" busy={link.busy} disabled={!opId} onPress={async () => {
             const res = await link.submit();
             if (res) {
