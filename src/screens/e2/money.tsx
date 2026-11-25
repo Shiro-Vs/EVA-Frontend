@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { api } from "../../api/client";
@@ -13,6 +13,15 @@ import { useDone } from "../../hooks/useDone";
 import { useFocusReload } from "../../hooks/useFocusReload";
 import { humanDate, humanRange, isIsoDate } from "../../utils/dates";
 import { cmpMoney, formatSoles, normalizeMoneyInput } from "../../utils/money";
+import {
+  InlineCardPay,
+  InlineContactReceipt,
+  InlineLoanExpense,
+  InlineLoanIncome,
+  InlineServicePay,
+  type ExpenseSubtype,
+  type IncomeSubtype,
+} from "./InlineQuickForms";
 
 const KIND_TEXT: Record<string, string> = { income: "Ingreso", expense: "Gasto", transfer: "Transferencia", opening: "Saldo inicial", adjustment: "Ajuste", reversal: "Reversión" };
 const KIND_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -310,6 +319,8 @@ export function OperationNewScreen() {
     params.kind === "income" || params.kind === "transfer" ? params.kind : "expense";
   const contacts = useAsync(() => api.contacts(), []);
   const [kind, setKind] = useState<"income" | "expense" | "transfer">(initialKind);
+  const [expenseSub, setExpenseSub] = useState<ExpenseSubtype>("normal");
+  const [incomeSub, setIncomeSub] = useState<IncomeSubtype>("normal");
   const [from, setFrom] = useState<string | null>(params.accountId ?? null);
   const [to, setTo] = useState<string | null>(params.toAccountId ?? null);
   const [amount, setAmount] = useState("");
@@ -384,53 +395,202 @@ export function OperationNewScreen() {
       </Screen>
     );
   }
+  const isInlineSpecial = (kind === "expense" && expenseSub !== "normal") || (kind === "income" && incomeSub !== "normal");
+
+  const EXPENSE_SUBS: Array<{ id: ExpenseSubtype; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+    { id: "normal", label: "Normal", icon: "pricetag-outline" },
+    { id: "service", label: "Servicio", icon: "calendar-outline" },
+    { id: "loan", label: "Préstamo", icon: "swap-horizontal-outline" },
+    { id: "card", label: "Tarjeta", icon: "card-outline" },
+  ];
+  const INCOME_SUBS: Array<{ id: IncomeSubtype; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+    { id: "normal", label: "Normal", icon: "pricetag-outline" },
+    { id: "receipt", label: "Cobro a persona", icon: "people-outline" },
+    { id: "loan", label: "Préstamo", icon: "swap-horizontal-outline" },
+  ];
+
+  const handleKindChange = (next: "expense" | "income" | "transfer") => {
+    setKind(next);
+    setExpenseSub("normal");
+    setIncomeSub("normal");
+    setConflict(null);
+    create.resetKey();
+  };
+
   return (
-    <Screen title="Nuevo movimiento" footer={<Button title="Registrar" busy={create.busy} disabled={!ready} onPress={async () => { const r = await create.submit(); if (r) { if (r.budgetImpact && r.budgetImpact.length > 0) { setImpactId(r.id); setImpact(r.budgetImpact); } else done(`/operation/${r.id}`); } }} />}>
-      <Card>
-        <Choice label="Tipo" value={kind} onChange={touch(setKind)} options={[{ id: "expense", label: "Gasto" }, { id: "income", label: "Ingreso" }, { id: "transfer", label: "Transferencia" }]} />
-        <AccountPicker
-          label={kind === "transfer" ? "Sale de" : kind === "income" ? "Entra a" : "Se paga con"}
-          value={from}
-          onChange={changeFrom}
-          exclude={kind === "transfer" ? to : undefined}
-          excludeTypes={kind === "income" ? ["credit"] : undefined}
-        />
-        {kind === "transfer" && <AccountPicker label="Llega a" value={to} onChange={touch(setTo)} exclude={from} />}
-        <MoneyField label="Importe" value={amount} onChange={touch(setAmount)} />
-        <DateField label="Fecha (hoy si la dejas vacía)" value={date} optional onChange={touch(setDate)} />
-        <Field label="Descripción (opcional)" value={description} onChangeText={touch(setDescription)} placeholder="Ej. Almuerzo, supermercado, sueldo…" autoCapitalize="sentences" maxLength={200} />
-        {kind !== "transfer" && <CategoryPicker value={categoryId} onChange={touch(setCategoryId)} />}
-        {kind !== "transfer" && suggestedCat && !categoryId && (
-          <TouchableOpacity
-            onPress={() => { setCategoryId(suggestedCat.categoryId); setSuggestedCat(null); create.resetKey(); }}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: `${colors.primary}12`, borderWidth: 1, borderColor: `${colors.primary}30` }}
-          >
-            <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
-            <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 12, fontFamily: "Asap" }}>
-              Sugerida por «{suggestedCat.ruleName}»: <Text style={{ fontFamily: "AsapBold" }}>{suggestedCat.categoryName}</Text>
-            </Text>
-            <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>Usar</Text>
-          </TouchableOpacity>
-        )}
-        {kind !== "transfer" && (contacts.data ?? []).length > 0 && (
-          <Choice select label="Persona (opcional)" value={contactId} onChange={(v) => touch(setContactId)(v === contactId ? null : v)}
-            options={(contacts.data ?? []).filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }))} />
-        )}
-      </Card>
-      <Notice tone="info">Un ingreso o gasto suelto no es un cobro de servicio: para cobrar a alguien usa «Registrar cobro» desde su ficha. Toca de nuevo a la persona para quitarla.</Notice>
-      {conflict && (
-        <Card>
-          <Txt bold>Este gasto usa {formatSoles(conflict.eaten)} reservados para metas</Txt>
-          <Txt size={12} muted>Elige de qué metas se descuenta (debe cubrir {formatSoles(conflict.eaten)}) o acepta que las metas queden con faltante.</Txt>
-          {conflict.goals.map((g) => (
-            <MoneyField key={g.goalId} label={`${g.name} · reservado ${formatSoles(g.reserved)}`} value={deduct[g.goalId] ?? ""} optional onChange={(v) => { setDeduct((d) => ({ ...d, [g.goalId]: v })); create.resetKey(); }} />
-          ))}
-          <Choice label="Cómo resolverlo" value={shortfall ? "short" : "pick"} onChange={(v) => { setShortfall(v === "short"); create.resetKey(); }} options={[{ id: "pick", label: "Descontar de las metas elegidas" }, { id: "short", label: "Aceptar el faltante en las metas" }]} />
-        </Card>
+    <Screen
+      title="Nuevo movimiento"
+      footer={
+        isInlineSpecial ? undefined : (
+          <Button
+            title="Registrar"
+            busy={create.busy}
+            disabled={!ready}
+            onPress={async () => {
+              const r = await create.submit();
+              if (r) {
+                if (r.budgetImpact && r.budgetImpact.length > 0) {
+                  setImpactId(r.id);
+                  setImpact(r.budgetImpact);
+                } else done(`/operation/${r.id}`);
+              }
+            }}
+          />
+        )
+      }
+    >
+      {/* Selector principal: Gasto | Ingreso | Transferir */}
+      <View style={{ flexDirection: "row", gap: 6, backgroundColor: `${colors.text}08`, borderRadius: 16, padding: 4 }}>
+        {([
+          ["expense", "Gasto", colors.expenseStrong],
+          ["income", "Ingreso", colors.incomeStrong],
+          ["transfer", "Transferir", colors.primary],
+        ] as const).map(([id, label, activeTint]) => {
+          const on = kind === id;
+          return (
+            <TouchableOpacity
+              key={id}
+              onPress={() => handleKindChange(id)}
+              activeOpacity={0.75}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+              style={{
+                flex: 1,
+                paddingVertical: 9,
+                borderRadius: 12,
+                alignItems: "center",
+                backgroundColor: on ? colors.card : "transparent",
+              }}
+            >
+              <Text style={{ color: on ? activeTint : colors.textSecondary, fontSize: 13.5, fontFamily: on ? "AsapBold" : "AsapMedium" }}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Subtipo rápido y opcional (despliegue progresivo sin salir de la pantalla) */}
+      {kind === "expense" && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -24 }} contentContainerStyle={{ paddingHorizontal: 24, gap: 6 }}>
+          {EXPENSE_SUBS.map((opt) => {
+            const on = expenseSub === opt.id;
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                onPress={() => setExpenseSub(opt.id)}
+                activeOpacity={0.75}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 5,
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 99,
+                  backgroundColor: on ? colors.primarySurface : `${colors.text}08`,
+                }}
+              >
+                <Ionicons name={opt.icon} size={14} color={on ? colors.onPrimary : colors.textSecondary} />
+                <Text style={{ color: on ? colors.onPrimary : colors.text, fontSize: 12.5, fontFamily: on ? "AsapBold" : "AsapMedium" }}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       )}
-      {create.error && <Notice tone="err">{create.error}</Notice>}
+
+      {kind === "income" && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -24 }} contentContainerStyle={{ paddingHorizontal: 24, gap: 6 }}>
+          {INCOME_SUBS.map((opt) => {
+            const on = incomeSub === opt.id;
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                onPress={() => setIncomeSub(opt.id)}
+                activeOpacity={0.75}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 5,
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 99,
+                  backgroundColor: on ? colors.primarySurface : `${colors.text}08`,
+                }}
+              >
+                <Ionicons name={opt.icon} size={14} color={on ? colors.onPrimary : colors.textSecondary} />
+                <Text style={{ color: on ? colors.onPrimary : colors.text, fontSize: 12.5, fontFamily: on ? "AsapBold" : "AsapMedium" }}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      {/* Formularios especializados inline */}
+      {kind === "expense" && expenseSub === "service" ? (
+        <InlineServicePay onDone={() => done("/money")} />
+      ) : kind === "expense" && expenseSub === "loan" ? (
+        <InlineLoanExpense onDone={() => done("/money")} />
+      ) : kind === "expense" && expenseSub === "card" ? (
+        <InlineCardPay onDone={() => done("/money")} />
+      ) : kind === "income" && incomeSub === "receipt" ? (
+        <InlineContactReceipt onDone={() => done("/money")} />
+      ) : kind === "income" && incomeSub === "loan" ? (
+        <InlineLoanIncome onDone={() => done("/money")} />
+      ) : (
+        <>
+          <Card>
+            <AccountPicker
+              label={kind === "transfer" ? "Sale de" : kind === "income" ? "Entra a" : "Se paga con"}
+              value={from}
+              onChange={changeFrom}
+              exclude={kind === "transfer" ? to : undefined}
+              excludeTypes={kind === "income" ? ["credit"] : undefined}
+            />
+            {kind === "transfer" && <AccountPicker label="Llega a" value={to} onChange={touch(setTo)} exclude={from} />}
+            <MoneyField label="Importe" value={amount} onChange={touch(setAmount)} />
+            <DateField label="Fecha (hoy si la dejas vacía)" value={date} optional onChange={touch(setDate)} />
+            <Field label="Descripción (opcional)" value={description} onChangeText={touch(setDescription)} placeholder="Ej. Almuerzo, supermercado, sueldo…" autoCapitalize="sentences" maxLength={200} />
+            {kind !== "transfer" && <CategoryPicker value={categoryId} onChange={touch(setCategoryId)} />}
+            {kind !== "transfer" && suggestedCat && !categoryId && (
+              <TouchableOpacity
+                onPress={() => { setCategoryId(suggestedCat.categoryId); setSuggestedCat(null); create.resetKey(); }}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: `${colors.primary}12`, borderWidth: 1, borderColor: `${colors.primary}30` }}
+              >
+                <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
+                <Text numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 12, fontFamily: "Asap" }}>
+                  Sugerida por «{suggestedCat.ruleName}»: <Text style={{ fontFamily: "AsapBold" }}>{suggestedCat.categoryName}</Text>
+                </Text>
+                <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>Usar</Text>
+              </TouchableOpacity>
+            )}
+            {kind !== "transfer" && (contacts.data ?? []).length > 0 && (
+              <Choice select label="Persona (opcional)" value={contactId} onChange={(v) => touch(setContactId)(v === contactId ? null : v)}
+                options={(contacts.data ?? []).filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }))} />
+            )}
+          </Card>
+          {conflict && (
+            <Card>
+              <Txt bold>Este gasto usa {formatSoles(conflict.eaten)} reservados para metas</Txt>
+              <Txt size={12} muted>Elige de qué metas se descuenta (debe cubrir {formatSoles(conflict.eaten)}) o acepta que las metas queden con faltante.</Txt>
+              {conflict.goals.map((g) => (
+                <MoneyField key={g.goalId} label={`${g.name} · reservado ${formatSoles(g.reserved)}`} value={deduct[g.goalId] ?? ""} optional onChange={(v) => { setDeduct((d) => ({ ...d, [g.goalId]: v })); create.resetKey(); }} />
+              ))}
+              <Choice label="Cómo resolverlo" value={shortfall ? "short" : "pick"} onChange={(v) => { setShortfall(v === "short"); create.resetKey(); }} options={[{ id: "pick", label: "Descontar de las metas elegidas" }, { id: "short", label: "Aceptar el faltante en las metas" }]} />
+            </Card>
+          )}
+          {create.error && <Notice tone="err">{create.error}</Notice>}
+        </>
+      )}
     </Screen>
   );
 }
