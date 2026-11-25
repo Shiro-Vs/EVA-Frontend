@@ -54,7 +54,7 @@ async function checkModuleBlockers(current: ModulesPreferences, next: ModulesPre
         module: "Personas",
         reason: `Todavía tienes ${formatSoles(summary.receivable.pending)} por cobrar a personas.`,
         actionLabel: "Ir a Personas",
-        route: "/people",
+        route: "/contacts",
       });
     }
     const openPersonLoans = loans.filter((l) => l.status === "open" && l.contactId);

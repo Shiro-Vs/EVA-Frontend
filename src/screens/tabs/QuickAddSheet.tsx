@@ -23,13 +23,13 @@ export default function QuickAddSheet() {
     t === "expense" ? colors.expenseStrong : t === "income" ? colors.incomeStrong : colors.primary;
 
   const visibleFeatured = FEATURED_ACTIONS.filter((a) => {
-    if (a.to === "/people") return modules.people;
+    if (a.to === "/contacts") return modules.people;
     return true;
   });
 
   const visibleCreate = CREATE_ACTIONS.filter((a) => {
     if (a.to === "/service/new") return modules.services;
-    if (a.to === "/people?action=add") return modules.people;
+    if (a.to === "/contacts?action=add") return modules.people;
     if (a.to === "/loans/new") return modules.loans && modules.people;
     if (a.to === "/bank-loans/new") return modules.loans;
     if (a.to === "/budgets/new" || a.to === "/goals/new" || a.to === "/recurring/new") return modules.plan;

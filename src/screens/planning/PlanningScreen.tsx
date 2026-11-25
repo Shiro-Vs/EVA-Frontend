@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { Interval, Subscription } from "../../api/types";
 import { Button, Empty, ErrorBox, Loading, Screen } from "../../components/v1/ui";
+import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -32,6 +33,7 @@ const renewalOf = (s: Subscription) => s.currentCycle?.endDate ?? null;
 /** Pantalla de servicios: resumen arriba y las suscripciones como tarjetas o como lista (se recuerda tu elección). */
 export default function PlanningScreen() {
   const { colors, isDark } = useAppTheme();
+  const { modules } = useModules();
   const router = useRouter();
   const [view, setView] = useState<View_>("cards");
   const [filter, setFilter] = useState<Filter>("all");
@@ -78,16 +80,33 @@ export default function PlanningScreen() {
   const s = summary.data;
 
   return (
-    <Screen title="Servicios" back={false} subtitle="Tus suscripciones y lo que cobras por ellas" refreshing={refreshing} onRefresh={onRefresh}
-      right={<Button title="Nuevo" icon="add" size="compact" onPress={() => router.push("/service/new" as never)} />}>
+    <Screen title="Servicios" back={false} subtitle={modules.people ? "Tus suscripciones y lo que cobras por ellas" : "Tus suscripciones personales"} refreshing={refreshing} onRefresh={onRefresh}
+      right={
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {modules.people && (
+            <TouchableOpacity
+              onPress={() => router.push("/contacts" as never)}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Personas"
+              style={{ width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.sections.people.ink}18` }}
+            >
+              <Ionicons name="people-outline" size={19} color={colors.sections.people.ink} />
+            </TouchableOpacity>
+          )}
+          <Button title="Nuevo" icon="add" size="compact" onPress={() => router.push("/service/new" as never)} />
+        </View>
+      }>
       {/* Resumen */}
       <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 16, overflow: "hidden" }}>
         <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
         <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Comprometido este ciclo</Text>
         <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(s?.subscriptions.currentCycleTotal)}</Text>
         <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
-          <Stat label="Servicios" value={`${s?.subscriptions.active ?? activeOnly.length}`} sub={sharedCount ? (sharedCount === 1 ? "1 compartido" : `${sharedCount} compartidos`) : "activos"} />
-          <Stat label="Por cobrar" value={formatSoles(s?.receivable.pending)} sub={s && Number(s.receivable.overdue) > 0 ? `${formatSoles(s.receivable.overdue)} vencido` : "al día"} onPress={() => router.push("/people" as never)} />
+          <Stat label="Servicios" value={`${s?.subscriptions.active ?? activeOnly.length}`} sub={modules.people && sharedCount ? (sharedCount === 1 ? "1 compartido" : `${sharedCount} compartidos`) : "activos"} />
+          {modules.people && (
+            <Stat label="Por cobrar" value={formatSoles(s?.receivable.pending)} sub={s && Number(s.receivable.overdue) > 0 ? `${formatSoles(s.receivable.overdue)} vencido` : "al día"} onPress={() => router.push("/contacts" as never)} />
+          )}
         </View>
         {next && nextDays !== null && (
           <TouchableOpacity onPress={() => router.push(`/service/${next.id}` as never)} accessibilityRole="button" hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}

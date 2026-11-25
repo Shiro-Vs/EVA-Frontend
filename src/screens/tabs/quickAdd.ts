@@ -45,7 +45,7 @@ export const PRIMARY_MOVEMENTS: PrimaryQuickAction[] = [
 /** Acciones frecuentes de registro asistido y cobros. */
 export const FEATURED_ACTIONS: QuickAction[] = [
   { icon: "scan-outline", title: "Subir comprobante", text: "Foto, PDF o texto con IA", to: "/capture/new", section: "plan" },
-  { icon: "cash-outline", title: "Registrar cobro", text: "Alguien que te pagó", to: "/people", section: "people" },
+  { icon: "cash-outline", title: "Registrar cobro", text: "Alguien que te pagó", to: "/contacts", section: "people" },
 ];
 
 /** Crear elementos nuevos, en grilla compacta de 2 columnas. */
@@ -55,7 +55,7 @@ export const CREATE_ACTIONS: QuickAction[] = [
   { icon: "speedometer-outline", title: "Presupuesto", text: "Tope de gasto por mes", to: "/budgets/new", section: "plan" },
   { icon: "flag-outline", title: "Meta de ahorro", text: "Reserva para un objetivo", to: "/goals/new", section: "plan" },
   { icon: "repeat-outline", title: "Recurrente", text: "Sueldo, alquiler u otro", to: "/recurring/new", section: "plan" },
-  { icon: "person-add-outline", title: "Contacto", text: "Persona o participante", to: "/people?action=add", section: "people" },
+  { icon: "person-add-outline", title: "Contacto", text: "Persona o participante", to: "/contacts?action=add", section: "people" },
   { icon: "people-outline", title: "Préstamo", text: "Con una persona", to: "/loans/new", section: "money" },
   { icon: "business-outline", title: "Préstamo banco", text: "Cuotas y cronograma", to: "/bank-loans/new", section: "money" },
 ];

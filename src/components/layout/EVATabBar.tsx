@@ -24,7 +24,7 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
 
   const isRouteVisible = (name: string) => {
     if (name === "planning") return modules.services;
-    if (name === "people") return modules.people;
+    if (name === "people") return modules.loans || modules.people;
     if (name === "plan") return modules.plan;
     return true;
   };
@@ -74,7 +74,11 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
     if (name === "index") iconName = focused ? "grid" : "grid-outline";
     if (name === "money") iconName = focused ? "wallet" : "wallet-outline";
     if (name === "planning") iconName = focused ? "receipt" : "receipt-outline";
-    if (name === "people") iconName = focused ? "people" : "people-outline";
+    if (name === "people") {
+      iconName = modules.loans
+        ? (focused ? "swap-horizontal" : "swap-horizontal-outline")
+        : (focused ? "people" : "people-outline");
+    }
     if (name === "plan") iconName = focused ? "flag" : "flag-outline";
     if (name === "more") iconName = focused ? "apps" : "apps-outline";
     return <Ionicons name={iconName} size={22} color={color} />;
@@ -102,7 +106,9 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
     };
 
     const labelText = typeof label === "string" ? label : route.name;
-    const shownLabel = labelText === "index" ? "Inicio" : labelText;
+    const shownLabel = route.name === "people"
+      ? (modules.loans ? "Préstamos" : "Personas")
+      : labelText === "index" ? "Inicio" : labelText;
 
     return (
       <TouchableOpacity
