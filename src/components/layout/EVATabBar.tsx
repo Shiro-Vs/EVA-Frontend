@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { quickAdd } from "../../screens/tabs/quickAdd";
 import type { SectionKey } from "../../constants/Colors";
@@ -18,7 +19,15 @@ import Animated, {
 
 export default function EVATabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors, fonts } = useAppTheme();
+  const { modules } = useModules();
   const insets = useSafeAreaInsets();
+
+  const isRouteVisible = (name: string) => {
+    if (name === "planning") return modules.services;
+    if (name === "people") return modules.people;
+    if (name === "plan") return modules.plan;
+    return true;
+  };
 
   // Animación de pulso para el botón central
   const scale = useSharedValue(1);
@@ -62,6 +71,7 @@ export default function EVATabBar({ state, descriptors, navigation }: BottomTabB
         { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, shadowColor: "#000" }
       ]}>
         {state.routes.map((route, index) => {
+          if (!isRouteVisible(route.name)) return null;
           const { options } = descriptors[route.key];
           const label = options.tabBarLabel !== undefined
             ? options.tabBarLabel

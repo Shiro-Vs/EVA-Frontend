@@ -3,6 +3,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import BottomSheet from "../../components/common/BottomSheet";
+import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { CREATE_ACTIONS, FEATURED_ACTIONS, PRIMARY_MOVEMENTS, quickAdd, useQuickAddOpen, type QuickTone } from "./quickAdd";
 
@@ -10,6 +11,7 @@ import { CREATE_ACTIONS, FEATURED_ACTIONS, PRIMARY_MOVEMENTS, quickAdd, useQuick
 export default function QuickAddSheet() {
   const open = useQuickAddOpen();
   const { colors } = useAppTheme();
+  const { modules } = useModules();
   const router = useRouter();
 
   const go = (to: string) => {
@@ -20,10 +22,24 @@ export default function QuickAddSheet() {
   const toneColor = (t: QuickTone) =>
     t === "expense" ? colors.expenseStrong : t === "income" ? colors.incomeStrong : colors.primary;
 
+  const visibleFeatured = FEATURED_ACTIONS.filter((a) => {
+    if (a.to === "/people") return modules.people;
+    return true;
+  });
+
+  const visibleCreate = CREATE_ACTIONS.filter((a) => {
+    if (a.to === "/service/new") return modules.services;
+    if (a.to === "/people?action=add") return modules.people;
+    if (a.to === "/loans/new") return modules.loans && modules.people;
+    if (a.to === "/bank-loans/new") return modules.loans;
+    if (a.to === "/budgets/new" || a.to === "/goals/new" || a.to === "/recurring/new") return modules.plan;
+    return true;
+  });
+
   // Empareja las opciones de creación de 2 en 2 para alinearlas en grilla limpia.
   const createRows: Array<[typeof CREATE_ACTIONS[number], typeof CREATE_ACTIONS[number] | undefined]> = [];
-  for (let i = 0; i < CREATE_ACTIONS.length; i += 2) {
-    createRows.push([CREATE_ACTIONS[i]!, CREATE_ACTIONS[i + 1]]);
+  for (let i = 0; i < visibleCreate.length; i += 2) {
+    createRows.push([visibleCreate[i]!, visibleCreate[i + 1]]);
   }
 
   return (
@@ -66,7 +82,7 @@ export default function QuickAddSheet() {
 
         {/* 2. Comprobante con IA y cobro */}
         <View style={{ flexDirection: "row", gap: 8 }}>
-          {FEATURED_ACTIONS.map((a) => {
+          {visibleFeatured.map((a) => {
             const ink = colors.sections[a.section].ink;
             return (
               <TouchableOpacity

@@ -7,6 +7,7 @@ import type { Account } from "../../api/types";
 import { ApiError } from "../../api/http";
 import { AccountPicker, CategoryPicker, Choice, DateField, FlowResult, MoneyField, PreviewFooter, ReasonField, usePreviewFlow } from "../../components/v1/forms";
 import { Button, Card, Chip, ErrorBox, Field, Heading, KV, Loading, Money, Notice, Screen, Txt, SwitchRow } from "../../components/v1/ui";
+import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useDone } from "../../hooks/useDone";
@@ -313,6 +314,7 @@ export function OperationCorrectScreen() {
 /** Nuevo ingreso, gasto o transferencia manual. */
 export function OperationNewScreen() {
   const { colors } = useAppTheme();
+  const { modules } = useModules();
   const done = useDone();
   const params = useLocalSearchParams<{ kind?: string; accountId?: string; toAccountId?: string }>();
   const initialKind: "income" | "expense" | "transfer" =
@@ -399,14 +401,14 @@ export function OperationNewScreen() {
 
   const EXPENSE_SUBS: Array<{ id: ExpenseSubtype; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
     { id: "normal", label: "Normal", icon: "pricetag-outline" },
-    { id: "service", label: "Servicio", icon: "calendar-outline" },
-    { id: "loan", label: "Préstamo", icon: "swap-horizontal-outline" },
+    ...(modules.services ? [{ id: "service" as const, label: "Servicio", icon: "calendar-outline" as const }] : []),
+    ...(modules.loans ? [{ id: "loan" as const, label: "Préstamo", icon: "swap-horizontal-outline" as const }] : []),
     { id: "card", label: "Tarjeta", icon: "card-outline" },
   ];
   const INCOME_SUBS: Array<{ id: IncomeSubtype; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
     { id: "normal", label: "Normal", icon: "pricetag-outline" },
-    { id: "receipt", label: "Cobro a persona", icon: "people-outline" },
-    { id: "loan", label: "Préstamo", icon: "swap-horizontal-outline" },
+    ...(modules.people ? [{ id: "receipt" as const, label: "Cobro a persona", icon: "people-outline" as const }] : []),
+    ...(modules.loans && modules.people ? [{ id: "loan" as const, label: "Préstamo", icon: "swap-horizontal-outline" as const }] : []),
   ];
 
   const handleKindChange = (next: "expense" | "income" | "transfer") => {
@@ -502,7 +504,7 @@ export function OperationNewScreen() {
         </ScrollView>
       )}
 
-      {kind === "income" && (
+      {kind === "income" && INCOME_SUBS.length > 1 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -24 }} contentContainerStyle={{ paddingHorizontal: 24, gap: 6 }}>
           {INCOME_SUBS.map((opt) => {
             const on = incomeSub === opt.id;
@@ -573,7 +575,7 @@ export function OperationNewScreen() {
                 <Text style={{ color: colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>Usar</Text>
               </TouchableOpacity>
             )}
-            {kind !== "transfer" && (contacts.data ?? []).length > 0 && (
+            {kind !== "transfer" && modules.people && (contacts.data ?? []).length > 0 && (
               <Choice select label="Persona (opcional)" value={contactId} onChange={(v) => touch(setContactId)(v === contactId ? null : v)}
                 options={(contacts.data ?? []).filter((c) => c.status === "active").map((c) => ({ id: c.id, label: c.name }))} />
             )}

@@ -326,12 +326,19 @@ export interface MonthlySnapshot { id: string; period: string; version: number; 
 
 export type CardId = "accounts_balance" | "credit_debt" | "period_flow" | "budgets" | "goals" | "renewals" | "pending_collections" | "loans" | "capture_pending" | "upcoming_payments";
 export type LeadKind = { enabled: boolean; leadDays: number[] };
+export interface ModulesPreferences {
+  services: boolean;
+  people: boolean;
+  loans: boolean;
+  plan: boolean;
+}
 export interface Preferences {
   dashboard: { cards: Array<{ id: CardId; enabled: boolean }> };
   notifications: { enabled: boolean; discreet: boolean; time: string; quiet: { from: string; to: string } | null; repeatOverdue: boolean; kinds: { renewal: LeadKind; collection: LeadKind; recurring: LeadKind; loan: LeadKind; card: LeadKind; budget: { enabled: boolean }; capture: { enabled: boolean } } };
   capture: { reviewMode: "individual" | "batch"; duplicates: "separate" | "grouped" };
   security: { lockAfterSeconds: number };
   backup: { frequency: "off" | "weekly" | "monthly"; keep: 1 | 2 };
+  modules?: ModulesPreferences;
 }
 export interface DashboardCard { id: CardId; title: string; data: any }
 export interface Dashboard { asOf: IsoDate; cards: DashboardCard[]; available: Array<{ id: CardId; title: string; enabled: boolean }> }

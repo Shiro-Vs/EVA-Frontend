@@ -11,6 +11,7 @@ import { Badge, Card, Empty, Screen, Txt } from "../../components/v1/ui";
 import { PALETTE_INFO, Palettes, type SectionKey } from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
 import { useDialog } from "../../context/DialogContext";
+import { MODULE_PRESETS, useModules } from "../../context/ModulesContext";
 import { useAppThemeContext } from "../../context/ThemeContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
@@ -173,7 +174,9 @@ export default function MoreScreen() {
   const dialog = useDialog();
   const lock = useLock();
   const { palette, themePreference, setTheme } = useAppThemeContext();
+  const { modules, preset } = useModules();
   const { isUpdatePending, currentlyRunning } = Updates.useUpdates();
+  const presetLabel = preset === "custom" ? "Personalizado" : MODULE_PRESETS[preset].label;
 
   const [look, setLook] = useState(false);
   const [suggest, setSuggest] = useState(false);
@@ -240,6 +243,16 @@ export default function MoreScreen() {
           onPress: () => setLook(true),
         },
         {
+          id: "modules",
+          icon: "layers-outline",
+          title: "Módulos de EVA",
+          text: "Elige qué apartados quieres activar",
+          keywords: "modulos apartados servicios personas prestamos plan personalizar ocultar",
+          section: "more",
+          badge: { text: presetLabel, tone: "info" },
+          onPress: () => go("/settings/modules"),
+        },
+        {
           id: "dashboard",
           icon: "apps-outline",
           title: "Panel y tarjetas",
@@ -290,15 +303,15 @@ export default function MoreScreen() {
           section: "more",
           onPress: () => go("/settings/general"),
         },
-        {
+        ...(modules.people ? [{
           id: "refunds",
-          icon: "return-down-back-outline",
+          icon: "return-down-back-outline" as IconName,
           title: "Devoluciones",
           text: "Dinero que debes devolver",
           keywords: "reembolsos devoluciones cobros",
-          section: "money",
+          section: "money" as SectionKey,
           onPress: () => go("/refunds"),
-        },
+        }] : []),
       ],
     },
     {
@@ -374,7 +387,7 @@ export default function MoreScreen() {
         },
       ],
     },
-  ], [palette, themePreference, notifBadge, lockBadge, aboutText, isUpdatePending, isDark]);
+  ], [palette, themePreference, notifBadge, lockBadge, aboutText, isUpdatePending, isDark, modules.people, presetLabel]);
 
   // Todas las entradas (herramientas + perfil + ajustes) para el buscador rápido.
   const allSearchable = useMemo<Item[]>(() => {

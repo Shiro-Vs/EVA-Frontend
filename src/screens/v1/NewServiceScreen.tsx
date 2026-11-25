@@ -5,6 +5,7 @@ import { api, errorMessage, type SubscriptionBody } from "../../api/client";
 import type { SubscriptionPreview } from "../../api/types";
 import { Button, Card, Field, Heading, KV, Money, Notice, Screen, SwitchRow, Txt } from "../../components/v1/ui";
 import { ServiceStylePicker } from "../../components/v1/ServiceStylePicker";
+import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { getServiceDefaults } from "../../utils/serviceIcons";
 import { useSubmit } from "../../hooks/useAsync";
@@ -40,9 +41,10 @@ function suggestNext(start: string, unit: Unit, count: number): string {
 
 export default function NewServiceScreen() {
   const { colors } = useAppTheme();
+  const { modules } = useModules();
   const router = useRouter();
   const [name, setName] = useState("");
-  const [mode, setMode] = useState<"shared" | "personal">("shared");
+  const [mode, setMode] = useState<"shared" | "personal">(modules.people ? "shared" : "personal");
   const [capacity, setCapacity] = useState("4");
   const [price, setPrice] = useState("");
   const [freq, setFreq] = useState("m1");
@@ -118,15 +120,19 @@ export default function NewServiceScreen() {
       <Card>
         <Field label="Nombre" value={name} onChangeText={edit(setName)} placeholder="Netflix, Spotify, iCloud…" autoCapitalize="words" />
         <ServiceStylePicker icon={style.icon} color={style.color} onChange={(v) => { setStyle(v); setStyleTouched(true); create.resetKey(); }} />
-        <Choice
-          label="Tipo de suscripción"
-          options={[
-            { id: "shared", label: "Compartido", hint: "Divides el pago con otros" },
-            { id: "personal", label: "Personal", hint: "Solo lo pagas tú" },
-          ]}
-          value={mode}
-          onChange={edit(setMode)}
-        />
+        {modules.people ? (
+          <Choice
+            label="Tipo de suscripción"
+            options={[
+              { id: "shared", label: "Compartido", hint: "Divides el pago con otros" },
+              { id: "personal", label: "Personal", hint: "Solo lo pagas tú" },
+            ]}
+            value={mode}
+            onChange={edit(setMode)}
+          />
+        ) : (
+          <Txt size={12} muted>Suscripción personal. Activa «Personas» en Más → Módulos de EVA si quieres compartir planes.</Txt>
+        )}
         <View style={{ flexDirection: "row", gap: 10 }}>
           {mode === "shared" && (
             <View style={{ flex: 1 }}>

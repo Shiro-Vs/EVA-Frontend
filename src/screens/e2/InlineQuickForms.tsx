@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import type { Account, BankLoanListItem, Contact, Loan, Subscription } from "../../api/types";
 import { AccountPicker, DateField, MoneyField } from "../../components/v1/forms";
 import { Button, Card, Field, Loading, Notice, Txt } from "../../components/v1/ui";
+import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { humanDate, isIsoDate, todayLocalIso } from "../../utils/dates";
@@ -245,7 +246,8 @@ export function InlineCardPay({ onDone }: { onDone: () => void }) {
 
 export function InlineLoanExpense({ onDone }: { onDone: () => void }) {
   const { colors } = useAppTheme();
-  const loansQ = useAsync(() => api.loans(), []);
+  const { modules } = useModules();
+  const loansQ = useAsync(() => (modules.people ? api.loans() : Promise.resolve([])), [modules.people]);
   const bankQ = useAsync(() => api.bankLoans("active"), []);
   const [source, setSource] = useState<"person" | "bank" | null>(null);
   const [loanId, setLoanId] = useState<string | null>(null);
@@ -255,8 +257,8 @@ export function InlineLoanExpense({ onDone }: { onDone: () => void }) {
   const [date, setDate] = useState("");
 
   const borrowedLoans = useMemo(
-    () => (loansQ.data ?? []).filter((l) => l.status === "open" && l.direction === "borrowed" && l.engine === "ledger"),
-    [loansQ.data],
+    () => (modules.people ? (loansQ.data ?? []).filter((l) => l.status === "open" && l.direction === "borrowed" && l.engine === "ledger") : []),
+    [loansQ.data, modules.people],
   );
   const activeBankLoans = useMemo(
     () => (bankQ.data ?? []).filter((b) => b.status === "active"),
@@ -264,7 +266,9 @@ export function InlineLoanExpense({ onDone }: { onDone: () => void }) {
   );
 
   // Elegir automáticamente la pestaña que tenga datos para no abrumar
-  const activeSource: "person" | "bank" = source ?? (borrowedLoans.length > 0 ? "person" : activeBankLoans.length > 0 ? "bank" : "person");
+  const activeSource: "person" | "bank" = !modules.people
+    ? "bank"
+    : (source ?? (borrowedLoans.length > 0 ? "person" : activeBankLoans.length > 0 ? "bank" : "person"));
 
   const selectedLoan: Loan | null = borrowedLoans.find((l) => l.id === loanId) ?? null;
   const selectedBank: BankLoanListItem | null = activeBankLoans.find((b) => b.id === bankId) ?? null;
@@ -297,39 +301,41 @@ export function InlineLoanExpense({ onDone }: { onDone: () => void }) {
 
   return (
     <View style={{ gap: 12 }}>
-      {/* Selector limpio Persona / Banco */}
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        {([
-          ["person", "De persona", "people-outline", borrowedLoans.length],
-          ["bank", "De banco", "business-outline", activeBankLoans.length],
-        ] as const).map(([id, label, icon, count]) => {
-          const on = activeSource === id;
-          return (
-            <TouchableOpacity
-              key={id}
-              onPress={() => { setSource(id); setLoanId(null); setBankId(null); setAmount(""); submit.resetKey(); }}
-              activeOpacity={0.75}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: on }}
-              style={{
-                flex: 1,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                paddingVertical: 10,
-                borderRadius: 14,
-                backgroundColor: on ? colors.primarySurface : `${colors.text}08`,
-              }}
-            >
-              <Ionicons name={icon} size={15} color={on ? colors.onPrimary : colors.textSecondary} />
-              <Text style={{ color: on ? colors.onPrimary : colors.text, fontSize: 13, fontFamily: "AsapBold" }}>
-                {label}{count > 0 ? ` (${count})` : ""}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {/* Selector limpio Persona / Banco (solo si Personas está activo) */}
+      {modules.people && (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {([
+            ["person", "De persona", "people-outline", borrowedLoans.length],
+            ["bank", "De banco", "business-outline", activeBankLoans.length],
+          ] as const).map(([id, label, icon, count]) => {
+            const on = activeSource === id;
+            return (
+              <TouchableOpacity
+                key={id}
+                onPress={() => { setSource(id); setLoanId(null); setBankId(null); setAmount(""); submit.resetKey(); }}
+                activeOpacity={0.75}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  paddingVertical: 10,
+                  borderRadius: 14,
+                  backgroundColor: on ? colors.primarySurface : `${colors.text}08`,
+                }}
+              >
+                <Ionicons name={icon} size={15} color={on ? colors.onPrimary : colors.textSecondary} />
+                <Text style={{ color: on ? colors.onPrimary : colors.text, fontSize: 13, fontFamily: "AsapBold" }}>
+                  {label}{count > 0 ? ` (${count})` : ""}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
       {activeSource === "person" ? (
         borrowedLoans.length === 0 ? (

@@ -12,6 +12,7 @@ import { ThemeProvider, useAppThemeContext } from "../src/context/ThemeContext";
 import { useAppTheme } from "../src/hooks/useAppTheme";
 import { AuthProvider, useAuth } from "../src/context/AuthContext";
 import { DialogProvider } from "../src/context/DialogContext";
+import { ModulesProvider } from "../src/context/ModulesContext";
 import { LockProvider } from "../src/security/LockGate";
 import { useReminderSync } from "../src/notifications/useReminderSync";
 import { UpdatePrompt } from "../src/updates/UpdatePrompt";
@@ -159,6 +160,7 @@ function RootLayoutContent() {
             <Stack.Screen name="settings/dashboard" />
             <Stack.Screen name="settings/general" />
             <Stack.Screen name="settings/lock" />
+            <Stack.Screen name="settings/modules" />
             <Stack.Screen name="settings/notifications" />
             <Stack.Screen name="settings/password" />
             <Stack.Screen name="settings/profile" />
@@ -185,11 +187,13 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <LockProvider>
-          <DialogProvider>
-            <RootLayoutContent />
-          </DialogProvider>
-        </LockProvider>
+        <ModulesProvider>
+          <LockProvider>
+            <DialogProvider>
+              <RootLayoutContent />
+            </DialogProvider>
+          </LockProvider>
+        </ModulesProvider>
       </AuthProvider>
     </ThemeProvider>
   );
