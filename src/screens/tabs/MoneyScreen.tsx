@@ -168,33 +168,34 @@ export default function MoneyScreen() {
 
   return (
     <Screen title="Dinero" back={false} scrollEnabled={!draggingCards} refreshing={refreshing} onRefresh={onRefresh} right={<Button title="Cuenta" icon="add" size="compact" onPress={() => router.push("/account/new" as never)} />}>
-      <View style={{ backgroundColor: colors.primarySurface, borderRadius: 22, padding: 15, overflow: "hidden", gap: 3 }}>
-        <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
+      <View style={{ paddingTop: 2, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Saldo total</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>
+            Saldo total · {includedCount} {includedCount === 1 ? "cuenta" : "cuentas"}{excludedCount > 0 ? ` (${excludedCount} excluida${excludedCount === 1 ? "" : "s"})` : ""}
+          </Text>
           <TouchableOpacity
             onPress={toggleHidden}
             accessibilityRole="button"
             accessibilityLabel={hidden ? "Mostrar saldos" : "Ocultar saldos"}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.16)" }}
+            style={{ width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.text}08` }}
           >
-            <Ionicons name={hidden ? "eye-off-outline" : "eye-outline"} size={16} color={colors.onPrimary} />
+            <Ionicons name={hidden ? "eye-off-outline" : "eye-outline"} size={16} color={hidden ? colors.primary : colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 36, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
           {hidden ? MASK : s ? formatSoles(s.balance.net) : "…"}
         </Text>
-        <Text style={{ color: colors.onPrimaryMuted, fontSize: 11.5, fontFamily: "Asap" }}>
-          {includedCount} {includedCount === 1 ? "cuenta" : "cuentas"}{excludedCount > 0 ? ` (${excludedCount} excluida${excludedCount === 1 ? "" : "s"})` : ""} · deuda de tarjetas ya descontada
+        <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
+          Deuda de tarjetas ya descontada
         </Text>
         {s?.creditLines && s.creditLines.cards > 0 && (
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6, paddingTop: 7, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.16)" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-              <Ionicons name="card-outline" size={13} color={colors.onPrimaryMuted} />
-              <Text style={{ color: colors.onPrimaryMuted, fontSize: 11.5, fontFamily: "AsapMedium" }}>Línea de crédito disponible</Text>
+              <Ionicons name="card-outline" size={14} color={colors.textSecondary} />
+              <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>Línea de crédito disponible</Text>
             </View>
-            <Text style={{ color: colors.onPrimary, fontSize: 13, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+            <Text style={{ color: colors.text, fontSize: 14, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
               {hidden ? MASK : formatSoles(s.creditLines.available)}
             </Text>
           </View>

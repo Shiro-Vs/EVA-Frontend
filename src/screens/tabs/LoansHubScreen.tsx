@@ -101,34 +101,31 @@ export default function LoansHubScreen() {
       panHandlers={swipeHandlers}
       right={<Button title="Nuevo" icon="add" size="compact" onPress={() => router.push(newRoute as never)} />}
     >
-      {/* Resumen superior */}
-      <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 16, overflow: "hidden", gap: 10 }}>
-        <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          {modules.people && (
-            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, gap: 2 }}>
-              <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", textTransform: "uppercase", letterSpacing: 0.8 }}>
-                Te deben
-              </Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 22, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
-                {formatSoles(totalLent)}
-              </Text>
-              <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "Asap" }}>
-                {openLent.length} {openLent.length === 1 ? "préstamo activo" : "préstamos activos"}
-              </Text>
-            </View>
-          )}
-          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, gap: 2 }}>
-            <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", textTransform: "uppercase", letterSpacing: 0.8 }}>
-              Debes
+      {/* Resumen superior editorial */}
+      <View style={{ flexDirection: "row", paddingTop: 2, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        {modules.people && (
+          <View style={{ flex: 1, gap: 2, paddingRight: 12 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>
+              Te deben
             </Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 22, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
-              {formatSoles(totalOwed)}
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: cmpMoney(totalLent, "0.00") > 0 ? colors.incomeStrong : colors.text, fontSize: 26, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.4 }}>
+              {formatSoles(totalLent)}
             </Text>
-            <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "Asap" }}>
-              {openBorrowed.length + activeBank.length} {openBorrowed.length + activeBank.length === 1 ? "activo" : "activos"}
+            <Text style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "Asap" }}>
+              {openLent.length} {openLent.length === 1 ? "préstamo activo" : "préstamos activos"}
             </Text>
           </View>
+        )}
+        <View style={{ flex: 1, gap: 2, paddingLeft: modules.people ? 14 : 0, borderLeftWidth: modules.people ? 1 : 0, borderLeftColor: colors.border }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>
+            Debes
+          </Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 26, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.4 }}>
+            {formatSoles(totalOwed)}
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "Asap" }}>
+            {openBorrowed.length + activeBank.length} {openBorrowed.length + activeBank.length === 1 ? "activo" : "activos"}
+          </Text>
         </View>
       </View>
 

@@ -247,31 +247,37 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Saldo total, línea de crédito disponible y flujo del mes */}
-        <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 17, overflow: "hidden", gap: 4 }}>
-          <View style={{ position: "absolute", top: -44, right: -32, width: 150, height: 150, borderRadius: 75, backgroundColor: "rgba(255,255,255,0.10)" }} />
-          <View style={{ position: "absolute", bottom: -60, left: -24, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(0,0,0,0.08)" }} />
-          <Text style={{ color: colors.onPrimaryMuted, fontSize: 11.5, fontFamily: "AsapSemiBold", letterSpacing: 1.1, textTransform: "uppercase" }}>
-            Saldo total · {s.balance.accounts} {s.balance.accounts === 1 ? "cuenta" : "cuentas"}
-          </Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 31, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], marginTop: 2 }}>
-            {money(s.balance.net)}
-          </Text>
+        {/* Saldo total, línea de crédito disponible y flujo del mes (estilo editorial limpio) */}
+        <View style={{ paddingTop: 4, paddingBottom: 6, gap: 10 }}>
+          <View style={{ gap: 2 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>
+              Saldo total · {s.balance.accounts} {s.balance.accounts === 1 ? "cuenta" : "cuentas"}
+            </Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 36, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
+              {money(s.balance.net)}
+            </Text>
+          </View>
           {s.creditLines && s.creditLines.cards > 0 && (
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.14)" }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-                <Ionicons name="card-outline" size={13} color={colors.onPrimaryMuted} />
-                <Text style={{ color: colors.onPrimaryMuted, fontSize: 11.5, fontFamily: "AsapMedium" }}>Línea de crédito disponible</Text>
-              </View>
-              <Text style={{ color: colors.onPrimary, fontSize: 13, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
-                {money(s.creditLines.available)}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Ionicons name="card-outline" size={14} color={colors.textSecondary} />
+              <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "Asap" }}>
+                Línea disponible{" "}
+                <Text style={{ color: colors.text, fontFamily: "AsapSemiBold", fontVariant: ["tabular-nums"] }}>
+                  {money(s.creditLines.available)}
+                </Text>
               </Text>
             </View>
           )}
           {flow ? (
-            <TouchableOpacity onPress={() => go("/reports")} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel="Ver resumen mensual" style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-              <FlowPill label={`Ingresos · ${monthName}`} value={money(flow.income)} icon="arrow-down" />
-              <FlowPill label={`Gastos · ${monthName}`} value={money(flow.consumption)} icon="arrow-up" />
+            <TouchableOpacity
+              onPress={() => go("/reports")}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Ver resumen mensual"
+              style={{ flexDirection: "row", paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}
+            >
+              <FlowCol label={`Ingresos · ${monthName}`} value={money(flow.income)} icon="arrow-down" color={colors.incomeStrong} />
+              <FlowCol label={`Gastos · ${monthName}`} value={money(flow.consumption)} icon="arrow-up" color={colors.expenseStrong} divider />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -430,15 +436,15 @@ function SectionTitle({ title, action }: { title: string; action?: React.ReactNo
   );
 }
 
-function FlowPill({ label, value, icon }: { label: string; value: string; icon: "arrow-down" | "arrow-up" }) {
+function FlowCol({ label, value, icon, color, divider }: { label: string; value: string; icon: "arrow-down" | "arrow-up"; color: string; divider?: boolean }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 15, paddingVertical: 8, paddingHorizontal: 11, gap: 2 }}>
+    <View style={{ flex: 1, gap: 2, paddingLeft: divider ? 14 : 0, borderLeftWidth: divider ? 1 : 0, borderLeftColor: colors.border }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-        <Ionicons name={icon} size={11} color={colors.onPrimaryMuted} />
-        <Text numberOfLines={1} style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium", flexShrink: 1 }}>{label}</Text>
+        <Ionicons name={icon} size={11} color={color} />
+        <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "AsapMedium", flexShrink: 1 }}>{label}</Text>
       </View>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 15.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color, fontSize: 17.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
     </View>
   );
 }

@@ -97,23 +97,40 @@ export default function PlanningScreen() {
           <Button title="Nuevo" icon="add" size="compact" onPress={() => router.push("/service/new" as never)} />
         </View>
       }>
-      {/* Resumen */}
-      <View style={{ backgroundColor: colors.primarySurface, borderRadius: 24, padding: 16, overflow: "hidden" }}>
-        <View style={{ position: "absolute", top: -40, right: -30, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.10)" }} />
-        <Text style={{ color: colors.onPrimaryMuted, fontSize: 12, fontFamily: "AsapMedium", letterSpacing: 1.2, textTransform: "uppercase" }}>Comprometido este ciclo</Text>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 30, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{formatSoles(s?.subscriptions.currentCycleTotal)}</Text>
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+      {/* Resumen editorial */}
+      <View style={{ paddingTop: 2, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 12 }}>
+        <View style={{ gap: 2 }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>Comprometido este ciclo</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 34, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
+            {formatSoles(s?.subscriptions.currentCycleTotal)}
+          </Text>
+        </View>
+        <View style={{ flexDirection: "row", paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
           <Stat label="Servicios" value={`${s?.subscriptions.active ?? activeOnly.length}`} sub={modules.people && sharedCount ? (sharedCount === 1 ? "1 compartido" : `${sharedCount} compartidos`) : "activos"} />
           {modules.people && (
-            <Stat label="Por cobrar" value={formatSoles(s?.receivable.pending)} sub={s && Number(s.receivable.overdue) > 0 ? `${formatSoles(s.receivable.overdue)} vencido` : "al día"} onPress={() => router.push("/contacts" as never)} />
+            <Stat
+              label="Por cobrar"
+              value={formatSoles(s?.receivable.pending)}
+              sub={s && Number(s.receivable.overdue) > 0 ? `${formatSoles(s.receivable.overdue)} vencido` : "al día"}
+              tone={s && Number(s.receivable.overdue) > 0 ? colors.warningStrong : Number(s?.receivable.pending ?? 0) > 0 ? colors.incomeStrong : undefined}
+              divider
+              onPress={() => router.push("/contacts" as never)}
+            />
           )}
         </View>
         {next && nextDays !== null && (
-          <TouchableOpacity onPress={() => router.push(`/service/${next.id}` as never)} accessibilityRole="button" hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-            style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, minHeight: 40, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
-            <Ionicons name="time-outline" size={16} color={colors.onPrimary} />
-            <Text numberOfLines={1} style={{ flex: 1, color: colors.onPrimary, fontSize: 13, fontFamily: "AsapMedium" }}>Próxima renovación: <Text style={{ fontFamily: "AsapBold" }}>{next.name} {whenText(nextDays)}</Text></Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.onPrimaryMuted} />
+          <TouchableOpacity
+            onPress={() => router.push(`/service/${next.id}` as never)}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 38, backgroundColor: `${colors.text}07`, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 11 }}
+          >
+            <Ionicons name="time-outline" size={15} color={colors.primary} />
+            <Text numberOfLines={1} style={{ flex: 1, color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>
+              Próxima renovación: <Text style={{ color: colors.text, fontFamily: "AsapBold" }}>{next.name} {whenText(nextDays)}</Text>
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.muted} />
           </TouchableOpacity>
         )}
       </View>
@@ -184,31 +201,27 @@ export default function PlanningScreen() {
   );
 }
 
-function Stat({ label, value, sub, onPress }: { label: string; value: string; sub: string; onPress?: () => void }) {
+function Stat({ label, value, sub, tone, divider, onPress }: { label: string; value: string; sub: string; tone?: string; divider?: boolean; onPress?: () => void }) {
   const { colors } = useAppTheme();
   const content = (
     <>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Text style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "AsapMedium" }}>{label}</Text>
-        {onPress && <Ionicons name="chevron-forward" size={12} color={colors.onPrimaryMuted} />}
+        <Text style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "AsapMedium" }}>{label}</Text>
+        {onPress && <Ionicons name="chevron-forward" size={13} color={colors.muted} />}
       </View>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.onPrimary, fontSize: 17, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
-      <Text numberOfLines={1} style={{ color: colors.onPrimaryMuted, fontSize: 11, fontFamily: "Asap" }}>{sub}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: tone ?? colors.text, fontSize: 18, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{value}</Text>
+      <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "Asap" }}>{sub}</Text>
     </>
   );
+  const style = { flex: 1, gap: 2, paddingLeft: divider ? 14 : 0, paddingRight: divider ? 0 : 12, borderLeftWidth: divider ? 1 : 0, borderLeftColor: colors.border };
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button"
-        style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.75} accessibilityRole="button" style={style}>
         {content}
       </TouchableOpacity>
     );
   }
-  return (
-    <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.18)", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10 }}>
-      {content}
-    </View>
-  );
+  return <View style={style}>{content}</View>;
 }
 
 /** Cuándo se renueva, dicho corto y con color si es pronto. */
