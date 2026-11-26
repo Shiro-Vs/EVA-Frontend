@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Switch, Text, TouchableOpacity, View, ViewStyle } from "react-native";
+import { ActivityIndicator, GestureResponderHandlers, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Switch, Text, TouchableOpacity, View, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,10 +29,10 @@ export function BackButton({ onPress }: { onPress?: () => void }) {
 }
 
 /** Pantalla con cabecera, contenido desplazable y, opcionalmente, un pie con la acción principal. */
-export function Screen({ title, children, back = true, right, footer, subtitle, scrollRef, refreshing, onRefresh, scrollEnabled = true }: { title: string; children: React.ReactNode; back?: boolean; right?: React.ReactNode; footer?: React.ReactNode; subtitle?: string; scrollRef?: React.RefObject<ScrollView | null>; refreshing?: boolean; onRefresh?: () => void; scrollEnabled?: boolean }) {
+export function Screen({ title, children, back = true, right, footer, subtitle, scrollRef, refreshing, onRefresh, scrollEnabled = true, panHandlers }: { title: string; children: React.ReactNode; back?: boolean; right?: React.ReactNode; footer?: React.ReactNode; subtitle?: string; scrollRef?: React.RefObject<ScrollView | null>; refreshing?: boolean; onRefresh?: () => void; scrollEnabled?: boolean; panHandlers?: GestureResponderHandlers }) {
   const { colors } = useAppTheme();
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} {...panHandlers}>
      {/* El teclado empuja la pantalla (con la barra de abajo de Android a pantalla completa no se redimensiona sola): así el campo enfocado nunca queda tapado. */}
      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 24, marginTop: 16, marginBottom: 12 }}>
@@ -46,7 +46,7 @@ export function Screen({ title, children, back = true, right, footer, subtitle, 
       <ScrollView
         ref={scrollRef}
         scrollEnabled={scrollEnabled}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 12 }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingBottom: footer ? 16 : 120, gap: 12 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets

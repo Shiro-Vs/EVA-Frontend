@@ -98,6 +98,7 @@ export default function LoansHubScreen() {
       back={false}
       refreshing={refreshing}
       onRefresh={onRefresh}
+      panHandlers={swipeHandlers}
       right={<Button title="Nuevo" icon="add" size="compact" onPress={() => router.push(newRoute as never)} />}
     >
       {/* Resumen superior */}
@@ -144,8 +145,7 @@ export default function LoansHubScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Sub-pestañas: Entre personas | Bancarios (deslizable izquierda/derecha) */}
-      <View {...swipeHandlers} style={{ gap: 14, flex: 1 }}>
+      {/* Sub-pestañas: Entre personas | Bancarios */}
       {modules.people && (
         <View style={{ flexDirection: "row", gap: 6, backgroundColor: `${colors.text}08`, borderRadius: 16, padding: 4 }}>
           {([
@@ -254,7 +254,6 @@ export default function LoansHubScreen() {
           ))}
         </View>
       )}
-      </View>
     </Screen>
   );
 }

@@ -83,9 +83,9 @@ export default function PlanScreen() {
       back={false}
       refreshing={refreshing}
       onRefresh={onRefresh}
+      panHandlers={swipeHandlers}
       right={<Button title="Nuevo" icon="add" size="compact" onPress={() => router.push(newRoute as never)} />}
     >
-      <View {...swipeHandlers} style={{ gap: 14, flex: 1 }}>
       {/* Selector de sub-pestañas */}
       <View style={{ flexDirection: "row", gap: 6, backgroundColor: `${colors.text}08`, borderRadius: 16, padding: 4 }}>
         {tabs.map((t) => {
@@ -247,7 +247,6 @@ export default function PlanScreen() {
           )}
         </>
       )}
-      </View>
     </Screen>
   );
 }
