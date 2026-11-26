@@ -277,24 +277,6 @@ export default function MoreScreen() {
           onPress: () => go("/settings/notifications"),
         },
         {
-          id: "categories",
-          icon: "pricetags-outline",
-          title: "Categorías",
-          text: "Categorías y subcategorías de tus movimientos",
-          keywords: "categorias subcategorias etiquetas organizar gastos ingresos",
-          section: "plan",
-          onPress: () => go("/categories"),
-        },
-        {
-          id: "classification-rules",
-          icon: "git-branch-outline",
-          title: "Reglas de clasificación",
-          text: "Asigna o sugiere categorías según texto o monto",
-          keywords: "reglas clasificacion categorias automatico uber texto monto",
-          section: "plan",
-          onPress: () => go("/rules"),
-        },
-        {
           id: "sender-rules",
           icon: "funnel-outline",
           title: "Reglas por remitente",
@@ -407,6 +389,8 @@ export default function MoreScreen() {
       { id: "capture", icon: "scan-outline", title: "Bandeja de captura", text: "Comprobantes y correos por revisar", keywords: "captura yape plin comprobantes correo foto pdf", section: "people", badge: pendingCount > 0 ? { text: `${pendingCount} pend.`, tone: "danger" } : null, onPress: () => go("/capture") },
       { id: "reports", icon: "bar-chart-outline", title: "Resumen mensual", text: "Flujo, resultado y PDF", keywords: "reporte informe mensual flujo pdf", section: "money", onPress: () => go("/reports") },
       { id: "export", icon: "download-outline", title: "Exportar", text: "CSV, Excel y PDF", keywords: "exportar descargar csv excel pdf datos", section: "money", onPress: () => go("/export") },
+      { id: "categories", icon: "pricetags-outline", title: "Categorías", text: "Categorías y subcategorías", keywords: "categorias subcategorias etiquetas organizar gastos ingresos", section: "plan", onPress: () => go("/categories") },
+      { id: "classification-rules", icon: "git-branch-outline", title: "Reglas", text: "Asigna o sugiere categorías solas", keywords: "reglas clasificacion categorias automatico uber texto monto", section: "plan", onPress: () => go("/rules") },
     ];
     return [...tools, ...groups.flatMap((g) => g.items)];
   }, [groups, pendingCount]);
@@ -545,6 +529,22 @@ export default function MoreScreen() {
                 icon="download-outline"
                 ink={colors.sections.money.ink}
                 onPress={() => go("/export")}
+              />
+            </View>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <ToolTile
+                title="Categorías"
+                text="Organiza gastos e ingresos"
+                icon="pricetags-outline"
+                ink={colors.sections.plan.ink}
+                onPress={() => go("/categories")}
+              />
+              <ToolTile
+                title="Reglas"
+                text="Clasifica automáticamente"
+                icon="git-branch-outline"
+                ink={colors.sections.plan.ink}
+                onPress={() => go("/rules")}
               />
             </View>
             <Card style={{ paddingVertical: 2, gap: 0 }}>

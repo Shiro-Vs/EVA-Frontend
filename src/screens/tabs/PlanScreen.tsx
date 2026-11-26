@@ -8,6 +8,7 @@ import { Button, Card, Chip, Empty, ErrorBox, Heading, Loading, Money, Notice, R
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync, useSubmit } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
+import { useHorizontalSwipe } from "../../hooks/useHorizontalSwipe";
 import { humanDate } from "../../utils/dates";
 import { cmpMoney, formatSoles } from "../../utils/money";
 
@@ -64,6 +65,18 @@ export default function PlanScreen() {
     { id: "recurring", label: "Recurrentes", badge: due > 0 ? due : undefined },
   ];
 
+  const tabOrder: PlanTab[] = ["budgets", "goals", "recurring"];
+  const swipeHandlers = useHorizontalSwipe({
+    onSwipeLeft: () => {
+      const idx = tabOrder.indexOf(tab);
+      if (idx < tabOrder.length - 1) setTab(tabOrder[idx + 1]!);
+    },
+    onSwipeRight: () => {
+      const idx = tabOrder.indexOf(tab);
+      if (idx > 0) setTab(tabOrder[idx - 1]!);
+    },
+  });
+
   return (
     <Screen
       title="Planificar"
@@ -72,6 +85,7 @@ export default function PlanScreen() {
       onRefresh={onRefresh}
       right={<Button title="Nuevo" icon="add" size="compact" onPress={() => router.push(newRoute as never)} />}
     >
+      <View {...swipeHandlers} style={{ gap: 14, flex: 1 }}>
       {/* Selector de sub-pestañas */}
       <View style={{ flexDirection: "row", gap: 6, backgroundColor: `${colors.text}08`, borderRadius: 16, padding: 4 }}>
         {tabs.map((t) => {
@@ -233,6 +247,7 @@ export default function PlanScreen() {
           )}
         </>
       )}
+      </View>
     </Screen>
   );
 }

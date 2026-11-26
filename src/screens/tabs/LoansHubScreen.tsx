@@ -9,6 +9,7 @@ import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
+import { useHorizontalSwipe } from "../../hooks/useHorizontalSwipe";
 import { humanDate } from "../../utils/dates";
 import { cmpMoney, formatSoles } from "../../utils/money";
 
@@ -85,6 +86,12 @@ export default function LoansHubScreen() {
 
   const newRoute = activeTab === "bank" ? "/bank-loans/new" : "/loans/new";
 
+  const swipeHandlers = useHorizontalSwipe({
+    enabled: modules.people,
+    onSwipeLeft: () => setTab("bank"),
+    onSwipeRight: () => setTab("people"),
+  });
+
   return (
     <Screen
       title="Préstamos"
@@ -137,7 +144,8 @@ export default function LoansHubScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Sub-pestañas: Entre personas | Bancarios */}
+      {/* Sub-pestañas: Entre personas | Bancarios (deslizable izquierda/derecha) */}
+      <View {...swipeHandlers} style={{ gap: 14, flex: 1 }}>
       {modules.people && (
         <View style={{ flexDirection: "row", gap: 6, backgroundColor: `${colors.text}08`, borderRadius: 16, padding: 4 }}>
           {([
@@ -246,6 +254,7 @@ export default function LoansHubScreen() {
           ))}
         </View>
       )}
+      </View>
     </Screen>
   );
 }

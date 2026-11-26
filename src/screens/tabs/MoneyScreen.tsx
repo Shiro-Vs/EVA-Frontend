@@ -9,7 +9,6 @@ import GeminiMark from "../../components/common/GeminiMark";
 import { ReorderableBankCards } from "../../components/v1/ReorderableBankCards";
 import { SelectField } from "../../components/v1/Select";
 import { Button, Chip, Empty, ErrorBox, Loading, Money, Screen, Txt } from "../../components/v1/ui";
-import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -41,7 +40,6 @@ function dateGroupLabel(iso: string, today: string): string {
 /** Pestaña Dinero: tu saldo, tus cuentas, avisos inteligentes y tus movimientos con búsqueda y agrupación por fecha. */
 export default function MoneyScreen() {
   const { colors } = useAppTheme();
-  const { modules } = useModules();
   const router = useRouter();
   const cardW = Math.min(224, Math.round(useWindowDimensions().width * 0.56));
   const cardH = Math.round(cardW / 1.586);
@@ -202,15 +200,9 @@ export default function MoneyScreen() {
         )}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -24 }} contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}>
-        {modules.loans && modules.people && (
-          <QuickPill icon="people-outline" iconColor={colors.sections.people.ink} label="Préstamos" onPress={() => router.push("/loans" as never)} />
-        )}
-        {modules.loans && (
-          <QuickPill icon="business-outline" iconColor={colors.sections.money.ink} label="Bancarios" onPress={() => router.push("/bank-loans" as never)} />
-        )}
+      <View style={{ flexDirection: "row" }}>
         <QuickPill icon="bar-chart-outline" iconColor={colors.primary} label="Resumen del mes" onPress={() => router.push("/reports" as never)} />
-      </ScrollView>
+      </View>
 
       <View style={{ gap: 6 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
