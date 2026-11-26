@@ -178,7 +178,7 @@ export default function DashboardScreen() {
   const goalsFree = goalsOv.data?.totals.free ?? "0.00";
   const hasGoalsReserved = cmpMoney(goalsReserved, "0.00") > 0;
 
-  // Tarjetas opcionales del panel (presupuestos y tarjetas si el usuario las activó; Mis cuentas ya vive en Dinero).
+  // Tarjetas opcionales del panel (presupuestos si el usuario las activó; Mis cuentas ya vive en Dinero).
   const renderExtraCard = (c: DashboardCard) => {
     if (c.id === "budgets") {
       const data = c.data as { budgets: Array<{ id: string; name: string; percent: number | null; level?: number | null; exceeded: boolean }> };
@@ -186,7 +186,7 @@ export default function DashboardScreen() {
       return (
         <View key={c.id} style={{ gap: 8 }}>
           <SectionTitle title="Presupuestos" action={<SeeAll label="Ver todos" onPress={() => go("/budgets")} />} />
-          <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 }}>
+          <View style={{ gap: 10 }}>
             {[...data.budgets].sort((a, b) => (b.percent ?? 0) - (a.percent ?? 0)).slice(0, 3).map((b) => (
               <BudgetBar key={b.id} name={b.name} percent={b.percent ?? 0} level={b.level ?? null} exceeded={b.exceeded} onPress={() => go(`/budgets/${b.id}`)} />
             ))}
@@ -276,29 +276,6 @@ export default function DashboardScreen() {
           ) : null}
         </View>
 
-        <View style={{ flexDirection: "row" }}>
-          <TouchableOpacity
-            onPress={() => go("/reports")}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel="Resumen del mes"
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              minHeight: 36,
-              paddingHorizontal: 12,
-              borderRadius: 99,
-              backgroundColor: colors.card,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <Ionicons name="bar-chart-outline" size={15} color={colors.primary} />
-            <Text style={{ color: colors.text, fontSize: 12.5, fontFamily: "AsapSemiBold" }}>Resumen del mes</Text>
-          </TouchableOpacity>
-        </View>
-
         <DailyTipCard refreshKey={tipRefreshKey} />
 
         {/* Gráfico protagonista del mes (Categorías + Balance, sin card) */}
@@ -314,26 +291,19 @@ export default function DashboardScreen() {
           />
         )}
 
-        {/* Próximos vencimientos en carrusel horizontal compacto */}
+        {/* Próximos vencimientos: lista limpia sin bordes ni cajas */}
         {upcoming.length > 0 && (
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: 4 }}>
             <SectionTitle title="Próximos vencimientos" />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginHorizontal: -24 }}
-              contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}
-              snapToInterval={136}
-              decelerationRate="fast"
-            >
-              {upcoming.map((item) => (
-                <UpcomingCard key={item.id} item={item} hidden={hidden} onPress={() => go(item.route)} />
+            <View>
+              {upcoming.map((item, i) => (
+                <UpcomingRow key={item.id} item={item} first={i === 0} hidden={hidden} onPress={() => go(item.route)} />
               ))}
-            </ScrollView>
+            </View>
           </View>
         )}
 
-        {/* Resumen compacto de metas (solo si tiene saldo reservado) */}
+        {/* Resumen compacto de metas (solo si tiene saldo reservado, sin borde) */}
         {hasGoalsReserved && (
           <TouchableOpacity
             onPress={() => go("/goals/accounts")}
@@ -344,10 +314,8 @@ export default function DashboardScreen() {
               alignItems: "center",
               justifyContent: "space-between",
               gap: 10,
-              backgroundColor: colors.card,
+              backgroundColor: `${colors.text}06`,
               borderRadius: 16,
-              borderWidth: 1,
-              borderColor: colors.border,
               paddingHorizontal: 14,
               paddingVertical: 11,
             }}
@@ -370,11 +338,11 @@ export default function DashboardScreen() {
         {/* Tarjetas extra opcionales (ej. presupuestos si el usuario los activó) */}
         {cards.map(renderExtraCard)}
 
-        {/* Últimos movimientos (hasta 5) */}
-        <View style={{ gap: 8 }}>
+        {/* Últimos movimientos (hasta 5): lista abierta sin borde ni caja */}
+        <View style={{ gap: 4 }}>
           <SectionTitle title="Últimos movimientos" action={<SeeAll label="Ver todo" onPress={() => go("/money")} />} />
           {recent.length === 0 ? (
-            <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 18, alignItems: "center", gap: 10 }}>
+            <View style={{ paddingVertical: 18, alignItems: "center", gap: 10 }}>
               <Ionicons name="receipt-outline" size={26} color={colors.muted} />
               <Text style={{ color: colors.textSecondary, fontSize: 13, fontFamily: "Asap", textAlign: "center" }}>
                 Aún no hay movimientos. Registra tu primer gasto o ingreso y aparecerá aquí.
@@ -382,7 +350,7 @@ export default function DashboardScreen() {
               <Button title="Registrar movimiento" icon="add" size="compact" variant="secondary" onPress={() => go("/operation/new")} />
             </View>
           ) : (
-            <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
+            <View>
               {recent.slice(0, 5).map((tx, i) => {
                 const meta = KIND[tx.kind];
                 const isTransfer = tx.kind === "transfer";
@@ -395,31 +363,28 @@ export default function DashboardScreen() {
                   <TouchableOpacity
                     key={tx.id}
                     onPress={() => go(`/operation/${tx.operationId}`)}
-                    activeOpacity={0.75}
+                    activeOpacity={0.7}
                     accessibilityRole="button"
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 12,
                       paddingVertical: 11,
-                      paddingHorizontal: 14,
                       borderTopWidth: i === 0 ? 0 : 1,
                       borderTopColor: colors.border,
                       opacity: tx.status === "reversed" ? 0.55 : 1,
                     }}
                   >
-                    <View style={{ width: 24, alignItems: "center", justifyContent: "center" }}>
-                      <Ionicons name={meta.icon} size={21} color={iconColor} />
-                    </View>
+                    <Ionicons name={meta.icon} size={21} color={iconColor} />
                     <View style={{ flex: 1 }}>
-                      <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontFamily: "AsapBold" }}>
+                      <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14.5, fontFamily: "AsapBold" }}>
                         {!tx.description?.trim() ? meta.label : LEGACY_REV_RE.test(tx.description.trim()) ? "Reversión de movimiento" : tx.description}
                       </Text>
-                      <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "Asap" }}>
+                      <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
                         {tx.occurredOn === s.asOf ? "Hoy" : humanDate(tx.occurredOn)} · {tx.to ? `${tx.account.name}${tx.account.deleted ? " (eliminada)" : ""} → ${tx.to}` : `${tx.account.name}${tx.account.deleted ? " (Cuenta eliminada)" : ""}`}
                       </Text>
                     </View>
-                    <Text style={{ color: amountColor, fontSize: 14, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+                    <Text style={{ color: amountColor, fontSize: 14.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
                       {hidden ? MASK : `${isTransfer ? "" : positive ? "+" : "-"}${formatSoles(absAmt)}`}
                     </Text>
                   </TouchableOpacity>
@@ -478,35 +443,31 @@ function FlowPill({ label, value, icon }: { label: string; value: string; icon: 
   );
 }
 
-function UpcomingCard({ item, hidden, onPress }: { item: UpcomingCardItem; hidden: boolean; onPress: () => void }) {
+function UpcomingRow({ item, first, hidden, onPress }: { item: UpcomingCardItem; first: boolean; hidden: boolean; onPress: () => void }) {
   const { colors } = useAppTheme();
-  const badgeColor = item.tone === "danger" ? colors.expenseStrong : item.tone === "warn" ? colors.warningStrong : colors.primary;
+  const toneColor = item.tone === "danger" ? colors.expenseStrong : item.tone === "warn" ? colors.warningStrong : colors.primary;
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
       accessibilityRole="button"
       style={{
-        width: 128,
-        backgroundColor: colors.card,
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: item.tone === "danger" ? `${colors.expenseStrong}40` : colors.border,
-        paddingHorizontal: 10,
-        paddingVertical: 9,
-        gap: 4,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingVertical: 11,
+        borderTopWidth: first ? 0 : 1,
+        borderTopColor: colors.border,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-        <Ionicons name={item.icon as IconName} size={15} color={badgeColor} />
-        <View style={{ paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 99, backgroundColor: `${badgeColor}18` }}>
-          <Text numberOfLines={1} style={{ color: badgeColor, fontSize: 9.5, fontFamily: "AsapBold" }}>
-            {item.badgeText}
-          </Text>
-        </View>
+      <Ionicons name={item.icon as IconName} size={20} color={toneColor} />
+      <View style={{ flex: 1, gap: 1 }}>
+        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14.5, fontFamily: "AsapBold" }}>{item.title}</Text>
+        <Text numberOfLines={1} style={{ color: item.tone === "danger" || item.tone === "warn" ? toneColor : colors.textSecondary, fontSize: 12, fontFamily: item.tone === "danger" ? "AsapSemiBold" : "Asap" }}>
+          {item.badgeText}
+        </Text>
       </View>
-      <Text numberOfLines={1} style={{ color: colors.text, fontSize: 12.5, fontFamily: "AsapSemiBold" }}>{item.title}</Text>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 14, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+      <Text style={{ color: colors.text, fontSize: 14.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
         {hidden ? MASK : formatSoles(item.amount)}
       </Text>
     </TouchableOpacity>
