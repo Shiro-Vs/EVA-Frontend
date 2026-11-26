@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -11,6 +11,7 @@ import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
+import { useHorizontalSwipe } from "../../hooks/useHorizontalSwipe";
 import { todayLocalIso } from "../../utils/dates";
 import { formatSoles } from "../../utils/money";
 import { getAdjustedColor, ServiceIcon } from "../../utils/serviceIcons";
@@ -39,6 +40,7 @@ export default function PlanningScreen() {
   const [view, setView] = useState<View_>("cards");
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const subs = useAsync(() => api.subscriptions(), []);
   const archivedSubs = useAsync(() => (filter === "archived" ? api.subscriptions("archived") : Promise.resolve<Subscription[]>([])), [filter === "archived"]);
@@ -71,17 +73,30 @@ export default function PlanningScreen() {
     .filter((s) => filter === "all" || filter === "archived" || s.mode === filter)
     .filter((s) => !q || s.name.toLowerCase().includes(q) || (s.provider ?? "").toLowerCase().includes(q))
     .sort((a, b) => (a.status === "suspended" ? 1 : 0) - (b.status === "suspended" ? 1 : 0) || (renewalOf(a) ?? "9999").localeCompare(renewalOf(b) ?? "9999") || a.name.localeCompare(b.name)), [source, filter, q]);
-  const showSearch = allActive.length >= 4 || (filter === "archived" && source.length >= 4) || query.length > 0;
+  const showSearch = searchOpen || query.length > 0;
   const next = useMemo(() => activeOnly.filter((s) => renewalOf(s)).sort((a, b) => renewalOf(a)!.localeCompare(renewalOf(b)!))[0], [activeOnly]);
   const nextDays = next ? daysUntil(renewalOf(next)!, today) : null;
   const sharedCount = activeOnly.filter((s) => s.mode === "shared").length;
+
+  const tabOrder: Filter[] = modules.people ? ["all", "shared", "personal"] : ["all", "archived"];
+  const swipeHandlers = useHorizontalSwipe({
+    enabled: filter !== "archived" || !modules.people,
+    onSwipeLeft: () => {
+      const idx = tabOrder.indexOf(filter);
+      if (idx >= 0 && idx < tabOrder.length - 1) setFilter(tabOrder[idx + 1]!);
+    },
+    onSwipeRight: () => {
+      const idx = tabOrder.indexOf(filter);
+      if (idx > 0) setFilter(tabOrder[idx - 1]!);
+    },
+  });
 
   if ((subs.loading && !subs.data) || (summary.loading && !summary.data)) return <Screen title="Servicios" back={false}><Loading /></Screen>;
   if (subs.error || summary.error) return <Screen title="Servicios" back={false}><ErrorBox message={(subs.error ?? summary.error)!} onRetry={reload} /></Screen>;
   const s = summary.data;
 
   return (
-    <Screen title="Servicios" back={false} subtitle={modules.people ? "Tus suscripciones y lo que cobras por ellas" : "Tus suscripciones personales"} refreshing={refreshing} onRefresh={onRefresh}
+    <Screen title="Servicios" back={false} subtitle={modules.people ? "Tus suscripciones y lo que cobras por ellas" : "Tus suscripciones personales"} refreshing={refreshing} onRefresh={onRefresh} panHandlers={swipeHandlers}
       right={
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           {modules.people && (
@@ -136,43 +151,90 @@ export default function PlanningScreen() {
         )}
       </EditorialHeaderCard>
 
-      {/* Filtros y vista */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: 6, alignItems: "center", paddingVertical: 2 }}>
-          {([["all", "Todos"], ["shared", "Compartidos"], ["personal", "Personales"], ["archived", "Archivados"]] as Array<[Filter, string]>).map(([id, label]) => {
-            const on = filter === id;
-            return (
-              <TouchableOpacity key={id} onPress={() => setFilter(id)} accessibilityRole="button" accessibilityState={{ selected: on }} hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
-                style={{ minHeight: 34, paddingHorizontal: 12, borderRadius: 99, justifyContent: "center", backgroundColor: on ? colors.primarySurface : `${colors.primary}12` }}>
-                <Text style={{ color: on ? colors.onPrimary : colors.primary, fontSize: 12, fontFamily: "AsapBold" }}>{label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-        <View style={{ flexDirection: "row", backgroundColor: colors.card, borderRadius: 12, padding: 3, borderWidth: 1, borderColor: colors.border }}>
-          {([["cards", "grid-outline", "Ver como tarjetas"], ["list", "list-outline", "Ver como lista"]] as Array<[View_, keyof typeof Ionicons.glyphMap, string]>).map(([id, icon, label]) => (
-            <TouchableOpacity key={id} onPress={() => chooseView(id)} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: view === id }} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-              style={{ width: 36, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: view === id ? colors.primarySurface : "transparent" }}>
-              <Ionicons name={icon} size={17} color={view === id ? colors.onPrimary : colors.textSecondary} />
+      {/* Sub-pestañas sin scroll horizontal */}
+      <View style={{ flexDirection: "row", gap: 6, backgroundColor: `${colors.text}08`, borderRadius: 16, padding: 4 }}>
+        {(modules.people
+          ? ([["all", "Todos"], ["shared", "Compartidos"], ["personal", "Personales"]] as Array<[Filter, string]>)
+          : ([["all", "Activos"], ["archived", "Archivados"]] as Array<[Filter, string]>)
+        ).map(([id, label]) => {
+          const on = filter === id;
+          return (
+            <TouchableOpacity
+              key={id}
+              onPress={() => setFilter(id)}
+              activeOpacity={0.75}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+              style={{ flex: 1, paddingVertical: 9, borderRadius: 12, alignItems: "center", backgroundColor: on ? colors.card : "transparent" }}
+            >
+              <Text numberOfLines={1} style={{ color: on ? colors.primary : colors.textSecondary, fontSize: 13, fontFamily: on ? "AsapBold" : "AsapMedium" }}>
+                {label}
+              </Text>
             </TouchableOpacity>
-          ))}
+          );
+        })}
+      </View>
+
+      {/* Controles compactos: título/estado + buscar, archivados y vista */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapSemiBold" }}>
+          {filter === "archived"
+            ? `Archivados (${list.length})`
+            : `${list.length} ${list.length === 1 ? "servicio" : "servicios"}`}
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <TouchableOpacity
+            onPress={() => {
+              setSearchOpen((prev) => {
+                if (prev && query) setQuery("");
+                return !prev;
+              });
+            }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={showSearch ? "Ocultar búsqueda" : "Buscar servicio"}
+            style={{ width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: showSearch ? `${colors.primary}18` : `${colors.text}08` }}
+          >
+            <Ionicons name="search-outline" size={17} color={showSearch ? colors.primary : colors.textSecondary} />
+          </TouchableOpacity>
+          {modules.people && (
+            <TouchableOpacity
+              onPress={() => setFilter(filter === "archived" ? "all" : "archived")}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel={filter === "archived" ? "Ver servicios activos" : "Ver archivados"}
+              style={{ width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: filter === "archived" ? `${colors.primary}18` : `${colors.text}08` }}
+            >
+              <Ionicons name="archive-outline" size={17} color={filter === "archived" ? colors.primary : colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            onPress={() => chooseView(view === "cards" ? "list" : "cards")}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={view === "cards" ? "Cambiar a vista de lista" : "Cambiar a vista de tarjetas"}
+            style={{ width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: `${colors.text}08` }}
+          >
+            <Ionicons name={view === "cards" ? "list-outline" : "grid-outline"} size={17} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
       </View>
 
       {showSearch && (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 42, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
-          <Ionicons name="search-outline" size={18} color={colors.muted} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 40, paddingHorizontal: 13, borderRadius: 14, backgroundColor: `${colors.text}07` }}>
+          <Ionicons name="search-outline" size={16} color={colors.muted} />
           <TextInput
             value={query}
             onChangeText={setQuery}
+            autoFocus={searchOpen && !query}
             placeholder="Buscar servicio o proveedor…"
             placeholderTextColor={colors.muted}
             returnKeyType="search"
-            style={{ flex: 1, color: colors.text, fontFamily: "Asap", fontSize: 14, paddingVertical: 8 }}
+            style={{ flex: 1, color: colors.text, fontFamily: query ? "AsapSemiBold" : "Asap", fontSize: 14, paddingVertical: 7 }}
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery("")} accessibilityRole="button" accessibilityLabel="Limpiar búsqueda" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close-circle" size={18} color={colors.muted} />
+              <Ionicons name="close-circle" size={17} color={colors.muted} />
             </TouchableOpacity>
           )}
         </View>
