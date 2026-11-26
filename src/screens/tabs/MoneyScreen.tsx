@@ -5,10 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api, errorMessage } from "../../api/client";
 import type { Account, OperationItem } from "../../api/types";
-import GeminiMark from "../../components/common/GeminiMark";
 import { ReorderableBankCards } from "../../components/v1/ReorderableBankCards";
 import { SelectField } from "../../components/v1/Select";
-import { Button, Chip, Empty, ErrorBox, Loading, Money, Screen, Txt } from "../../components/v1/ui";
+import { Button, Chip, Empty, ErrorBox, Loading, Screen, Txt } from "../../components/v1/ui";
 import { useAppTheme } from "../../hooks/useAppTheme";
 import { useAsync } from "../../hooks/useAsync";
 import { useFocusReload } from "../../hooks/useFocusReload";
@@ -139,6 +138,8 @@ export default function MoneyScreen() {
   };
 
   const [showArchived, setShowArchived] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showAccountFilter, setShowAccountFilter] = useState(false);
   const s = summary.data;
   const excludedCount = list.filter((a) => a.excludeFromTotal).length;
   const includedCount = s ? s.balance.accounts : list.length - excludedCount;
@@ -283,7 +284,7 @@ export default function MoneyScreen() {
         </View>
       )}
 
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 }}>
         <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>Movimientos</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           {uncatCount > 0 && (
@@ -291,51 +292,89 @@ export default function MoneyScreen() {
               onPress={() => router.push("/classify" as never)}
               activeOpacity={0.75}
               accessibilityRole="button"
-              style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 99, backgroundColor: `${colors.primary}14`, borderWidth: 1, borderColor: `${colors.primary}30` }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 99, backgroundColor: `${colors.primary}14` }}
             >
               <Ionicons name="pricetag-outline" size={12} color={colors.primary} />
               <Text style={{ color: colors.primary, fontSize: 11.5, fontFamily: "AsapBold" }}>
-                {uncatHasMore ? `${uncatCount}+` : uncatCount} sin categoría
+                {uncatHasMore ? `${uncatCount}+` : uncatCount} sin cat.
               </Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            onPress={() => router.push("/analysis" as never)}
+            onPress={() => {
+              setShowSearch((prev) => {
+                if (prev && search) setSearch("");
+                return !prev;
+              });
+            }}
             activeOpacity={0.75}
             accessibilityRole="button"
-            style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+            accessibilityLabel={showSearch ? "Ocultar búsqueda" : "Buscar movimientos"}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: showSearch || search ? `${colors.primary}18` : `${colors.text}08`,
+            }}
           >
-            <GeminiMark size={13} />
-            <Text style={{ color: colors.text, fontSize: 11.5, fontFamily: "AsapBold" }}>IA</Text>
+            <Ionicons name="search-outline" size={17} color={showSearch || search ? colors.primary : colors.textSecondary} />
           </TouchableOpacity>
+          {list.length > 1 && (
+            <TouchableOpacity
+              onPress={() => setShowAccountFilter((v) => !v)}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Filtrar por cuenta"
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: showAccountFilter || accountId ? `${colors.primary}18` : `${colors.text}08`,
+              }}
+            >
+              <Ionicons name="options-outline" size={17} color={showAccountFilter || accountId ? colors.primary : colors.textSecondary} />
+              {accountId && (
+                <View style={{ position: "absolute", top: 6, right: 6, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary }} />
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 42, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: search ? colors.borderStrong : colors.border }}>
-        <Ionicons name="search-outline" size={18} color={colors.muted} />
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Buscar por descripción…"
-          placeholderTextColor={`${colors.muted}73`}
-          returnKeyType="search"
-          style={{ flex: 1, color: colors.text, fontFamily: search ? "AsapSemiBold" : "AsapItalic", fontSize: 14, paddingVertical: 8 }}
-        />
-        {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch("")} accessibilityRole="button" accessibilityLabel="Limpiar búsqueda" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close-circle" size={18} color={colors.muted} />
-          </TouchableOpacity>
-        )}
-      </View>
+      {(showSearch || search.length > 0) && (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 40, paddingHorizontal: 13, borderRadius: 14, backgroundColor: `${colors.text}07` }}>
+          <Ionicons name="search-outline" size={16} color={colors.muted} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            autoFocus={showSearch && !search}
+            placeholder="Buscar por descripción…"
+            placeholderTextColor={colors.muted}
+            returnKeyType="search"
+            style={{ flex: 1, color: colors.text, fontFamily: search ? "AsapSemiBold" : "Asap", fontSize: 14, paddingVertical: 7 }}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")} accessibilityRole="button" accessibilityLabel="Limpiar búsqueda" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={17} color={colors.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -24, marginTop: -4 }} contentContainerStyle={{ paddingHorizontal: 24, gap: 8, paddingVertical: 2 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -24 }} contentContainerStyle={{ paddingHorizontal: 24, gap: 6, paddingVertical: 1 }}>
         {KINDS.map(([k, label]) => <FilterChip key={label} label={label} active={kind === k} onPress={() => setKind(k)} />)}
       </ScrollView>
-      {list.length > 1 && (
-        <View style={{ marginTop: -6, marginBottom: -8 }}>
+
+      {list.length > 1 && (showAccountFilter || accountId) && (
+        <View style={{ marginTop: -4, marginBottom: -4 }}>
           <SelectField value={accountId ?? "all"} options={accountOptions} onChange={(v) => setAccountId(v === "all" ? undefined : v)} />
         </View>
       )}
+
       {ops.loading && !ops.data ? <Loading /> : ops.error ? <ErrorBox message={ops.error} onRetry={ops.reload} /> : items.length === 0 ? (
         <Empty
           icon={debouncedSearch ? "search-outline" : "swap-vertical-outline"}
@@ -344,13 +383,13 @@ export default function MoneyScreen() {
           action={!debouncedSearch ? <Button title="Registrar movimiento" icon="add" onPress={() => router.push("/operation/new" as never)} /> : undefined}
         />
       ) : (
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: 14 }}>
           {grouped.map((g) => (
-            <View key={g.date} style={{ gap: 6 }}>
-              <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "AsapSemiBold", textTransform: "uppercase", letterSpacing: 1, marginLeft: 4 }}>
+            <View key={g.date} style={{ gap: 2 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "AsapSemiBold", textTransform: "uppercase", letterSpacing: 0.9, marginBottom: 2 }}>
                 {g.label}
               </Text>
-              <View style={{ backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14 }}>
+              <View>
                 {g.ops.map((o, i) => {
                   const fromName = o.accountName ?? (o.accountId ? accountById.get(o.accountId) : null) ?? "Cuenta";
                   const fromLabel = o.accountDeleted ? `${fromName} (eliminada)` : fromName;
@@ -415,24 +454,27 @@ const LEGACY_REV_RE = /^Reversión de [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-
 function OperationRow({ op, first, hidden, accountLabel, onPress }: { op: OperationItem; first: boolean; hidden: boolean; accountLabel: string | null; onPress: () => void }) {
   const { colors } = useAppTheme();
   const reversed = op.status === "reversed";
-  const tone = op.kind === "income" ? "income" : op.kind === "expense" ? "expense" : "muted";
-  const iconColor = op.kind === "income" ? colors.incomeStrong : op.kind === "expense" ? colors.expenseStrong : colors.textSecondary;
+  const isTransfer = op.kind === "transfer";
+  const isIncome = op.kind === "income";
+  const isExpense = op.kind === "expense";
+  const iconColor = isTransfer ? colors.primary : isIncome ? colors.incomeStrong : isExpense ? colors.expenseStrong : colors.textSecondary;
+  const amountColor = isTransfer ? colors.primary : isIncome ? colors.incomeStrong : isExpense ? colors.expenseStrong : colors.text;
+  const absAmt = op.amount.replace("-", "");
+  const sign = isTransfer ? "" : isIncome ? "+" : isExpense ? "-" : cmpMoney(op.amount, "0.00") < 0 ? "-" : "+";
   const subParts = [accountLabel, op.category?.name].filter(Boolean).join(" · ");
   const rawDesc = op.description?.trim() ?? "";
   const title = !rawDesc ? (OP_FALLBACK[op.kind] ?? "Movimiento") : LEGACY_REV_RE.test(rawDesc) ? "Reversión de movimiento" : rawDesc;
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.75} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 11, borderTopWidth: first ? 0 : 1, borderTopColor: colors.border, opacity: reversed ? 0.55 : 1 }}>
-      <Ionicons name={OP_ICON[op.kind] ?? "ellipse-outline"} size={20} color={iconColor} />
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11, borderTopWidth: first ? 0 : 1, borderTopColor: colors.border, opacity: reversed ? 0.55 : 1 }}>
+      <Ionicons name={OP_ICON[op.kind] ?? "ellipse-outline"} size={21} color={iconColor} />
       <View style={{ flex: 1, gap: 1 }}>
-        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 15, fontFamily: "AsapBold" }}>{title}</Text>
+        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14.5, fontFamily: "AsapBold" }}>{title}</Text>
         {subParts ? <Text numberOfLines={1} style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>{subParts}</Text> : null}
       </View>
       {reversed && <Chip status="reversed" label="Revertido" />}
-      {hidden ? (
-        <Text style={{ color: colors.textSecondary, fontSize: 15, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>{MASK}</Text>
-      ) : (
-        <Money value={op.amount} tone={tone} />
-      )}
+      <Text style={{ color: hidden ? colors.textSecondary : amountColor, fontSize: 14.5, fontFamily: "AsapBold", fontVariant: ["tabular-nums"] }}>
+        {hidden ? MASK : `${sign}${formatSoles(absAmt)}`}
+      </Text>
     </TouchableOpacity>
   );
 }
