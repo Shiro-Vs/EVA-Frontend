@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api, errorMessage } from "../../api/client";
 import type { Account, OperationItem } from "../../api/types";
+import { EditorialHeaderCard } from "../../components/v1/EditorialHeaderCard";
 import { ReorderableBankCards } from "../../components/v1/ReorderableBankCards";
 import { SelectField } from "../../components/v1/Select";
 import { Button, Chip, Empty, ErrorBox, Loading, Screen, Txt } from "../../components/v1/ui";
@@ -168,7 +169,7 @@ export default function MoneyScreen() {
 
   return (
     <Screen title="Dinero" back={false} scrollEnabled={!draggingCards} refreshing={refreshing} onRefresh={onRefresh} right={<Button title="Cuenta" icon="add" size="compact" onPress={() => router.push("/account/new" as never)} />}>
-      <View style={{ paddingTop: 2, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 4 }}>
+      <EditorialHeaderCard style={{ gap: 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>
             Saldo total · {includedCount} {includedCount === 1 ? "cuenta" : "cuentas"}{excludedCount > 0 ? ` (${excludedCount} excluida${excludedCount === 1 ? "" : "s"})` : ""}
@@ -183,7 +184,7 @@ export default function MoneyScreen() {
             <Ionicons name={hidden ? "eye-off-outline" : "eye-outline"} size={16} color={hidden ? colors.primary : colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 36, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 34, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
           {hidden ? MASK : s ? formatSoles(s.balance.net) : "…"}
         </Text>
         <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
@@ -200,7 +201,7 @@ export default function MoneyScreen() {
             </Text>
           </View>
         )}
-      </View>
+      </EditorialHeaderCard>
 
       <View style={{ gap: 6 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>

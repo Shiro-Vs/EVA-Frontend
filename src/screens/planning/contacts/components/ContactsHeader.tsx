@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { EditorialHeaderCard } from "../../../../components/v1/EditorialHeaderCard";
 import { useAppTheme } from "../../../../hooks/useAppTheme";
 import { formatSoles } from "../../../../utils/money";
 
@@ -17,11 +18,11 @@ export function ContactsHeader({ totalDeuda, count, debtorCount, onRemindPress }
   const none = debtorCount === 0;
 
   return (
-    <View style={{ paddingTop: 2, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+    <EditorialHeaderCard>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>Te deben</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: none ? colors.text : colors.incomeStrong, fontSize: 34, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: none ? colors.text : colors.incomeStrong, fontSize: 32, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
             {formatSoles(totalDeuda)}
           </Text>
           <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "Asap" }}>
@@ -35,6 +36,6 @@ export function ContactsHeader({ totalDeuda, count, debtorCount, onRemindPress }
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </EditorialHeaderCard>
   );
 }

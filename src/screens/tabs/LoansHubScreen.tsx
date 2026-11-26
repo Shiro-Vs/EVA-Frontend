@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { BankLoanListItem, Loan } from "../../api/types";
+import { EditorialHeaderCard } from "../../components/v1/EditorialHeaderCard";
 import { Button, Chip, Empty, ErrorBox, Loading, Screen, Txt } from "../../components/v1/ui";
 import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
@@ -101,14 +102,14 @@ export default function LoansHubScreen() {
       panHandlers={swipeHandlers}
       right={<Button title="Nuevo" icon="add" size="compact" onPress={() => router.push(newRoute as never)} />}
     >
-      {/* Resumen superior editorial */}
-      <View style={{ flexDirection: "row", paddingTop: 2, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+      {/* Resumen superior editorial sin borde */}
+      <EditorialHeaderCard style={{ flexDirection: "row" }}>
         {modules.people && (
           <View style={{ flex: 1, gap: 2, paddingRight: 12 }}>
             <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>
               Te deben
             </Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: cmpMoney(totalLent, "0.00") > 0 ? colors.incomeStrong : colors.text, fontSize: 26, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.4 }}>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: cmpMoney(totalLent, "0.00") > 0 ? colors.incomeStrong : colors.text, fontSize: 25, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.4 }}>
               {formatSoles(totalLent)}
             </Text>
             <Text style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "Asap" }}>
@@ -120,14 +121,14 @@ export default function LoansHubScreen() {
           <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: "AsapMedium" }}>
             Debes
           </Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 26, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.4 }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 25, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.4 }}>
             {formatSoles(totalOwed)}
           </Text>
           <Text style={{ color: colors.textSecondary, fontSize: 11.5, fontFamily: "Asap" }}>
             {openBorrowed.length + activeBank.length} {openBorrowed.length + activeBank.length === 1 ? "activo" : "activos"}
           </Text>
         </View>
-      </View>
+      </EditorialHeaderCard>
 
       {/* Acceso rápido a Personas (solo si Personas está activo) */}
       {modules.people && (

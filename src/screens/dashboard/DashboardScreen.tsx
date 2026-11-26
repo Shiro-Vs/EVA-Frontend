@@ -8,6 +8,7 @@ import { api } from "../../api/client";
 import type { DashboardCard, Summary } from "../../api/types";
 import BottomSheet from "../../components/common/BottomSheet";
 import DailyTipCard from "../../components/common/DailyTipCard";
+import { EditorialHeaderCard } from "../../components/v1/EditorialHeaderCard";
 import { Button, ErrorBox, SeeAll } from "../../components/v1/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
@@ -247,13 +248,13 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Saldo total, línea de crédito disponible y flujo del mes (estilo editorial limpio) */}
-        <View style={{ paddingTop: 4, paddingBottom: 6, gap: 10 }}>
+        {/* Saldo total, línea de crédito disponible y flujo del mes (tarjeta editorial sin borde) */}
+        <EditorialHeaderCard style={{ gap: 10 }}>
           <View style={{ gap: 2 }}>
             <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>
               Saldo total · {s.balance.accounts} {s.balance.accounts === 1 ? "cuenta" : "cuentas"}
             </Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 36, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 34, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
               {money(s.balance.net)}
             </Text>
           </View>
@@ -280,7 +281,7 @@ export default function DashboardScreen() {
               <FlowCol label={`Gastos · ${monthName}`} value={money(flow.consumption)} icon="arrow-up" color={colors.expenseStrong} divider />
             </TouchableOpacity>
           ) : null}
-        </View>
+        </EditorialHeaderCard>
 
         <DailyTipCard refreshKey={tipRefreshKey} />
 

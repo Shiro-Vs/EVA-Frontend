@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { api } from "../../api/client";
 import type { Interval, Subscription } from "../../api/types";
+import { EditorialHeaderCard } from "../../components/v1/EditorialHeaderCard";
 import { Button, Empty, ErrorBox, Loading, Screen } from "../../components/v1/ui";
 import { useModules } from "../../context/ModulesContext";
 import { useAppTheme } from "../../hooks/useAppTheme";
@@ -97,11 +98,11 @@ export default function PlanningScreen() {
           <Button title="Nuevo" icon="add" size="compact" onPress={() => router.push("/service/new" as never)} />
         </View>
       }>
-      {/* Resumen editorial */}
-      <View style={{ paddingTop: 2, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 12 }}>
+      {/* Resumen editorial sin borde */}
+      <EditorialHeaderCard style={{ gap: 12 }}>
         <View style={{ gap: 2 }}>
           <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontFamily: "AsapMedium" }}>Comprometido este ciclo</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 34, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: 32, fontFamily: "AsapBold", fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>
             {formatSoles(s?.subscriptions.currentCycleTotal)}
           </Text>
         </View>
@@ -133,7 +134,7 @@ export default function PlanningScreen() {
             <Ionicons name="chevron-forward" size={14} color={colors.muted} />
           </TouchableOpacity>
         )}
-      </View>
+      </EditorialHeaderCard>
 
       {/* Filtros y vista */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
