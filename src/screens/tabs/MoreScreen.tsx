@@ -286,15 +286,6 @@ export default function MoreScreen() {
           onPress: () => go("/categories"),
         },
         {
-          id: "classify",
-          icon: "help-circle-outline",
-          title: "Movimientos sin categoría",
-          text: "Clasifica lo que quedó pendiente",
-          keywords: "clasificar sin categoria ordenar movimientos pendientes",
-          section: "plan",
-          onPress: () => go("/classify"),
-        },
-        {
           id: "classification-rules",
           icon: "git-branch-outline",
           title: "Reglas de clasificación",
