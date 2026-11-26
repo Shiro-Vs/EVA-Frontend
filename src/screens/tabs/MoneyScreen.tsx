@@ -200,10 +200,6 @@ export default function MoneyScreen() {
         )}
       </View>
 
-      <View style={{ flexDirection: "row" }}>
-        <QuickPill icon="bar-chart-outline" iconColor={colors.primary} label="Resumen del mes" onPress={() => router.push("/reports" as never)} />
-      </View>
-
       <View style={{ gap: 6 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <Text style={{ color: colors.text, fontSize: 16, fontFamily: "AsapBold" }}>Mis cuentas</Text>
@@ -385,32 +381,6 @@ export default function MoneyScreen() {
       {moreError && <ErrorBox message={moreError} onRetry={loadMore} />}
       {cursor && <Button title="Ver más movimientos" variant="secondary" size="compact" busy={loadingMore} onPress={loadMore} />}
     </Screen>
-  );
-}
-
-function QuickPill({ icon, iconColor, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; iconColor: string; label: string; onPress: () => void }) {
-  const { colors } = useAppTheme();
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.75}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        minHeight: 36,
-        paddingHorizontal: 12,
-        borderRadius: 99,
-        backgroundColor: colors.card,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      <Ionicons name={icon} size={15} color={iconColor} />
-      <Text style={{ color: colors.text, fontSize: 12.5, fontFamily: "AsapSemiBold" }}>{label}</Text>
-    </TouchableOpacity>
   );
 }
 

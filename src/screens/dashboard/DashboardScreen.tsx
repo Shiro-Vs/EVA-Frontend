@@ -276,6 +276,29 @@ export default function DashboardScreen() {
           ) : null}
         </View>
 
+        <View style={{ flexDirection: "row" }}>
+          <TouchableOpacity
+            onPress={() => go("/reports")}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Resumen del mes"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              minHeight: 36,
+              paddingHorizontal: 12,
+              borderRadius: 99,
+              backgroundColor: colors.card,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Ionicons name="bar-chart-outline" size={15} color={colors.primary} />
+            <Text style={{ color: colors.text, fontSize: 12.5, fontFamily: "AsapSemiBold" }}>Resumen del mes</Text>
+          </TouchableOpacity>
+        </View>
+
         <DailyTipCard refreshKey={tipRefreshKey} />
 
         {/* Gráfico protagonista del mes (Categorías + Balance, sin card) */}
